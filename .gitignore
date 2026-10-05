@@ -1,0 +1,11 @@
+# Credenciales y configuración local (nunca al repositorio)
+.env
+config/credenciales.php
+*.p12
+
+# Archivos subidos por los salones (fotos, XML del SRI)
+uploads/
+
+# Copias de respaldo
+*.bak
+*.bak_*

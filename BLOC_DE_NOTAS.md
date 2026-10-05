@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 20:30
+Última actualización: 4 de octubre de 2026, 20:45
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -21,6 +21,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Ahorro en ambos casos: 16,7 %. El dominio es lo que hace que el anual convenga más que el semestral
 - [x] El dominio se registra a nombre de Tukán (si el salón no renueva, se le puede transferir cobrando el año)
 - [x] Prueba gratis: 7 días
+- [x] Servidor provisional: **tusalon.qfradioec.com** en el servidor qfcorp (PHP 8.3+ y PostgreSQL)
 
 ## Planes
 | Función | Básica $25 | Completa $35 |
@@ -39,18 +40,21 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 | Reportes | Del día | Rentabilidad por servicio y peluquero |
 
 ## Decisiones pendientes
-- [ ] Servidor: VPS del ERP o uno nuevo (mientras tanto se programa con PHP 8.3 + PostgreSQL, igual que el ERP)
 - [ ] Peluquería conocida para la primera prueba gratis
 
 ## Hecho
 - [x] Investigación de mercado (21 programas mundiales, 15 de Latinoamérica, contexto Ecuador)
 - [x] Revisión de precios de Beauty360Pro (competidor ecuatoriano): $14 / $29 / $49 al mes, solo mensual, sin descuento anual, 15 días de prueba, cobra con Payphone
 - [x] Definición de planes y precios
+- [x] Base de datos completa (`db/schema.sql`): salones, planes, suscripciones, 4 tipos de peluquero, reglas de pago, escalas, clientes privados, ficha técnica, citas, ventas, cuenta corriente, liquidaciones, caja, facturas importadas
+- [x] Lógica del dinero (`src/`): reparto por tipo, propinas, arriendo, anticipos, escalas, rol de pagos con IESS, liquidación, vista doble del dueño
+- [x] Prueba simulada "Barbería Don Pepe": **49 de 49 pruebas correctas**. Se metió un error a propósito y las pruebas lo detectaron
+- [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 
 ## Plan de trabajo
 1. [x] Repositorio qfcorp/tusalon en GitHub con este bloc de notas
-2. [ ] Base de datos con los 4 tipos de peluquero + prueba en entorno simulado
-3. [ ] Plan Básica: agenda, clientes, caja diaria, cálculo simple de los 4 tipos, WhatsApp con un clic
+2. [x] Base de datos con los 4 tipos de peluquero + prueba en entorno simulado
+3. [ ] **SIGUIENTE:** Plan Básica: pantallas de login, agenda, clientes, caja diaria, cálculo simple de los 4 tipos, WhatsApp con un clic; primera instalación en tusalon.qfradioec.com
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
 6. [ ] Completa 3: ficha técnica, inventario, fidelidad, importar facturas SRI, app del peluquero
