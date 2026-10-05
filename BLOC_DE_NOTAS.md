@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 20:25
+Última actualización: 4 de octubre de 2026, 20:30
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -19,6 +19,8 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Semestral: paga 5, recibe 6 (Básica $125, Completa $175) — sale a $20,83 y $29,17 al mes
 - [x] Anual: paga 10, recibe 12 (Básica $250, Completa $350) + dominio propio .com del salón mientras dure el contrato (~$10,46/año en Cloudflare)
 - [x] Ahorro en ambos casos: 16,7 %. El dominio es lo que hace que el anual convenga más que el semestral
+- [x] El dominio se registra a nombre de Tukán (si el salón no renueva, se le puede transferir cobrando el año)
+- [x] Prueba gratis: 7 días
 
 ## Planes
 | Función | Básica $25 | Completa $35 |
@@ -37,9 +39,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 | Reportes | Del día | Rentabilidad por servicio y peluquero |
 
 ## Decisiones pendientes
-- [ ] Dominio: ¿a nombre de quién se registra y qué pasa si el salón no renueva? (sugerido: a nombre de Tukán; si no renueva, se le transfiere pagando el año)
-- [ ] ¿Prueba gratis de 15 días?
-- [ ] Servidor: VPS del ERP o uno nuevo
+- [ ] Servidor: VPS del ERP o uno nuevo (mientras tanto se programa con PHP 8.3 + PostgreSQL, igual que el ERP)
 - [ ] Peluquería conocida para la primera prueba gratis
 
 ## Hecho
