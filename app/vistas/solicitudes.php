@@ -39,9 +39,15 @@ use TuSalon\Agenda;
                         <?php endif; ?>
                     </div>
                     <?php if ($puede): ?>
-                        <div class="acciones">
-                            <form method="post"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= $c['id'] ?>">
-                                <button class="boton boton-chico" name="accion" value="aceptar" type="submit">Aceptar</button></form>
+                        <div class="acciones acciones-solicitud">
+                            <form method="post" class="form-aceptar"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= $c['id'] ?>">
+                                <?php foreach ($c['lista_servicios'] as $sv): ?>
+                                    <label class="valor-aceptar"><span>Valor a cobrar<?= count($c['lista_servicios']) > 1 ? ' · ' . e($sv['nombre']) : '' ?></span>
+                                        <span class="con-signo">$<input type="number" name="precio[<?= (int) $sv['id'] ?>]" value="<?= e(number_format((float) $sv['precio'], 2, '.', '')) ?>"
+                                               step="0.01" min="0" inputmode="decimal" aria-label="Valor de <?= e($sv['nombre']) ?>"></span></label>
+                                <?php endforeach; ?>
+                                <button class="boton boton-chico" name="accion" value="aceptar" type="submit">Aceptar</button>
+                                <small>Al cliente le llega este valor en la confirmación.</small></form>
                             <form method="post"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= $c['id'] ?>">
                                 <button class="boton boton-peligro boton-chico" name="accion" value="rechazar" type="submit"
                                         data-confirmar="¿Rechazar la solicitud de <?= e($c['cliente']) ?>?">Rechazar</button></form>

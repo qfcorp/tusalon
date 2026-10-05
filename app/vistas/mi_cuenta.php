@@ -20,7 +20,10 @@ $slugUrl = e(rawurlencode($salon['slug'])); ?>
             <?php foreach ($proximas as $c): $ini = new DateTimeImmutable($c['inicio']); ?>
                 <li><div><div class="principal-linea"><?= Agenda::DIAS[(int) $ini->format('w')] ?> <?= $ini->format('j/n') ?> · <?= $ini->format('H:i') ?></div>
                     <div class="linea-sub"><?= e($c['servicios']) ?> con <?= e($c['profesional']) ?></div></div>
-                    <span class="etq etq-<?= e($c['estado']) ?>"><?= $c['estado'] === 'pendiente' ? 'Por confirmar' : 'Confirmada' ?></span></li>
+                    <div style="text-align:right">
+                        <span class="etq etq-<?= e($c['estado']) ?>"><?= $c['estado'] === 'pendiente' ? 'Por confirmar' : 'Confirmada' ?></span>
+                        <div><small><?= dinero($c['valor']) ?></small></div>
+                        <a class="enlace-chico" href="/?r=confirmar&amp;t=<?= e($c['token']) ?>">Confirmar, cambiar o cancelar</a></div></li>
             <?php endforeach; ?>
         </ul>
     <?php endif; ?>
@@ -37,7 +40,9 @@ $slugUrl = e(rawurlencode($salon['slug'])); ?>
                     <div style="display:flex;justify-content:space-between;gap:12px">
                         <div><div class="principal-linea"><?= e($h['servicios']) ?></div>
                             <div class="linea-sub"><?= $ini->format('d/m/Y') ?> · con <?= e($h['profesional']) ?></div></div>
-                        <span class="monto"><?= dinero($h['valor']) ?></span>
+                        <div style="text-align:right"><span class="monto"><?= dinero($h['valor']) ?></span>
+                            <?php if ($h['estrellas']): ?><div class="estrellas" aria-label="<?= (int) $h['estrellas'] ?> de 5"><?= str_repeat('★', (int) $h['estrellas']) ?></div>
+                            <?php elseif ($h['token']): ?><div><a class="enlace-chico" href="/?r=confirmar&amp;t=<?= e($h['token']) ?>">⭐ Calificar</a></div><?php endif; ?></div>
                     </div>
                     <?php if ($h['fotos']): ?>
                         <div class="galeria">
@@ -54,8 +59,40 @@ $slugUrl = e(rawurlencode($salon['slug'])); ?>
     <?php endif; ?>
 </section>
 
+<?php if ($tgDisponible): ?>
+<section class="bloque">
+    <h2>Avisos por Telegram</h2>
+    <?php if ($cliente['telegram_chat_id']): ?>
+        <p>Tu Telegram está conectado: te llega la confirmación con el valor y un recordatorio el día anterior para confirmar con un toque.</p>
+        <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="tg_desconectar">
+            <button class="boton boton-claro boton-chico" type="submit">Dejar de recibir avisos</button></form>
+    <?php elseif ($tgEnlace): ?>
+        <p>Toca el botón, se abrirá Telegram y presiona <strong>Iniciar</strong>.</p>
+        <a class="boton" href="<?= e($tgEnlace) ?>" target="_blank" rel="noopener">Abrir Telegram</a>
+    <?php else: ?>
+        <p>Recibe la confirmación de tus citas y un recordatorio el día anterior.</p>
+        <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="tg_conectar">
+            <button class="boton" type="submit">Conectar mi Telegram</button></form>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
+
 <form method="post" class="bloque">
-    <?= campo_csrf() ?>
+    <?= campo_csrf() ?><input type="hidden" name="accion" value="cumple">
+    <h2>Tu cumpleaños <small class="suave">(opcional)</small></h2>
+    <div class="fila-cumple">
+        <select name="cumple_dia" aria-label="Día"><option value="">Día</option>
+            <?php for ($i = 1; $i <= 31; $i++): ?><option value="<?= $i ?>" <?= (int) $cliente['cumple_dia'] === $i ? 'selected' : '' ?>><?= $i ?></option><?php endfor; ?></select>
+        <select name="cumple_mes" aria-label="Mes"><option value="">Mes</option>
+            <?php foreach (['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'] as $i => $m): ?>
+                <option value="<?= $i + 1 ?>" <?= (int) $cliente['cumple_mes'] === $i + 1 ? 'selected' : '' ?>><?= $m ?></option><?php endforeach; ?></select>
+        <button class="boton boton-chico" type="submit">Guardar</button>
+    </div>
+    <small class="suave">Solo el día y el mes, para saludarte. 🎂</small>
+</form>
+
+<form method="post" class="bloque">
+    <?= campo_csrf() ?><input type="hidden" name="accion" value="fotos">
     <h2>Fotos de tus servicios</h2>
     <label class="opcion"><input type="checkbox" name="acepta_fotos" value="1" <?= $cliente['acepta_fotos'] ? 'checked' : '' ?> onchange="this.form.submit()">
         <span><strong>El salón puede guardar fotos de mis cortes</strong><small>Solo las ven tú y el salón.</small></span></label>

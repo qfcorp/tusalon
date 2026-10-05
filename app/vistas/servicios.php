@@ -1,6 +1,7 @@
 <?php
-$campos = function (array $s, string $sufijo) {
+$campos = function (array $s, string $sufijo) use ($profesionales, $quienHace) {
     $pago = $s['pago_profesional'] ?? null;
+    $quien = isset($s['id']) ? ($quienHace[(int) $s['id']] ?? []) : [];
     ob_start(); ?>
     <div class="campo"><label for="n<?= $sufijo ?>">Nombre del servicio</label>
         <input type="text" id="n<?= $sufijo ?>" name="nombre" value="<?= e($s['nombre'] ?? '') ?>" placeholder="Corte degradado" required></div>
@@ -18,6 +19,27 @@ $campos = function (array $s, string $sufijo) {
             <input type="checkbox" name="reserva_online" value="1" <?= ($s['reserva_online'] ?? true) ? 'checked' : '' ?>>
             <span><strong>Se puede reservar en línea</strong></span></label>
     </div>
+    <div class="campo"><label for="x<?= $sufijo ?>">Explicación para el cliente <small>(opcional)</small></label>
+        <textarea id="x<?= $sufijo ?>" name="descripcion" rows="3" maxlength="600"
+                  placeholder="Qué incluye, cómo se hace, qué resultado esperar. Ej.: Lavado, corte con máquina y tijera, perfilado de barba y peinado."><?= e($s['descripcion'] ?? '') ?></textarea>
+        <small>El cliente la ve al reservar, junto con la duración.</small></div>
+    <?php if ($profesionales): ?>
+    <input type="hidden" name="quien_enviado" value="1">
+    <fieldset class="campo quien-hace">
+        <legend>¿Quién lo hace? <small>(y precio si es distinto)</small></legend>
+        <?php foreach ($profesionales as $p):
+            $pid = (int) $p['id'];
+            $marcado = !$quien || array_key_exists($pid, $quien); ?>
+            <div class="fila-quien">
+                <label class="opcion"><input type="checkbox" name="hace[<?= $pid ?>]" value="1" <?= $marcado ? 'checked' : '' ?>>
+                    <span><?= e($p['nombre']) ?></span></label>
+                <input type="number" name="precio_prof[<?= $pid ?>]" value="<?= e($quien[$pid] ?? '') ?>" step="0.01" min="0"
+                       placeholder="Normal" aria-label="Precio de <?= e($p['nombre']) ?>">
+            </div>
+        <?php endforeach; ?>
+        <small>Desmarca a quien no lo hace. Deja el precio vacío para usar el precio normal.</small>
+    </fieldset>
+    <?php endif; ?>
     <?php return ob_get_clean();
 };
 ?>
@@ -43,7 +65,7 @@ $campos = function (array $s, string $sufijo) {
                     <td>
                         <details>
                             <summary style="cursor:pointer"><strong><?= e($s['nombre']) ?></strong>
-                                <br><small><?= (int) $s['duracion_minutos'] ?> min<?= $s['reserva_online'] ? ' · en línea' : '' ?><?= $s['activo'] ? '' : ' · oculto' ?></small></summary>
+                                <br><small><?= (int) $s['duracion_minutos'] ?> min<?= $s['reserva_online'] ? ' · en línea' : '' ?><?= $s['activo'] ? '' : ' · oculto' ?><?= !empty($quienHace[(int) $s['id']]) ? ' · solo ' . count($quienHace[(int) $s['id']]) . ' peluquero(s)' : '' ?></small></summary>
                             <form method="post" style="margin-top:10px;min-width:260px">
                                 <?= campo_csrf() ?>
                                 <input type="hidden" name="accion" value="editar">

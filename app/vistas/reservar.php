@@ -42,6 +42,10 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
 <form method="post" class="reserva" id="form-reserva" data-salon="<?= e($salon['slug']) ?>" novalidate>
     <?= campo_csrf() ?>
     <?php if ($error): ?><p class="aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
+    <?php if ($citaVieja): $vi = new DateTimeImmutable($citaVieja['inicio']); ?>
+        <p class="aviso" role="status">Estás cambiando tu cita del <strong><?= $vi->format('d/m') ?> a las <?= $vi->format('H:i') ?></strong>.
+            Elige la nueva hora; la anterior se libera cuando reserves la nueva.</p>
+    <?php endif; ?>
 
     <fieldset class="bloque paso">
         <legend><span class="paso-num">1</span> ¿Con quién?</legend>
@@ -58,15 +62,21 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
 
     <fieldset class="bloque paso">
         <legend><span class="paso-num">2</span> ¿Qué te vas a hacer?</legend>
-        <div class="opciones">
+        <label class="etiqueta" for="servicio">Servicio</label>
+        <select id="servicio" name="servicio" required class="select-servicio">
+            <option value="">Elige un servicio…</option>
             <?php foreach ($servicios as $s): ?>
-                <label class="opcion">
-                    <input type="radio" name="servicio" value="<?= $s['id'] ?>" data-min="<?= (int) $s['duracion_minutos'] ?>" <?= $d['servicio'] === (int) $s['id'] ? 'checked' : '' ?> required>
-                    <span style="flex:1"><strong><?= e($s['nombre']) ?></strong><small><?= (int) $s['duracion_minutos'] ?> min</small></span>
-                    <strong><?= dinero($s['precio']) ?></strong>
-                </label>
+                <option value="<?= $s['id'] ?>" data-min="<?= (int) $s['duracion_minutos'] ?>" data-precio="<?= e($s['precio']) ?>"
+                        data-desc="<?= e($s['descripcion'] ?? '') ?>" <?= $d['servicio'] === (int) $s['id'] ? 'selected' : '' ?>>
+                    <?= e($s['nombre']) ?> · <?= (int) $s['duracion_minutos'] ?> min · <?= dinero($s['precio']) ?></option>
             <?php endforeach; ?>
-        </div>
+        </select>
+        <p class="suave ayuda-servicio">Deja el mouse sobre un servicio para ver qué incluye y cuánto dura. En el celular toca <b>ⓘ</b>.</p>
+        <div class="servicio-elegido" id="servicio-elegido" hidden></div>
+        <script type="application/json" id="datos-reserva"><?= json_encode([
+            'porProfesional' => (object) array_map(fn($m) => (object) $m, $porProfesional),
+            'dias' => (object) $diasProfesional,
+        ], JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
     </fieldset>
 
     <fieldset class="bloque paso">
@@ -76,7 +86,7 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
                 $f = new DateTimeImmutable("+$i days");
                 $abierto = isset($horario[(int) $f->format('w')]);
                 $valor = $f->format('Y-m-d'); ?>
-                <label class="dia <?= $abierto ? '' : 'cerrado' ?>">
+                <label class="dia <?= $abierto ? '' : 'cerrado' ?>" data-dow="<?= (int) $f->format('w') ?>">
                     <input type="radio" name="fecha" value="<?= $valor ?>" <?= $abierto ? '' : 'disabled' ?> <?= $d['fecha'] === $valor && $abierto ? 'checked' : '' ?>>
                     <span class="dia-sem"><?= $i === 0 ? 'Hoy' : ($i === 1 ? 'Mañana' : $diasCortos[(int) $f->format('w')]) ?></span>
                     <span class="dia-num"><?= (int) $f->format('j') ?></span>
@@ -117,6 +127,22 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
                 <input type="email" id="email" name="email" value="<?= e($d['email']) ?>" autocomplete="email"></div>
             <div class="campo"><label for="clave">Crea una contraseña <small>(mínimo 8 caracteres)</small></label>
                 <input type="password" id="clave" name="clave" autocomplete="new-password" minlength="8"></div>
+            <fieldset class="campo cumple">
+                <legend>Tu cumpleaños <small>(opcional, sin el año)</small></legend>
+                <div class="fila-cumple">
+                    <select name="cumple_dia" aria-label="Día de tu cumpleaños">
+                        <option value="">Día</option>
+                        <?php for ($i = 1; $i <= 31; $i++): ?><option value="<?= $i ?>" <?= $d['cumple_dia'] === $i ? 'selected' : '' ?>><?= $i ?></option><?php endfor; ?>
+                    </select>
+                    <select name="cumple_mes" aria-label="Mes de tu cumpleaños">
+                        <option value="">Mes</option>
+                        <?php foreach (['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'] as $i => $m): ?>
+                            <option value="<?= $i + 1 ?>" <?= $d['cumple_mes'] === $i + 1 ? 'selected' : '' ?>><?= $m ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <small>Para saludarte en tu día. 🎂</small>
+            </fieldset>
             <label class="opcion" style="margin-bottom:14px"><input type="checkbox" name="acepta_fotos" value="1" <?= $d['acepta_fotos'] ? 'checked' : '' ?>>
                 <span><strong>El salón puede guardar fotos de mis cortes</strong><small>Las verás solo tú y el salón, en tu historial. Puedes cambiarlo cuando quieras.</small></span></label>
         </div>

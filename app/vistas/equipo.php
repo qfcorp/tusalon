@@ -19,6 +19,8 @@ $resumenRegla = function (array $p) use ($num): string {
     <h1>Equipo</h1>
     <div class="acciones">
         <a class="boton boton-claro boton-chico" href="<?= e(url('clientes')) ?>">Clientes</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('reporte')) ?>">Reporte del mes</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('servicios')) ?>">Servicios</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('horario')) ?>">Horario y reservas</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
@@ -38,6 +40,7 @@ $resumenRegla = function (array $p) use ($num): string {
                     <div style="flex:1">
                         <div class="principal-linea"><?= e($p['nombre']) ?> <span class="etq etq-<?= e($p['tipo']) ?>"><?= $tipos[$p['tipo']] ?></span></div>
                         <div class="linea-sub"><?= e($resumenRegla($p)) ?></div>
+                        <a class="enlace-chico" href="<?= e(url('horario_peluquero', ['p' => $p['id']])) ?>">🗓 Horario, almuerzo y vacaciones</a>
                         <?php if ($p['tipo'] !== 'dueno'): ?>
                             <details style="margin-top:6px">
                                 <summary style="cursor:pointer;font-size:.9rem;color:var(--verde)">

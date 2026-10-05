@@ -15,10 +15,16 @@
                 <label for="telefono">Celular</label>
                 <input type="tel" id="telefono" name="telefono" value="<?= e($cliente['telefono']) ?>" placeholder="0991234567">
             </div>
-            <div class="campo">
-                <label for="fecha_nacimiento">Cumpleaños</label>
-                <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" value="<?= e($cliente['fecha_nacimiento']) ?>">
-            </div>
+            <fieldset class="campo cumple">
+                <legend>Cumpleaños <small>(día y mes)</small></legend>
+                <div class="fila-cumple">
+                    <select name="cumple_dia" aria-label="Día del cumpleaños"><option value="">Día</option>
+                        <?php for ($i = 1; $i <= 31; $i++): ?><option value="<?= $i ?>" <?= (int) $cliente['cumple_dia'] === $i ? 'selected' : '' ?>><?= $i ?></option><?php endfor; ?></select>
+                    <select name="cumple_mes" aria-label="Mes del cumpleaños"><option value="">Mes</option>
+                        <?php foreach (['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'] as $i => $m): ?>
+                            <option value="<?= $i + 1 ?>" <?= (int) $cliente['cumple_mes'] === $i + 1 ? 'selected' : '' ?>><?= $m ?></option><?php endforeach; ?></select>
+                </div>
+            </fieldset>
         </div>
         <div class="campo">
             <label for="email">Correo <small>(opcional)</small></label>
@@ -40,6 +46,14 @@
 
     <?php if ($id): ?>
     <section class="bloque">
+        <?php if ($faltas > 0): ?>
+            <div class="aviso <?= $maxFaltas > 0 && $faltas >= $maxFaltas ? 'aviso-error' : '' ?>" style="margin-bottom:14px">
+                <strong><?= $faltas ?> <?= $faltas === 1 ? 'falta' : 'faltas' ?></strong> (citas a las que no llegó sin avisar).
+                <?php if ($maxFaltas > 0 && $faltas >= $maxFaltas): ?>No puede reservar en línea.<?php endif; ?>
+                <form method="post" style="margin-top:8px"><?= campo_csrf() ?><input type="hidden" name="accion" value="perdonar">
+                    <button class="boton boton-claro boton-chico" type="submit">Perdonar faltas</button></form>
+            </div>
+        <?php endif; ?>
         <h2>Visitas</h2>
         <?php if (!$historial): ?>
             <p class="suave">Todavía no tiene citas.</p>

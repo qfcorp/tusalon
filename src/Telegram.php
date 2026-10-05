@@ -107,13 +107,72 @@ final class Telegram
         return $enviados;
     }
 
+    /** Texto simple a varios usuarios del salón que tengan Telegram conectado. */
+    public function textoAUsuarios(array $usuarioIds, string $texto): int
+    {
+        if (!self::configurado() || !$usuarioIds) return 0;
+        $in = implode(',', array_fill(0, count($usuarioIds), '?'));
+        $st = $this->db->prepare("SELECT telegram_chat_id FROM usuarios WHERE id IN ($in) AND activo AND telegram_chat_id IS NOT NULL");
+        $st->execute(array_values($usuarioIds));
+        $n = 0;
+        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $chat) {
+            if ($this->api('sendMessage', ['chat_id' => (int) $chat, 'text' => $texto]) !== null) $n++;
+        }
+        return $n;
+    }
+
+    /** Enlace para que un CLIENTE con cuenta conecte su Telegram (recordatorios y confirmación). */
+    public function enlaceCliente(int $clienteId): ?string
+    {
+        if (!self::configurado()) return null;
+        $codigo = 'c' . bin2hex(random_bytes(12));
+        $this->db->prepare('UPDATE clientes SET telegram_codigo = ? WHERE id = ?')->execute([$codigo, $clienteId]);
+        return 'https://t.me/' . getenv('TELEGRAM_BOT_USERNAME') . '?start=' . $codigo;
+    }
+
+    public function desconectarCliente(int $clienteId): void
+    {
+        $this->db->prepare('UPDATE clientes SET telegram_chat_id = NULL, telegram_codigo = NULL WHERE id = ?')->execute([$clienteId]);
+    }
+
+    /** Mensaje al cliente (si conectó su Telegram). $citaId agrega botones Confirmo / Cancelar. */
+    public function enviarACliente(?int $chatId, string $texto, ?int $citaIdBotones = null): bool
+    {
+        if (!self::configurado() || !$chatId) return false;
+        $datos = ['chat_id' => $chatId, 'text' => $texto];
+        if ($citaIdBotones) {
+            $datos['reply_markup'] = ['inline_keyboard' => [[
+                ['text' => 'Confirmo que voy ✅', 'callback_data' => "cc:$citaIdBotones"],
+                ['text' => 'Cancelar cita', 'callback_data' => "cx:$citaIdBotones"],
+            ]]];
+        }
+        return $this->api('sendMessage', $datos) !== null;
+    }
+
+    /** Cuando el salón acepta, el cliente recibe la confirmación con el valor a cancelar. */
+    public function confirmacionAlCliente(int $salonId, int $citaId): bool
+    {
+        $agenda = new Agenda($this->db);
+        $c = $agenda->cita($salonId, $citaId);
+        if (!$c || !$c['cliente_telegram']) return false;
+        return $this->enviarACliente((int) $c['cliente_telegram'], '✅ ' . $agenda->mensajeConfirmacion($c, $c['salon'], Agenda::urlBase()));
+    }
+
     /** Procesa lo que Telegram envía al sistema (webhook): conexión y botones. */
     public function procesar(array $update): void
     {
         // 1) /start <código>: conectar el Telegram de un usuario
         if (isset($update['message']['text'], $update['message']['chat']['id'])) {
             $chat = (int) $update['message']['chat']['id'];
-            if (preg_match('/^\/start\s+([a-f0-9]{24})$/', trim($update['message']['text']), $m)) {
+            if (preg_match('/^\/start\s+c([a-f0-9]{24})$/', trim($update['message']['text']), $m)) {
+                $st = $this->db->prepare('UPDATE clientes SET telegram_chat_id = ?, telegram_codigo = NULL
+                                           WHERE telegram_codigo = ? RETURNING nombre');
+                $st->execute([$chat, 'c' . $m[1]]);
+                $nombre = $st->fetchColumn();
+                $this->api('sendMessage', ['chat_id' => $chat, 'text' => $nombre
+                    ? 'Listo, ' . explode(' ', trim((string) $nombre))[0] . '. Aquí te llegará la confirmación de tus citas y un recordatorio el día anterior.'
+                    : 'Ese enlace ya se usó o caducó. Genera uno nuevo desde tu cuenta.']);
+            } elseif (preg_match('/^\/start\s+([a-f0-9]{24})$/', trim($update['message']['text']), $m)) {
                 $st = $this->db->prepare('UPDATE usuarios SET telegram_chat_id = ?, telegram_codigo = NULL
                                            WHERE telegram_codigo = ? AND activo RETURNING nombre');
                 $st->execute([$chat, $m[1]]);
@@ -133,7 +192,9 @@ final class Telegram
             $q = $update['callback_query'];
             $chat = (int) ($q['message']['chat']['id'] ?? 0);
             $respuesta = 'No se pudo procesar.';
-            if (preg_match('/^(ac|re):(\d+)$/', (string) ($q['data'] ?? ''), $m)) {
+            if (preg_match('/^(cc|cx):(\d+)$/', (string) ($q['data'] ?? ''), $m)) {
+                $respuesta = $this->botonCliente($chat, (int) $m[2], $m[1] === 'cc', $q);
+            } elseif (preg_match('/^(ac|re):(\d+)$/', (string) ($q['data'] ?? ''), $m)) {
                 $st = $this->db->prepare('SELECT * FROM usuarios WHERE telegram_chat_id = ? AND activo');
                 $st->execute([$chat]);
                 $usuarios = $st->fetchAll();
@@ -153,12 +214,37 @@ final class Telegram
                         $respuesta = $m[1] === 'ac' ? 'Cita aceptada ✅' : 'Solicitud rechazada';
                         $texto = ($q['message']['text'] ?? '') . "\n\n" . ($m[1] === 'ac' ? '✅ Aceptada' : '❌ Rechazada') . " por {$usr['nombre']}";
                         $this->api('editMessageText', ['chat_id' => $chat, 'message_id' => $q['message']['message_id'] ?? 0, 'text' => $texto]);
+                        if ($m[1] === 'ac') $this->confirmacionAlCliente($salonId, $citaId);
                     } catch (\RuntimeException $e) {
                         $respuesta = $e->getMessage();
                     }
                 }
             }
             $this->api('answerCallbackQuery', ['callback_query_id' => $q['id'] ?? '', 'text' => $respuesta]);
+        }
+    }
+
+    /** El cliente toca "Confirmo" o "Cancelar" en el recordatorio. Solo vale desde el Telegram del dueño de la cita. */
+    private function botonCliente(int $chat, int $citaId, bool $confirmar, array $q): string
+    {
+        $st = $this->db->prepare('SELECT c.id FROM citas c JOIN clientes cl ON cl.id = c.cliente_id
+                                   WHERE c.id = ? AND cl.telegram_chat_id = ?');
+        $st->execute([$citaId, $chat]);
+        if (!$st->fetchColumn()) return 'Esta cita no está a tu nombre.';
+        $agenda = new Agenda($this->db);
+        try {
+            if ($confirmar) {
+                $agenda->confirmarPorCliente($citaId);
+                $fin = '✅ Confirmaste tu cita. ¡Te esperamos!';
+            } else {
+                $agenda->cancelarPorCliente($citaId);
+                $fin = '❌ Cancelaste tu cita. Gracias por avisar.';
+            }
+            $this->api('editMessageText', ['chat_id' => $chat, 'message_id' => $q['message']['message_id'] ?? 0,
+                'text' => ($q['message']['text'] ?? '') . "\n\n" . $fin]);
+            return $confirmar ? 'Cita confirmada' : 'Cita cancelada';
+        } catch (\RuntimeException $e) {
+            return $e->getMessage();
         }
     }
 }

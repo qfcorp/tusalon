@@ -11,4 +11,8 @@ $pendientes = array_values(array_filter($citas, fn($c) => in_array($c['estado'],
 $atendidas = count(array_filter($citas, fn($c) => $c['estado'] === 'atendida'));
 
 $solicitudes = count($agendaObj = (new Agenda(db()))->solicitudes($sid, $u));
-vista('inicio', compact('citas', 'caja', 'resumen', 'pendientes', 'atendidas', 'solicitudes'), 'Hoy · TuSalón');
+$auto = new TuSalon\Automaticas(db());
+$ahora = new DateTimeImmutable();
+$porRecordar = count(array_filter($auto->recordatoriosManana($sid, $ahora), fn($c) => !$c['recordatorio_en'] && !$c['confirmada_cliente_en']));
+$cumpleHoy = count(array_filter($auto->cumpleanosHoy($sid, $ahora), fn($c) => !$c['saludado']));
+vista('inicio', compact('citas', 'caja', 'resumen', 'pendientes', 'atendidas', 'solicitudes', 'porRecordar', 'cumpleHoy'), 'Hoy · TuSalón');

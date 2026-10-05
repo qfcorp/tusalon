@@ -18,6 +18,18 @@ final class Agenda
 
     public function __construct(private PDO $db) {}
 
+    /** Dirección pública del sistema (para enlaces en mensajes). */
+    public static function urlBase(): string
+    {
+        $env = (string) getenv('TUSALON_URL');
+        if ($env !== '') return rtrim($env, '/');
+        if (!empty($_SERVER['HTTP_HOST'])) {
+            $https = ($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+            return ($https ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+        }
+        return 'https://tusalon.qfradioec.com';
+    }
+
     // ------------------------------------------------------------------
     // Horario del salón
     // ------------------------------------------------------------------
@@ -85,8 +97,7 @@ final class Agenda
     public function horasDelDia(int $salonId, int $profesionalId, string $fecha, int $minutos, ?\DateTimeImmutable $ahora = null): array
     {
         $ahora ??= new \DateTimeImmutable();
-        $dia = (int) (new \DateTimeImmutable($fecha))->format('w');
-        $horario = $this->horario($salonId)[$dia] ?? null;
+        $horario = $this->horarioDelDia($salonId, $profesionalId, $fecha);
         if ($horario === null || $minutos <= 0) {
             return ['libres' => [], 'en_confirmacion' => []];
         }
@@ -102,6 +113,15 @@ final class Agenda
         );
         $st->execute([$profesionalId, $salonId, $fecha]);
         $ocupado = array_map(fn($c) => [new \DateTimeImmutable($c['inicio']), new \DateTimeImmutable($c['fin']), $c['estado']], $st->fetchAll());
+        // Almuerzo y vacaciones/permisos del peluquero también ocupan
+        if (!empty($horario['almuerzo_desde'])) {
+            $ocupado[] = [new \DateTimeImmutable("$fecha {$horario['almuerzo_desde']}"), new \DateTimeImmutable("$fecha {$horario['almuerzo_hasta']}"), 'bloqueo'];
+        }
+        $st = $this->db->prepare("SELECT desde, hasta FROM bloqueos WHERE profesional_id = ? AND desde < (?::date + 1) AND hasta > ?::date");
+        $st->execute([$profesionalId, $fecha, $fecha]);
+        foreach ($st->fetchAll() as $b) {
+            $ocupado[] = [new \DateTimeImmutable($b['desde']), new \DateTimeImmutable($b['hasta']), 'bloqueo'];
+        }
 
         $libres = [];
         $enConfirmacion = [];
@@ -127,6 +147,227 @@ final class Agenda
             $t = $t->modify("+$paso minutes");
         }
         return ['libres' => $libres, 'en_confirmacion' => $enConfirmacion];
+    }
+
+    /**
+     * Horario de un peluquero en una fecha: el suyo propio si lo tiene, si no el del salón.
+     * @return ?array{abre:string, cierra:string, almuerzo_desde:?string, almuerzo_hasta:?string}  null = no atiende
+     */
+    public function horarioDelDia(int $salonId, int $profesionalId, string $fecha): ?array
+    {
+        $dia = (int) (new \DateTimeImmutable($fecha))->format('w');
+        $st = $this->db->prepare('SELECT count(*) FROM horarios_profesional WHERE profesional_id = ?');
+        $st->execute([$profesionalId]);
+        if ((int) $st->fetchColumn() > 0) {
+            $st = $this->db->prepare("SELECT to_char(abre,'HH24:MI') AS abre, to_char(cierra,'HH24:MI') AS cierra,
+                                             to_char(almuerzo_desde,'HH24:MI') AS almuerzo_desde, to_char(almuerzo_hasta,'HH24:MI') AS almuerzo_hasta
+                                        FROM horarios_profesional WHERE profesional_id = ? AND dia_semana = ?");
+            $st->execute([$profesionalId, $dia]);
+            return $st->fetch() ?: null;
+        }
+        $h = $this->horario($salonId)[$dia] ?? null;
+        return $h ? $h + ['almuerzo_desde' => null, 'almuerzo_hasta' => null] : null;
+    }
+
+    /** @return array<int, ?array> horario semanal propio del peluquero (vacío = usa el del salón) */
+    public function horarioProfesional(int $profesionalId): array
+    {
+        $st = $this->db->prepare("SELECT dia_semana, to_char(abre,'HH24:MI') AS abre, to_char(cierra,'HH24:MI') AS cierra,
+                                         to_char(almuerzo_desde,'HH24:MI') AS almuerzo_desde, to_char(almuerzo_hasta,'HH24:MI') AS almuerzo_hasta
+                                    FROM horarios_profesional WHERE profesional_id = ? ORDER BY dia_semana");
+        $st->execute([$profesionalId]);
+        $h = [];
+        foreach ($st->fetchAll() as $r) $h[(int) $r['dia_semana']] = $r;
+        return $h;
+    }
+
+    /**
+     * Guarda el horario propio del peluquero. $usarSalon = true borra el propio y usa el del salón.
+     * @param array<int, ?array{abre:string, cierra:string, almuerzo_desde?:string, almuerzo_hasta?:string}> $dias
+     */
+    public function guardarHorarioProfesional(int $salonId, int $profesionalId, array $dias, bool $usarSalon): void
+    {
+        $this->verificarDelSalon('profesionales', $profesionalId, $salonId);
+        $this->db->beginTransaction();
+        $this->db->prepare('DELETE FROM horarios_profesional WHERE profesional_id = ?')->execute([$profesionalId]);
+        if (!$usarSalon) {
+            $ins = $this->db->prepare('INSERT INTO horarios_profesional (profesional_id, dia_semana, abre, cierra, almuerzo_desde, almuerzo_hasta)
+                                       VALUES (?,?,?,?,?,?)');
+            $alguno = false;
+            foreach ($dias as $d => $h) {
+                if ($h === null) continue;
+                $ad = ($h['almuerzo_desde'] ?? '') ?: null;
+                $ah = ($h['almuerzo_hasta'] ?? '') ?: null;
+                $ok = preg_match('/^\d{2}:\d{2}$/', $h['abre']) && preg_match('/^\d{2}:\d{2}$/', $h['cierra']) && $h['cierra'] > $h['abre'];
+                if ($ok && ($ad || $ah)) {
+                    $ok = $ad && $ah && $ah > $ad && $ad >= $h['abre'] && $ah <= $h['cierra'];
+                }
+                if (!$ok) {
+                    $this->db->rollBack();
+                    throw new RuntimeException('Revisa el ' . strtolower(self::DIAS[$d]) . ': las horas o el almuerzo no cuadran.');
+                }
+                $ins->execute([$profesionalId, $d, $h['abre'], $h['cierra'], $ad, $ah]);
+                $alguno = true;
+            }
+            if (!$alguno) {
+                $this->db->rollBack();
+                throw new RuntimeException('Marca al menos un día de trabajo, o elige "Usa el horario del salón".');
+            }
+        }
+        $this->db->commit();
+    }
+
+    public function agregarBloqueo(int $salonId, int $profesionalId, string $desde, string $hasta, string $motivo): void
+    {
+        $this->verificarDelSalon('profesionales', $profesionalId, $salonId);
+        $d = new \DateTimeImmutable($desde);
+        $h = new \DateTimeImmutable($hasta);
+        if ($h <= $d) throw new RuntimeException('La fecha final debe ser después de la inicial.');
+        $this->db->prepare('INSERT INTO bloqueos (salon_id, profesional_id, desde, hasta, motivo) VALUES (?,?,?,?,?)')
+                 ->execute([$salonId, $profesionalId, $d->format('Y-m-d H:i'), $h->format('Y-m-d H:i'), mb_substr(trim($motivo), 0, 80) ?: null]);
+    }
+
+    public function bloqueos(int $profesionalId): array
+    {
+        $st = $this->db->prepare('SELECT * FROM bloqueos WHERE profesional_id = ? AND hasta >= now() ORDER BY desde');
+        $st->execute([$profesionalId]);
+        return $st->fetchAll();
+    }
+
+    public function borrarBloqueo(int $salonId, int $bloqueoId): void
+    {
+        $this->db->prepare('DELETE FROM bloqueos WHERE id = ? AND salon_id = ?')->execute([$bloqueoId, $salonId]);
+    }
+
+    // ------------------------------------------------------------------
+    // Servicios por peluquero
+    // ------------------------------------------------------------------
+
+    /** Servicios que hace un peluquero, con su precio (el propio o el normal). */
+    public function serviciosDe(int $salonId, int $profesionalId, bool $soloOnline = false): array
+    {
+        $st = $this->db->prepare(
+            "SELECT s.id, s.nombre, s.descripcion, s.duracion_minutos, COALESCE(sp.precio, s.precio) AS precio
+               FROM servicios s
+          LEFT JOIN servicio_profesional sp ON sp.servicio_id = s.id AND sp.profesional_id = ?
+              WHERE s.salon_id = ? AND s.activo AND s.profesional_id IS NULL" . ($soloOnline ? ' AND s.reserva_online' : '') . "
+                AND (sp.profesional_id IS NOT NULL
+                     OR NOT EXISTS (SELECT 1 FROM servicio_profesional x WHERE x.servicio_id = s.id))
+              ORDER BY s.nombre"
+        );
+        $st->execute([$profesionalId, $salonId]);
+        return $st->fetchAll();
+    }
+
+    /** Guarda quién hace un servicio y a qué precio. $porProfesional = [prof_id => precio|null]; vacío = lo hacen todos. */
+    public function guardarServicioProfesionales(int $salonId, int $servicioId, array $porProfesional): void
+    {
+        $this->verificarDelSalon('servicios', $servicioId, $salonId);
+        $this->db->beginTransaction();
+        $this->db->prepare('DELETE FROM servicio_profesional WHERE servicio_id = ?')->execute([$servicioId]);
+        $ins = $this->db->prepare('INSERT INTO servicio_profesional (servicio_id, profesional_id, precio) VALUES (?,?,?)');
+        foreach ($porProfesional as $pid => $precio) {
+            $this->verificarDelSalon('profesionales', (int) $pid, $salonId);
+            if ($precio !== null && $precio < 0) { $this->db->rollBack(); throw new RuntimeException('Un precio no puede ser negativo.'); }
+            $ins->execute([$servicioId, (int) $pid, $precio]);
+        }
+        $this->db->commit();
+    }
+
+    // ------------------------------------------------------------------
+    // Faltas del cliente
+    // ------------------------------------------------------------------
+
+    public function faltas(int $salonId, int $clienteId): int
+    {
+        $st = $this->db->prepare("SELECT count(*) FROM citas c JOIN clientes cl ON cl.id = c.cliente_id
+                                   WHERE c.salon_id = ? AND c.cliente_id = ? AND c.estado = 'no_asistio'
+                                     AND (cl.faltas_desde IS NULL OR c.inicio > cl.faltas_desde)");
+        $st->execute([$salonId, $clienteId]);
+        return (int) $st->fetchColumn();
+    }
+
+    public function perdonarFaltas(int $salonId, int $clienteId): void
+    {
+        $this->db->prepare("UPDATE clientes SET faltas_desde = GREATEST(now(), (SELECT max(inicio) FROM citas WHERE cliente_id = ? AND estado = 'no_asistio'))
+                             WHERE id = ? AND salon_id = ?")->execute([$clienteId, $clienteId, $salonId]);
+    }
+
+    private function verificarFaltas(int $salonId, int $clienteId): void
+    {
+        $st = $this->db->prepare('SELECT max_faltas FROM salones WHERE id = ?');
+        $st->execute([$salonId]);
+        $max = (int) $st->fetchColumn();
+        $n = $this->faltas($salonId, $clienteId);
+        if ($max > 0 && $n >= $max) {
+            throw new RuntimeException("Tienes $n " . ($n === 1 ? 'cita' : 'citas') . ' a las que no llegaste. Para reservar, escribe al salón por WhatsApp.');
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // El cliente confirma, cancela o cambia (con su enlace o su cuenta)
+    // ------------------------------------------------------------------
+
+    public function porToken(string $token): ?array
+    {
+        if (!preg_match('/^[a-f0-9]{32}$/', $token)) return null;
+        $st = $this->db->prepare('SELECT id, salon_id FROM citas WHERE token = ?');
+        $st->execute([$token]);
+        $r = $st->fetch();
+        return $r ? $this->cita((int) $r['salon_id'], (int) $r['id']) : null;
+    }
+
+    /** ¿Puede el cliente cancelar/cambiar todavía? Devuelve null si sí, o el motivo si no. */
+    public function motivoNoCancelar(array $cita, ?\DateTimeImmutable $ahora = null): ?string
+    {
+        $ahora ??= new \DateTimeImmutable();
+        if (!in_array($cita['estado'], ['pendiente', 'reservada', 'confirmada'], true)) {
+            return 'Esta cita ya no está activa.';
+        }
+        $st = $this->db->prepare('SELECT horas_cancelacion FROM salones WHERE id = ?');
+        $st->execute([$cita['salon_id']]);
+        $horas = (int) $st->fetchColumn();
+        if (new \DateTimeImmutable($cita['inicio']) < $ahora->modify("+$horas hours")) {
+            return "Faltan menos de $horas " . ($horas === 1 ? 'hora' : 'horas') . ' para tu cita. Para cancelar o cambiar, escribe al salón.';
+        }
+        return null;
+    }
+
+    public function cancelarPorCliente(int $citaId, ?\DateTimeImmutable $ahora = null): void
+    {
+        $st = $this->db->prepare('SELECT salon_id FROM citas WHERE id = ?');
+        $st->execute([$citaId]);
+        $cita = $this->cita((int) $st->fetchColumn(), $citaId);
+        if (!$cita) throw new RuntimeException('No se encontró la cita.');
+        if ($motivo = $this->motivoNoCancelar($cita, $ahora)) throw new RuntimeException($motivo);
+        $this->db->prepare("UPDATE citas SET estado = 'cancelada', cancelada_por = 'cliente', expira_en = NULL WHERE id = ?")->execute([$citaId]);
+        (new Notificaciones($this->db))->avisoSimple((int) $cita['salon_id'], (int) $cita['profesional_id'], $citaId,
+            "{$cita['cliente']} canceló su cita del " . (new \DateTimeImmutable($cita['inicio']))->format('d/m H:i') . " con {$cita['profesional']}. La hora quedó libre.");
+    }
+
+    public function confirmarPorCliente(int $citaId): void
+    {
+        $st = $this->db->prepare("UPDATE citas SET estado = CASE WHEN estado = 'reservada' THEN 'confirmada' ELSE estado END,
+                                         confirmada_cliente_en = now()
+                                   WHERE id = ? AND estado IN ('reservada','confirmada') RETURNING salon_id, profesional_id");
+        $st->execute([$citaId]);
+        $r = $st->fetch();
+        if (!$r) throw new RuntimeException('Esta cita ya no se puede confirmar.');
+        $c = $this->cita((int) $r['salon_id'], $citaId);
+        (new Notificaciones($this->db))->avisoSimple((int) $r['salon_id'], (int) $r['profesional_id'], $citaId,
+            "{$c['cliente']} confirmó que vendrá el " . (new \DateTimeImmutable($c['inicio']))->format('d/m H:i') . " con {$c['profesional']}.");
+    }
+
+    /** Mensaje para el cliente con el valor a cancelar y su enlace. */
+    public function mensajeConfirmacion(array $cita, string $salonNombre, string $base): string
+    {
+        $ini = new \DateTimeImmutable($cita['inicio']);
+        $valor = array_sum(array_map(fn($s) => (float) $s['precio'], $cita['lista_servicios']));
+        return 'Hola ' . explode(' ', trim((string) $cita['cliente']))[0] . ", tu cita en $salonNombre quedó confirmada:\n"
+             . self::DIAS[(int) $ini->format('w')] . ' ' . $ini->format('j/n') . ' a las ' . $ini->format('H:i') . ' con ' . $cita['profesional'] . ".\n"
+             . 'Servicio: ' . implode(' + ', array_column($cita['lista_servicios'], 'nombre')) . ".\n"
+             . 'Valor a cancelar: $' . number_format($valor, 2, ',', '.') . ".\n"
+             . "Para ver o cancelar tu cita: $base/?r=confirmar&t={$cita['token']}";
     }
 
     /** Minutos totales de una lista de servicios del salón. */
@@ -160,12 +401,18 @@ final class Agenda
             $this->verificarDelSalon('clientes', $clienteId, $salonId);
         }
         $in = implode(',', array_fill(0, count($servicioIds), '?'));
-        $st = $this->db->prepare("SELECT id, precio, duracion_minutos FROM servicios
-                                   WHERE salon_id = ? AND activo AND id IN ($in)");
-        $st->execute(array_merge([$salonId], $servicioIds));
+        $st = $this->db->prepare("SELECT s.id, COALESCE(sp.precio, s.precio) AS precio, s.duracion_minutos,
+                                         (sp.profesional_id IS NOT NULL OR NOT EXISTS (SELECT 1 FROM servicio_profesional x WHERE x.servicio_id = s.id)) AS lo_hace
+                                    FROM servicios s
+                               LEFT JOIN servicio_profesional sp ON sp.servicio_id = s.id AND sp.profesional_id = ?
+                                   WHERE s.salon_id = ? AND s.activo AND s.id IN ($in)");
+        $st->execute(array_merge([$profesionalId, $salonId], $servicioIds));
         $servicios = $st->fetchAll();
         if (count($servicios) !== count($servicioIds)) {
             throw new RuntimeException('Hay un servicio que no existe en este salón.');
+        }
+        if ($origen === 'online' && in_array(false, array_map(fn($s) => (bool) $s['lo_hace'], $servicios), true)) {
+            throw new RuntimeException('Ese peluquero no hace ese servicio. Elige otro peluquero o servicio.');
         }
         $minutos = array_sum(array_column($servicios, 'duracion_minutos'));
         $ini = new \DateTimeImmutable($inicio);
@@ -208,11 +455,11 @@ final class Agenda
             }
 
             $st = $this->db->prepare(
-                'INSERT INTO citas (salon_id, cliente_id, profesional_id, inicio, fin, notas, origen, estado, expira_en)
-                 VALUES (?,?,?,?,?,?,?,?,?) RETURNING id'
+                'INSERT INTO citas (salon_id, cliente_id, profesional_id, inicio, fin, notas, origen, estado, expira_en, token)
+                 VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id'
             );
             $st->execute([$salonId, $clienteId, $profesionalId, $ini->format('Y-m-d H:i'), $fin->format('Y-m-d H:i'),
-                          $notas, $origen, $estado, $expira]);
+                          $notas, $origen, $estado, $expira, bin2hex(random_bytes(16))]);
             $id = (int) $st->fetchColumn();
             $ins = $this->db->prepare('INSERT INTO cita_servicios (cita_id, servicio_id, precio) VALUES (?,?,?)');
             foreach ($servicios as $s) {
@@ -264,11 +511,15 @@ final class Agenda
         try {
             if ($clienteConCuenta !== null) {
                 $clienteId = $clienteConCuenta;
+                $this->verificarFaltas($salonId, (int) $clienteId);
             } else {
                 $st = $this->db->prepare("SELECT id FROM clientes WHERE salon_id = ? AND profesional_privado_id IS NULL
                                            AND regexp_replace(COALESCE(telefono,''), '\\D', '', 'g') IN (?, ?) LIMIT 1");
                 $st->execute([$salonId, $tel, '0' . substr($tel, 3)]);
                 $clienteId = $st->fetchColumn();
+                if ($clienteId) {
+                    $this->verificarFaltas($salonId, (int) $clienteId);
+                }
                 if (!$clienteId) {
                     $st = $this->db->prepare('INSERT INTO clientes (salon_id, nombre, telefono) VALUES (?,?,?) RETURNING id');
                     $st->execute([$salonId, $nombre, '0' . substr($tel, 3)]);
@@ -285,7 +536,11 @@ final class Agenda
             throw $e;
         }
         // Telegram se envía después de guardar, para no hacer esperar a otros clientes
-        (new Telegram($this->db))->avisarReserva($id, $notif->ultimosDestinos);
+        $tg = new Telegram($this->db);
+        $tg->avisarReserva($id, $notif->ultimosDestinos);
+        $st = $this->db->prepare('SELECT estado FROM citas WHERE id = ?');
+        $st->execute([$id]);
+        if ($st->fetchColumn() === 'reservada') $tg->confirmacionAlCliente($salonId, $id);   // reserva automática
         return $id;
     }
 
@@ -305,7 +560,7 @@ final class Agenda
      * Aceptar o rechazar una solicitud en línea. Quién puede hacerlo lo programa el dueño:
      * 'dueno' (dueño o admin), 'peluquero' (el peluquero de la cita; el dueño siempre puede), 'cualquiera'.
      */
-    public function responderSolicitud(int $salonId, int $citaId, array $usuario, bool $aceptar): void
+    public function responderSolicitud(int $salonId, int $citaId, array $usuario, bool $aceptar, array $precios = []): void
     {
         $st = $this->db->prepare('SELECT c.estado, c.expira_en, c.profesional_id, s.acepta_reservas
                                     FROM citas c JOIN salones s ON s.id = c.salon_id WHERE c.id = ? AND c.salon_id = ?');
@@ -324,6 +579,14 @@ final class Agenda
                                          AND c2.estado NOT IN ('cancelada','no_asistio','rechazada','pendiente')");
             $st->execute([$citaId]);
             if ($st->fetchColumn()) throw new RuntimeException('La solicitud venció y esa hora ya la tomó otra persona.');
+        }
+        // Al aceptar, el dueño puede poner el valor que pagará el cliente
+        foreach ($precios as $servId => $precio) {
+            if ($precio === null || $precio === '') continue;
+            $precio = round((float) $precio, 2);
+            if ($precio < 0) throw new RuntimeException('El valor no puede ser negativo.');
+            $this->db->prepare('UPDATE cita_servicios SET precio = ? WHERE cita_id = ? AND servicio_id = ?')
+                     ->execute([$precio, $citaId, (int) $servId]);
         }
         $this->db->prepare('UPDATE citas SET estado = ?, expira_en = NULL WHERE id = ?')
                  ->execute([$aceptar ? 'reservada' : 'rechazada', $citaId]);
@@ -366,8 +629,9 @@ final class Agenda
         if (!in_array($estado, self::ESTADOS, true)) {
             throw new RuntimeException('Estado no válido.');
         }
-        $st = $this->db->prepare('UPDATE citas SET estado = ? WHERE id = ? AND salon_id = ?');
-        $st->execute([$estado, $citaId, $salonId]);
+        $st = $this->db->prepare("UPDATE citas SET estado = ?, cancelada_por = CASE WHEN ? = 'cancelada' THEN 'salon' ELSE NULL END
+                                   WHERE id = ? AND salon_id = ?");
+        $st->execute([$estado, $estado, $citaId, $salonId]);
         if ($st->rowCount() !== 1) {
             throw new RuntimeException('No se encontró la cita.');
         }
@@ -397,8 +661,9 @@ final class Agenda
     public function cita(int $salonId, int $citaId): ?array
     {
         $st = $this->db->prepare(
-            'SELECT c.*, cl.nombre AS cliente, cl.telefono, p.nombre AS profesional
-               FROM citas c JOIN profesionales p ON p.id = c.profesional_id
+            'SELECT c.*, cl.nombre AS cliente, cl.telefono, cl.email AS cliente_email, cl.telegram_chat_id AS cliente_telegram,
+                    p.nombre AS profesional, sa.nombre AS salon, sa.slug AS salon_slug
+               FROM citas c JOIN profesionales p ON p.id = c.profesional_id JOIN salones sa ON sa.id = c.salon_id
           LEFT JOIN clientes cl ON cl.id = c.cliente_id
               WHERE c.id = ? AND c.salon_id = ?'
         );

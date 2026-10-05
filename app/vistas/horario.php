@@ -77,6 +77,36 @@
                 </select></div>
         </div>
         <p class="suave">Mientras la solicitud espera, esa hora aparece "en confirmación" para los demás clientes.</p>
+
+        <h2 style="margin-top:18px">Reglas para tus clientes</h2>
+        <div class="fila-campos">
+            <div class="campo"><label for="horas_cancelacion">El cliente puede cancelar o cambiar hasta</label>
+                <select id="horas_cancelacion" name="horas_cancelacion">
+                    <?php foreach ([0 => 'Cualquier momento', 1 => '1 hora antes', 2 => '2 horas antes', 3 => '3 horas antes', 6 => '6 horas antes',
+                                    12 => '12 horas antes', 24 => '1 día antes', 48 => '2 días antes'] as $m => $txt): ?>
+                        <option value="<?= $m ?>" <?= (int) $conf['horas_cancelacion'] === $m ? 'selected' : '' ?>><?= $txt ?></option>
+                    <?php endforeach; ?>
+                </select></div>
+            <div class="campo"><label for="max_faltas">Bloquear reservas en línea tras</label>
+                <select id="max_faltas" name="max_faltas">
+                    <?php foreach ([0 => 'Nunca bloquear', 1 => '1 falta', 2 => '2 faltas', 3 => '3 faltas', 5 => '5 faltas'] as $m => $txt): ?>
+                        <option value="<?= $m ?>" <?= (int) $conf['max_faltas'] === $m ? 'selected' : '' ?>><?= $txt ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <small>Falta = no llegó y no avisó. Puedes perdonarlas en la ficha del cliente.</small></div>
+        </div>
+        <div class="fila-campos">
+            <div class="campo"><label for="semanas_sin_volver">Avisarme de clientes que no vuelven en</label>
+                <select id="semanas_sin_volver" name="semanas_sin_volver">
+                    <?php foreach ([3, 4, 5, 6, 8, 10, 12] as $m): ?>
+                        <option value="<?= $m ?>" <?= (int) $conf['semanas_sin_volver'] === $m ? 'selected' : '' ?>><?= $m ?> semanas</option>
+                    <?php endforeach; ?>
+                </select></div>
+            <div class="campo"><label for="google_resenas_url">Enlace para reseñas en Google <small>(opcional)</small></label>
+                <input type="url" id="google_resenas_url" name="google_resenas_url" value="<?= e($conf['google_resenas_url'] ?? '') ?>"
+                       placeholder="https://g.page/r/...">
+                <small>A quien te califique con 4 o 5 estrellas se le invita a dejar su reseña en Google.</small></div>
+        </div>
         <button class="boton boton-ancho" type="submit">Guardar</button>
     </form>
 </div>

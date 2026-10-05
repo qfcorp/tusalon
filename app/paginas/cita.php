@@ -28,4 +28,5 @@ if (!$cita) {
     aviso('No se encontró la cita.', 'error');
     redirigir('agenda');
 }
-vista('cita', ['cita' => $cita], 'Cita · TuSalón');
+$calificacion = (new TuSalon\Calificaciones(db()))->deCita($id);
+vista('cita', ['cita' => $cita, 'calificacion' => $calificacion], 'Cita · TuSalón');

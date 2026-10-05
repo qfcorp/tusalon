@@ -18,8 +18,10 @@ final class CuentaCliente
 {
     public function __construct(private PDO $db) {}
 
-    public function crear(int $salonId, string $nombre, string $telefono, string $email, string $clave, bool $aceptaFotos): int
+    public function crear(int $salonId, string $nombre, string $telefono, string $email, string $clave, bool $aceptaFotos,
+                          ?int $cumpleMes = null, ?int $cumpleDia = null): int
     {
+        [$cumpleMes, $cumpleDia] = self::validarCumple($cumpleMes, $cumpleDia);
         $nombre = trim($nombre);
         $email = strtolower(trim($email));
         $tel = WhatsApp::normalizarTelefono($telefono);
@@ -38,13 +40,14 @@ final class CuentaCliente
         $telLocal = '0' . substr($tel, 3);
         if ($existe) {   // el salón ya tenía su correo: se une a su ficha y conserva su historial
             $this->db->prepare('UPDATE clientes SET nombre = ?, telefono = COALESCE(telefono, ?), password_hash = ?,
-                                       acepta_fotos = ?, cuenta_creada_en = now() WHERE id = ?')
-                     ->execute([$nombre, $telLocal, $hash, $aceptaFotos ? 'true' : 'false', $existe['id']]);
+                                       acepta_fotos = ?, cuenta_creada_en = now(),
+                                       cumple_mes = COALESCE(?, cumple_mes), cumple_dia = COALESCE(?, cumple_dia) WHERE id = ?')
+                     ->execute([$nombre, $telLocal, $hash, $aceptaFotos ? 'true' : 'false', $cumpleMes, $cumpleDia, $existe['id']]);
             return (int) $existe['id'];
         }
-        $st = $this->db->prepare('INSERT INTO clientes (salon_id, nombre, telefono, email, password_hash, acepta_fotos, cuenta_creada_en)
-                                  VALUES (?,?,?,?,?,?, now()) RETURNING id');
-        $st->execute([$salonId, $nombre, $telLocal, $email, $hash, $aceptaFotos ? 'true' : 'false']);
+        $st = $this->db->prepare('INSERT INTO clientes (salon_id, nombre, telefono, email, password_hash, acepta_fotos, cuenta_creada_en, cumple_mes, cumple_dia)
+                                  VALUES (?,?,?,?,?,?, now(),?,?) RETURNING id');
+        $st->execute([$salonId, $nombre, $telLocal, $email, $hash, $aceptaFotos ? 'true' : 'false', $cumpleMes, $cumpleDia]);
         return (int) $st->fetchColumn();
     }
 
@@ -56,9 +59,29 @@ final class CuentaCliente
         return ($c && password_verify($clave, $c['password_hash'])) ? (int) $c['id'] : null;
     }
 
+    /**
+     * Cumpleaños opcional (solo mes y día). Ambos vacíos = no lo dio.
+     * @return array{0:?int,1:?int}
+     */
+    public static function validarCumple(?int $mes, ?int $dia): array
+    {
+        if (!$mes && !$dia) return [null, null];
+        if (!$mes || !$dia) throw new RuntimeException('Para tu cumpleaños elige el mes y el día (o deja los dos vacíos).');
+        $max = [1 => 31, 2 => 29, 3 => 31, 4 => 30, 5 => 31, 6 => 30, 7 => 31, 8 => 31, 9 => 30, 10 => 31, 11 => 30, 12 => 31];
+        if ($mes < 1 || $mes > 12 || $dia < 1 || $dia > $max[$mes]) throw new RuntimeException('Esa fecha de cumpleaños no existe.');
+        return [$mes, $dia];
+    }
+
+    public function guardarCumple(int $salonId, int $clienteId, ?int $mes, ?int $dia): void
+    {
+        [$mes, $dia] = self::validarCumple($mes, $dia);
+        $this->db->prepare('UPDATE clientes SET cumple_mes = ?, cumple_dia = ? WHERE id = ? AND salon_id = ?')
+                 ->execute([$mes, $dia, $clienteId, $salonId]);
+    }
+
     public function datos(int $salonId, int $clienteId): ?array
     {
-        $st = $this->db->prepare('SELECT id, nombre, telefono, email, acepta_fotos FROM clientes
+        $st = $this->db->prepare('SELECT id, nombre, telefono, email, acepta_fotos, cumple_mes, cumple_dia, telegram_chat_id FROM clientes
                                    WHERE id = ? AND salon_id = ? AND password_hash IS NOT NULL');
         $st->execute([$clienteId, $salonId]);
         return $st->fetch() ?: null;
@@ -74,7 +97,8 @@ final class CuentaCliente
     public function historial(int $salonId, int $clienteId): array
     {
         $st = $this->db->prepare(
-            "SELECT c.id, c.inicio, c.estado, p.nombre AS profesional,
+            "SELECT c.id, c.inicio, c.estado, c.token, p.nombre AS profesional,
+                    (SELECT estrellas FROM calificaciones ca WHERE ca.cita_id = c.id) AS estrellas,
                     (SELECT string_agg(s.nombre, ' + ') FROM cita_servicios cs JOIN servicios s ON s.id = cs.servicio_id WHERE cs.cita_id = c.id) AS servicios,
                     COALESCE((SELECT total FROM ventas v WHERE v.cita_id = c.id AND NOT v.anulada LIMIT 1),
                              (SELECT SUM(cs.precio) FROM cita_servicios cs WHERE cs.cita_id = c.id)) AS valor
@@ -99,8 +123,9 @@ final class CuentaCliente
     public function proximas(int $salonId, int $clienteId): array
     {
         $st = $this->db->prepare(
-            "SELECT c.id, c.inicio, c.estado, p.nombre AS profesional,
-                    (SELECT string_agg(s.nombre, ' + ') FROM cita_servicios cs JOIN servicios s ON s.id = cs.servicio_id WHERE cs.cita_id = c.id) AS servicios
+            "SELECT c.id, c.salon_id, c.inicio, c.estado, c.token, c.profesional_id, p.nombre AS profesional,
+                    (SELECT string_agg(s.nombre, ' + ') FROM cita_servicios cs JOIN servicios s ON s.id = cs.servicio_id WHERE cs.cita_id = c.id) AS servicios,
+                    (SELECT COALESCE(SUM(cs.precio),0) FROM cita_servicios cs WHERE cs.cita_id = c.id) AS valor
                FROM citas c JOIN profesionales p ON p.id = c.profesional_id
               WHERE c.salon_id = ? AND c.cliente_id = ? AND c.fin >= now()
                 AND (c.estado IN ('reservada','confirmada') OR (c.estado = 'pendiente' AND (c.expira_en IS NULL OR c.expira_en >= now())))

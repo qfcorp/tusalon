@@ -21,14 +21,17 @@ if (es_post()) {
     $citaId = (int) ($_POST['cita'] ?? 0);
     $aceptar = ($_POST['accion'] ?? '') === 'aceptar';
     try {
-        $agenda->responderSolicitud($sid, $citaId, $u, $aceptar);
+        $precios = [];
+        foreach ((array) ($_POST['precio'] ?? []) as $servId => $v) {
+            $v = trim((string) $v);
+            $precios[(int) $servId] = $v === '' ? null : str_replace(',', '.', $v);
+        }
+        $agenda->responderSolicitud($sid, $citaId, $u, $aceptar, $precios);
         $c = $agenda->cita($sid, $citaId);
         if ($aceptar) {
-            aviso('Cita aceptada. Ya está en la agenda.');
-            $ini = new DateTimeImmutable($c['inicio']);
-            $msg = 'Hola ' . explode(' ', trim((string) $c['cliente']))[0] . ', tu cita en ' . $u['salon'] . ' quedó confirmada: '
-                 . Agenda::DIAS[(int) $ini->format('w')] . ' ' . $ini->format('j/n') . ' a las ' . $ini->format('H:i')
-                 . ' con ' . $c['profesional'] . '. ¡Te esperamos!';
+            $msg = $agenda->mensajeConfirmacion($c, $u['salon'], Agenda::urlBase());
+            $porTg = $telegram->confirmacionAlCliente($sid, $citaId);
+            aviso('Cita aceptada. Ya está en la agenda.' . ($porTg ? ' Al cliente le llegó la confirmación con el valor por Telegram.' : ''));
         } else {
             aviso('Solicitud rechazada. La hora quedó libre.');
             $msg = 'Hola ' . explode(' ', trim((string) $c['cliente']))[0] . ', lo sentimos: no podemos atenderte en la hora que pediste en '
@@ -42,6 +45,10 @@ if (es_post()) {
 }
 
 $pendientes = $agenda->solicitudes($sid, $u);
+foreach ($pendientes as &$p) {
+    $p['lista_servicios'] = $agenda->cita($sid, (int) $p['id'])['lista_servicios'] ?? [];
+}
+unset($p);
 $avisos = $notif->recientes((int) $u['id'], 20);
 $notif->marcarLeidas((int) $u['id']);
 $waCliente = $_SESSION['wa_cliente'] ?? null;

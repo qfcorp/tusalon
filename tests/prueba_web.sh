@@ -276,6 +276,152 @@ JAR="$TMP/c_nuevo_navegador"
 r=$(post "r=cliente_entrar&s=$SLUG3" -d email=$MAILC -d clave=claveCarla1)
 check "Carla entra con su cuenta desde otro celular" "302 $BASE/?r=mi_cuenta&s=$SLUG3" "$r"
 
+echo "14. Servicios con explicación, quién lo hace y precio por peluquero"
+JAR=$JAR_DUENA
+ROSA3=$(sql "SELECT id FROM profesionales WHERE salon_id=$SID3 AND tipo='dueno'")
+r=$(post "r=servicios" -d accion=crear --data-urlencode "nombre=Keratina" -d precio=40 -d duracion_minutos=90 -d reserva_online=1 \
+     --data-urlencode "descripcion=Alisado con keratina: lavado, aplicación, secado y planchado." -d quien_enviado=1 \
+     -d "hace[$LUIS3]=1" -d "precio_prof[$LUIS3]=35")
+KERA=$(sql "SELECT id FROM servicios WHERE salon_id=$SID3 AND nombre='Keratina'")
+check "Se guarda la explicación del servicio" "Alisado con keratina: lavado, aplicación, secado y planchado." "$(sql "SELECT descripcion FROM servicios WHERE id=$KERA")"
+check "Solo Luis la hace, a \$35" "$LUIS3|35.00" "$(sql "SELECT profesional_id||'|'||precio FROM servicio_profesional WHERE servicio_id=$KERA")"
+r=$(post "r=servicios" -d accion=crear --data-urlencode "nombre=Nadie lo hace" -d precio=10 -d duracion_minutos=30 -d quien_enviado=1)
+contiene "Si no marca a nadie, avisa" "$TMP/post.html" "Marca al menos un peluquero"
+code=$(curl -s -o "$TMP/pub2.html" -w '%{http_code}' "$BASE/?r=reservar&s=$SLUG3")
+contiene "El portal tiene el desplegable de servicios" "$TMP/pub2.html" 'id="servicio" name="servicio"'
+contiene "Cada servicio lleva su explicación" "$TMP/pub2.html" 'data-desc="Alisado con keratina'
+contiene "Explica cómo ver el detalle (mouse o ⓘ)" "$TMP/pub2.html" "Deja el mouse sobre un servicio"
+contiene "Lleva el precio de Luis para la keratina" "$TMP/pub2.html" "\"$KERA\":35"
+curl -s "$BASE/?r=horas&s=$SLUG3&p=$ROSA3&serv=$KERA&f=$MAN" > "$TMP/h3.json"
+contiene "Con Rosa la keratina no sale (no la hace)" "$TMP/h3.json" "no hace este servicio"
+curl -s "$BASE/?r=horas&s=$SLUG3&p=$LUIS3&serv=$KERA&f=$MAN" > "$TMP/h4.json"
+contiene "Con Luis sí hay horas para keratina" "$TMP/h4.json" '"11:00"'
+
+echo "15. Horario propio y vacaciones del peluquero"
+get "r=horario_peluquero&p=$LUIS3" > /dev/null
+contiene "Página de horario de Luis" "$TMP/pag.html" "Horario de Luis"
+PASADO=$(date -d '+2 day' +%F); DOW=$(date -d '+2 day' +%w)
+r=$(post "r=horario_peluquero&p=$LUIS3" -d accion=bloqueo -d desde=$PASADO -d hasta=$PASADO --data-urlencode "motivo=Vacaciones")
+check "Se guarda el bloqueo" "1" "$(sql "SELECT count(*) FROM bloqueos WHERE profesional_id=$LUIS3")"
+curl -s "$BASE/?r=horas&s=$SLUG3&p=$LUIS3&serv=$PREM&f=$PASADO" > "$TMP/h5.json"
+contiene "Ese día los clientes ven que no atiende" "$TMP/h5.json" "vacaciones o permiso"
+r=$(post "r=horario_peluquero&p=$LUIS3" -d accion=horario -d modo=propio -d "trabaja[1]=1" -d "abre[1]=10:00" -d "cierra[1]=18:00" \
+     -d "alm_desde[1]=13:00" -d "alm_hasta[1]=14:00")
+check "Horario propio: solo lunes con almuerzo" "1|13:00:00" "$(sql "SELECT count(*)||'|'||max(almuerzo_desde) FROM horarios_profesional WHERE profesional_id=$LUIS3")"
+r=$(post "r=horario_peluquero&p=$LUIS3" -d accion=horario -d modo=salon)
+check "Vuelve al horario del salón" "0" "$(sql "SELECT count(*) FROM horarios_profesional WHERE profesional_id=$LUIS3")"
+r=$(post "r=horario" -d "abierto[1]=1" -d "abre[1]=09:00" -d "cierra[1]=19:00" -d "abierto[2]=1" -d "abre[2]=09:00" -d "cierra[2]=19:00" \
+     -d "abierto[3]=1" -d "abre[3]=09:00" -d "cierra[3]=19:00" -d "abierto[4]=1" -d "abre[4]=09:00" -d "cierra[4]=19:00" \
+     -d "abierto[5]=1" -d "abre[5]=09:00" -d "cierra[5]=19:00" -d "abierto[6]=1" -d "abre[6]=09:00" -d "cierra[6]=19:00" \
+     -d "abierto[0]=1" -d "abre[0]=09:00" -d "cierra[0]=19:00" \
+     -d intervalo_reservas=30 -d anticipacion_minutos=0 -d acepta_reservas=dueno -d avisar_a=ambos -d minutos_para_aceptar=120 \
+     -d horas_cancelacion=3 -d max_faltas=2 -d semanas_sin_volver=8 --data-urlencode "google_resenas_url=https://g.page/r/estrella/review")
+check "Reglas para clientes guardadas" "3|2|8|https://g.page/r/estrella/review" \
+      "$(sql "SELECT horas_cancelacion||'|'||max_faltas||'|'||semanas_sin_volver||'|'||google_resenas_url FROM salones WHERE id=$SID3")"
+r=$(post "r=horario" -d "abierto[1]=1" -d "abre[1]=09:00" -d "cierra[1]=19:00" -d intervalo_reservas=30 -d anticipacion_minutos=0 \
+     -d acepta_reservas=dueno -d avisar_a=ambos -d minutos_para_aceptar=120 -d horas_cancelacion=3 -d max_faltas=2 -d semanas_sin_volver=8 \
+     --data-urlencode "google_resenas_url=javascript:alert(1)")
+contiene "No acepta enlaces raros para Google" "$TMP/post.html" "debe empezar con https"
+
+echo "16. Reserva con cumpleaños, el dueño pone el valor y el cliente confirma"
+JAR="$TMP/c_cumple"
+MAILK="kati$RANDOM@correo.ec"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$KERA -d fecha=$MAN -d hora=11:00 -d modo=cuenta \
+     --data-urlencode "nombre=Kati Keratina" -d telefono=0993334455 -d email=$MAILK -d clave=claveKati1 -d cumple_dia=20 -d cumple_mes=11)
+check "Reserva creando cuenta con cumpleaños" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
+check "El cumpleaños se guarda sin año (mes|día)" "11|20" "$(sql "SELECT cumple_mes||'|'||cumple_dia FROM clientes WHERE email='$MAILK'")"
+CK=$(sql "SELECT c.id FROM citas c JOIN clientes cl ON cl.id=c.cliente_id WHERE cl.email='$MAILK'")
+check "La cita tiene el precio de Luis (\$35)" "35.00" "$(sql "SELECT precio FROM cita_servicios WHERE cita_id=$CK")"
+JAR="$TMP/c_cumple_mal"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=16:00 -d modo=cuenta \
+     --data-urlencode "nombre=Fecha Mala" -d telefono=0993334466 -d email="mala$RANDOM@correo.ec" -d clave=claveMala1 -d cumple_dia=31 -d cumple_mes=4)
+contiene "31 de abril no se acepta" "$TMP/post.html" "no existe"
+JAR=$JAR_DUENA
+get "r=solicitudes" > /dev/null
+contiene "Al aceptar, el dueño puede poner el valor" "$TMP/pag.html" "name=\"precio\[$KERA\]\""
+r=$(post "r=solicitudes" -d cita=$CK -d accion=aceptar -d "precio[$KERA]=38.50")
+check "El dueño acepta con valor \$38,50" "reservada|38.50" "$(sql "SELECT c.estado||'|'||cs.precio FROM citas c JOIN cita_servicios cs ON cs.cita_id=c.id WHERE c.id=$CK")"
+get "r=solicitudes" > /dev/null
+contiene "El WhatsApp al cliente dice el valor a cancelar" "$TMP/pag.html" "Valor%20a%20cancelar%3A%20%2438%2C50"
+TOK=$(sql "SELECT token FROM citas WHERE id=$CK")
+JAR="$TMP/c_cumple"
+get "r=confirmar&t=$TOK" > /dev/null
+contiene "La página de la cita muestra el valor" "$TMP/pag.html" '\$38,50'
+contiene "Tiene el botón para confirmar" "$TMP/pag.html" "Confirmo que voy"
+r=$(post "r=confirmar&t=$TOK" -d accion=confirmar)
+check "El cliente confirma con un toque" "confirmada|true" "$(sql "SELECT estado||'|'||(confirmada_cliente_en IS NOT NULL) FROM citas WHERE id=$CK")"
+code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/?r=confirmar&t=00000000000000000000000000000000")
+check "Un enlace inventado no muestra nada" "404" "$code"
+get "r=mi_cuenta&s=$SLUG3" > /dev/null
+contiene "En su cuenta puede cambiar o cancelar" "$TMP/pag.html" "Confirmar, cambiar o cancelar"
+contiene "En su cuenta ve su cumpleaños" "$TMP/pag.html" '<option value="20" selected>'
+
+echo "17. Cambiar y cancelar desde el enlace"
+get "r=reservar&s=$SLUG3&cambia=$TOK" > /dev/null
+contiene "Al cambiar, avisa que la anterior se libera" "$TMP/pag.html" "Estás cambiando tu cita"
+r=$(post "r=reservar&s=$SLUG3&cambia=$TOK" -d profesional=$LUIS3 -d servicio=$KERA -d fecha=$MAN -d hora=12:30)
+check "Reserva la nueva hora (12:30)" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
+check "La cita anterior quedó cancelada por el cliente" "cancelada|cliente" "$(sql "SELECT estado||'|'||cancelada_por FROM citas WHERE id=$CK")"
+CK2=$(sql "SELECT max(c.id) FROM citas c JOIN clientes cl ON cl.id=c.cliente_id WHERE cl.email='$MAILK'")
+TOK2=$(sql "SELECT token FROM citas WHERE id=$CK2")
+r=$(post "r=confirmar&t=$TOK2" -d accion=cancelar)
+check "Cancela la nueva desde su enlace" "cancelada" "$(sql "SELECT estado FROM citas WHERE id=$CK2")"
+EN1H=$(date -d '+1 hour' '+%F %H:%M'); EN90=$(date -d '+90 minutes' '+%F %H:%M')
+CERCA=$(sql "INSERT INTO citas (salon_id, cliente_id, profesional_id, inicio, fin, estado) SELECT $SID3, cliente_id, $LUIS3, '$EN1H', '$EN90', 'reservada' FROM citas WHERE id=$CK RETURNING token" | head -1)
+get "r=confirmar&t=$CERCA" > /dev/null
+contiene "A menos de 3 horas ya no puede cancelar" "$TMP/pag.html" "Faltan menos de 3 horas"
+r=$(post "r=confirmar&t=$CERCA" -d accion=cancelar)
+check "…ni a la fuerza" "reservada" "$(sql "SELECT estado FROM citas WHERE token='$CERCA'")"
+
+echo "18. Calificación con estrellas y reseña en Google"
+TOKC=$(sql "SELECT token FROM citas WHERE id=$CITAC")
+JAR="$TMP/c_cuenta"
+get "r=confirmar&t=$TOKC" > /dev/null
+contiene "Después del servicio pide calificar" "$TMP/pag.html" "¿Cómo te fue con Luis?"
+r=$(post "r=confirmar&t=$TOKC" -d accion=calificar -d estrellas=5 --data-urlencode "comentario=Me encantó")
+check "Se guarda la calificación" "5|Me encantó" "$(sql "SELECT estrellas||'|'||comentario FROM calificaciones WHERE cita_id=$CITAC")"
+get "r=confirmar&t=$TOKC" > /dev/null
+contiene "Con 5 estrellas invita a reseñar en Google" "$TMP/pag.html" "g.page/r/estrella/review"
+r=$(post "r=confirmar&t=$TOKC" -d accion=calificar -d estrellas=1)
+check "No se puede calificar dos veces" "1" "$(sql "SELECT count(*) FROM calificaciones WHERE cita_id=$CITAC")"
+JAR=$JAR_DUENA
+get "r=cita&id=$CITAC" > /dev/null
+contiene "La dueña ve la calificación en la cita" "$TMP/pag.html" "★★★★★"
+
+echo "19. Avisos a clientes, faltas, reporte y tareas automáticas"
+CL_F=$(sql "SELECT cliente_id FROM citas WHERE id=$CITA3")
+sql "INSERT INTO citas (salon_id, cliente_id, profesional_id, inicio, fin, estado) VALUES ($SID3, $CL_F, $LUIS3, now() - interval '3 days', now() - interval '3 days' + interval '30 minutes', 'no_asistio'), ($SID3, $CL_F, $LUIS3, now() - interval '2 days', now() - interval '2 days' + interval '30 minutes', 'no_asistio')" > /dev/null
+get "r=cliente&id=$CL_F" > /dev/null
+contiene "La ficha muestra las faltas" "$TMP/pag.html" "2 faltas"
+contiene "…y que no puede reservar en línea" "$TMP/pag.html" "No puede reservar en línea"
+r=$(post "r=cliente&id=$CL_F" -d accion=perdonar)
+get "r=cliente&id=$CL_F" > /dev/null
+if grep -q "2 faltas" "$TMP/pag.html"; then FALLAS=$((FALLAS+1)); echo "  FALLA Perdonar faltas"; else OK=$((OK+1)); echo "  OK    Perdonar faltas"; fi
+r=$(post "r=cliente&id=$CL_F" --data-urlencode "nombre=Carla Cliente" -d telefono=0997776655 -d cumple_dia=5 -d cumple_mes=3)
+check "El dueño pone el cumpleaños en la ficha" "3|5" "$(sql "SELECT cumple_mes||'|'||cumple_dia FROM clientes WHERE id=$CL_F")"
+JAR="$TMP/c_rec"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=17:00 --data-urlencode "nombre=Rita Recordar" -d telefono=0992221100)
+CRIT=$(sql "SELECT max(id) FROM citas WHERE salon_id=$SID3")
+JAR=$JAR_DUENA
+post "r=solicitudes" -d cita=$CRIT -d accion=aceptar > /dev/null
+get "r=avisos_clientes" > /dev/null
+contiene "Avisos a clientes: la cita de mañana para recordar" "$TMP/pag.html" "Rita Recordar"
+contiene "…con WhatsApp listo y el enlace para confirmar" "$TMP/pag.html" "r%3Dconfirmar%26t%3D"
+r=$(post "r=avisos_clientes" -d accion=recordado -d cita=$CRIT)
+check "Marcar 'ya lo envié'" "t" "$(sql "SELECT recordatorio_en IS NOT NULL FROM citas WHERE id=$CRIT")"
+get "r=inicio" > /dev/null
+code=$(get "r=reporte&mes=$(date +%Y-%m)")
+check "El reporte del mes abre" "200" "$code"
+contiene "Muestra lo más vendido" "$TMP/pag.html" "Corte premium"
+r=$(post "r=reporte&mes=$(date +%Y-%m)" -d enviar=1)
+check "Enviar el reporte deja el aviso al dueño" "1" "$(sql "SELECT count(*) FROM notificaciones WHERE salon_id=$SID3 AND texto LIKE '📊 Reporte de%'")"
+JAR="$TMP/c_luis"
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=reporte")
+check "El peluquero no ve el reporte del dueño" "302 $BASE/?r=mi_portal" "$code"
+code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/bin/tareas.php")
+if [ "$code" == "200" ] && curl -s "$BASE/bin/tareas.php" | grep -q "salones"; then FALLAS=$((FALLAS+1)); echo "  FALLA Las tareas se pueden correr desde internet";
+else OK=$((OK+1)); echo "  OK    Las tareas automáticas no se pueden correr desde internet"; fi
+
 echo "13. Telegram: solo acepta avisos con el texto secreto"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' "$BASE/?r=telegram")
 check "Sin el texto secreto, se rechaza" "403" "$code"

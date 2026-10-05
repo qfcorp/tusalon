@@ -36,7 +36,7 @@ $diasPrueba = ($u && !es_peluquero($u)) ? dias_prueba($u) : null;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=8">
+<link rel="stylesheet" href="/assets/app.css?v=9">
 </head>
 <body class="<?= $u ? 'con-sesion' : 'sin-sesion' ?>">
 <?php if ($u): ?>
@@ -61,6 +61,8 @@ $diasPrueba = ($u && !es_peluquero($u)) ? dias_prueba($u) : null;
     <div class="lateral-pie">
         <?php if (!es_peluquero($u)): ?>
         <a href="<?= e(url('clientes')) ?>">Clientes</a>
+        <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
+        <a href="<?= e(url('reporte')) ?>">Reporte del mes</a>
         <a href="<?= e(url('servicios')) ?>">Servicios y precios</a>
         <a href="<?= e(url('horario')) ?>">Horario y reservas en línea</a>
         <a href="<?= e(url('cuentas')) ?>">Cuentas del equipo</a>
@@ -83,6 +85,6 @@ $diasPrueba = ($u && !es_peluquero($u)) ? dias_prueba($u) : null;
     <?php endforeach; ?>
     <?= $contenido ?>
 </main>
-<script src="/assets/app.js?v=1" defer></script>
+<script src="/assets/app.js?v=9" defer></script>
 </body>
 </html>

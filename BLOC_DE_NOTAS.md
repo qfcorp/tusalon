@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 22:40
+Última actualización: 4 de octubre de 2026, 23:00
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -71,7 +71,24 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - **Cuenta opcional del cliente:** reserva como invitado o crea su cuenta; ve próximas citas e historial (`/?r=mi_cuenta&s=<salón>`). Por privacidad, una cuenta no se une a una ficha solo por el celular (sí por correo que el salón ya tenía)
     - **Fotos:** solo si el cliente tiene cuenta y dio permiso; las sube el peluquero que atendió o el dueño; se achican a 1600 px, se borran datos ocultos (GPS) y se guardan fuera de la parte pública; las ve solo el cliente y el salón
     - Probado: lógica 113/113, web 93/93 (con Telegram simulado)
-3b. [ ] **SIGUIENTE:** primera instalación en tusalon.qfradioec.com (servidor qfcorp) + crear el bot de Telegram
+3e. [x] Pedido del 4 de octubre (3): las 9 mejoras + desplegable de servicios + valor al aceptar + cumpleaños
+    - **Desplegable de servicios** en las reservas (invitado y con cuenta): todos los servicios que creó el dueño. Si el cliente **deja el mouse 3 segundos** sobre un servicio, se despliega su explicación y cuánto dura (una barrita amarilla avisa que se está abriendo). En el celular se toca **ⓘ**. Al elegirlo, la explicación queda visible abajo
+    - Cada servicio tiene **explicación para el cliente** y duración (las pone el dueño al crearlo)
+    - **Al aceptar**, el dueño escribe el **valor a cobrar**; al cliente le llega "Valor a cancelar: $X" por WhatsApp (un toque) y por Telegram si lo conectó
+    - **Cumpleaños opcional** (solo día y mes, sin año) al crear la cuenta, en "Mi cuenta" y en la ficha del cliente. Los del 29 de febrero se saludan el 28 en años no bisiestos
+    - Mejora 1: **recordatorio el día anterior** con enlace para confirmar o cancelar con un toque (WhatsApp con un toque para todos; Telegram automático con botones en Completa)
+    - Mejora 2: el cliente **cancela o cambia** su cita desde su enlace o su cuenta, hasta X horas antes (lo pone el dueño: 0 a 48 h)
+    - Mejora 3: **horario propio por peluquero**, almuerzo, **vacaciones y permisos** (Equipo → Horario, almuerzo y vacaciones)
+    - Mejora 4: servicios que **solo hacen algunos** peluqueros y **precio distinto por peluquero**
+    - Mejora 5: **faltas**: tras N faltas (lo pone el dueño) no puede reservar en línea; el dueño las puede **perdonar** en la ficha
+    - Mejora 6: **clientes por recuperar** ("hace 8 semanas no viene") con WhatsApp listo (Completa)
+    - Mejora 7: **calificación de 1 a 5 estrellas** tras el servicio; con 4 o 5 se invita a dejar **reseña en Google**
+    - Mejora 8: **reporte del mes** (lo más vendido, mejor peluquero, estrellas, horas y día más vacíos, faltas) por Telegram el día 1 y en pantalla (Completa)
+    - Mejora 9: **respaldo diario** de la base y fotos (`deploy/respaldo.sh`, guarda 14 días, probado restaurando)
+    - Tareas automáticas cada hora: `bin/tareas.php` (cada aviso se envía una sola vez)
+    - Nuevas pantallas: Avisos a clientes, Reporte del mes, Horario del peluquero, página de la cita del cliente
+    - Probado: **lógica 202/202, web 145/145**, capturas en celular y computadora, respaldo restaurado en otra base
+3b. [ ] **SIGUIENTE:** primera instalación en tusalon.qfradioec.com (servidor qfcorp) + crear el bot de Telegram + poner las 2 líneas de cron (README) para tareas y respaldo
 3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
@@ -87,7 +104,10 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - La Completa de $35 queda entre el Profesional ($29) y el Premium ($49) de Beauty360Pro, con más cosas que su Premium (alquiler de silla, porcentaje, WhatsApp automático)
 - La Básica de $25 sirve para que la Completa se vea barata (solo $10 más)
 
-## Mejoras propuestas (por decidir con Dimitry)
+## Mejoras propuestas — ya hechas (ver 3e), salvo el anticipo en línea
+- [ ] Anticipo en línea para clientes nuevos o que faltaron (Payphone/Plux): queda para el paso 4
+
+### Lista original
 1. Recordatorio automático al cliente el día anterior (WhatsApp o Telegram del cliente) y confirmación con un toque
 2. El cliente cancela o cambia su cita desde su cuenta, con reglas del dueño (ej. hasta 2 horas antes)
 3. Anticipo en línea para clientes nuevos o que faltaron antes (Payphone/Plux), configurable

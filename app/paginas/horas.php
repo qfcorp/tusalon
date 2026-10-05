@@ -33,10 +33,30 @@ if (!$st->fetchColumn() || !$minutos) {
     return;
 }
 $agenda = new Agenda(db());
+$ofrece = array_column($agenda->serviciosDe($sid, $prof, true), 'id');
+if (!in_array($serv, array_map('intval', $ofrece), true)) {
+    echo json_encode(['horas' => [], 'en_confirmacion' => [], 'cerrado' => true,
+                      'mensaje' => 'Ese peluquero no hace este servicio. Elige otro servicio u otro peluquero.']);
+    return;
+}
+$horarioDia = $agenda->horarioDelDia($sid, $prof, $fecha);
+$mensaje = null;
+if ($horarioDia === null) {
+    $mensaje = 'Ese día no atiende. Prueba otro día u otro peluquero.';
+} else {
+    // ¿Vacaciones o permiso todo el día?
+    $st = db()->prepare('SELECT 1 FROM bloqueos WHERE profesional_id = ? AND desde <= ? AND hasta >= ?');
+    $st->execute([$prof, "$fecha {$horarioDia['abre']}", "$fecha {$horarioDia['cierra']}"]);
+    if ($st->fetchColumn()) $mensaje = 'Ese día no atiende (vacaciones o permiso). Prueba otro día u otro peluquero.';
+}
+if ($mensaje) {
+    echo json_encode(['horas' => [], 'en_confirmacion' => [], 'cerrado' => true, 'mensaje' => $mensaje]);
+    return;
+}
 $dia = $agenda->horasDelDia($sid, $prof, $fecha, (int) $minutos);
 echo json_encode([
     'horas'  => $dia['libres'],
     'en_confirmacion' => $dia['en_confirmacion'],
-    'cerrado'=> !isset($agenda->horario($sid)[(int) date('w', strtotime($fecha))]),
+    'cerrado'=> false,
     'hora_servidor' => date('H:i:s'),
 ]);

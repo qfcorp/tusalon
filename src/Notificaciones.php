@@ -36,29 +36,62 @@ final class Notificaciones
             ? "Solicitud de cita: {$c['cliente']} quiere {$c['servicios']} con {$c['profesional']} el $cuando. Acéptala o recházala."
             : "Nueva cita en línea: {$c['cliente']}, {$c['servicios']} con {$c['profesional']} el $cuando.";
 
-        $destinos = [];
-        if (in_array($c['avisar_a'], ['dueno', 'ambos'], true)) {
-            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND rol IN ('dueno','admin') AND activo");
-            $st->execute([$c['salon_id']]);
-            $destinos = array_merge($destinos, $st->fetchAll(PDO::FETCH_COLUMN));
-        }
-        if (in_array($c['avisar_a'], ['peluquero', 'ambos'], true)) {
-            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND profesional_id = ? AND activo");
-            $st->execute([$c['salon_id'], $c['profesional_id']]);
-            $destinos = array_merge($destinos, $st->fetchAll(PDO::FETCH_COLUMN));
-        }
-        // Si nadie recibiría el aviso (ej. el peluquero no tiene acceso), avisar al dueño.
-        if (!$destinos) {
-            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND rol IN ('dueno','admin') AND activo");
-            $st->execute([$c['salon_id']]);
-            $destinos = $st->fetchAll(PDO::FETCH_COLUMN);
-        }
+        $destinos = $this->destinos((int) $c['salon_id'], (int) $c['profesional_id'], $c['avisar_a']);
         $ins = $this->db->prepare('INSERT INTO notificaciones (salon_id, usuario_id, cita_id, texto) VALUES (?,?,?,?)');
-        $this->ultimosDestinos = array_values(array_unique(array_map('intval', $destinos)));
+        $this->ultimosDestinos = $destinos;
         foreach ($this->ultimosDestinos as $uid) {
             $ins->execute([$c['salon_id'], $uid, $citaId, $texto]);
         }
         return count($this->ultimosDestinos);
+    }
+
+    /** Usuarios a avisar según lo que programó el dueño (si nadie, el dueño). */
+    public function destinos(int $salonId, int $profId, ?string $avisarA = null): array
+    {
+        if ($avisarA === null) {
+            $st = $this->db->prepare('SELECT avisar_a FROM salones WHERE id = ?');
+            $st->execute([$salonId]);
+            $avisarA = (string) $st->fetchColumn();
+        }
+        $destinos = [];
+        if (in_array($avisarA, ['dueno', 'ambos'], true)) {
+            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND rol IN ('dueno','admin') AND activo");
+            $st->execute([$salonId]);
+            $destinos = array_merge($destinos, $st->fetchAll(PDO::FETCH_COLUMN));
+        }
+        if (in_array($avisarA, ['peluquero', 'ambos'], true)) {
+            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND profesional_id = ? AND activo");
+            $st->execute([$salonId, $profId]);
+            $destinos = array_merge($destinos, $st->fetchAll(PDO::FETCH_COLUMN));
+        }
+        if (!$destinos) {
+            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND rol IN ('dueno','admin') AND activo");
+            $st->execute([$salonId]);
+            $destinos = $st->fetchAll(PDO::FETCH_COLUMN);
+        }
+        return array_values(array_unique(array_map('intval', $destinos)));
+    }
+
+    /** Aviso de texto (campana + Telegram de los conectados). Ej.: el cliente confirmó o canceló. */
+    public function avisoSimple(int $salonId, int $profId, ?int $citaId, string $texto): int
+    {
+        $destinos = $this->destinos($salonId, $profId);
+        $ins = $this->db->prepare('INSERT INTO notificaciones (salon_id, usuario_id, cita_id, texto) VALUES (?,?,?,?)');
+        foreach ($destinos as $uid) $ins->execute([$salonId, $uid, $citaId, mb_substr($texto, 0, 300)]);
+        if (!$this->db->inTransaction()) (new Telegram($this->db))->textoAUsuarios($destinos, $texto);
+        return count($destinos);
+    }
+
+    /** Aviso solo para el dueño (reportes, cumpleaños). */
+    public function alDueno(int $salonId, string $texto, bool $telegram = true): array
+    {
+        $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND rol IN ('dueno','admin') AND activo");
+        $st->execute([$salonId]);
+        $ids = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+        $ins = $this->db->prepare('INSERT INTO notificaciones (salon_id, usuario_id, texto) VALUES (?,?,?)');
+        foreach ($ids as $uid) $ins->execute([$salonId, $uid, mb_substr($texto, 0, 300)]);
+        if ($telegram) (new Telegram($this->db))->textoAUsuarios($ids, $texto);
+        return $ids;
     }
 
     public function sinLeer(int $usuarioId): int

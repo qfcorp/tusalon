@@ -21,8 +21,10 @@ require __DIR__ . '/../src/WhatsApp.php';
 require __DIR__ . '/../src/Telegram.php';
 require __DIR__ . '/../src/CuentaCliente.php';
 require __DIR__ . '/../src/Fotos.php';
+require __DIR__ . '/../src/Calificaciones.php';
+require __DIR__ . '/../src/Automaticas.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas};
 
 $ok = 0;
 $fallos = [];
@@ -421,6 +423,247 @@ if ($logTg && getenv('TELEGRAM_API_BASE')) {
 } else {
     echo "  (omitido: falta el Telegram simulado)\n";
 }
+
+
+// ------------------------------------------------------------------
+echo "\n14. Horario propio, almuerzo y vacaciones por peluquero\n";
+putenv('TELEGRAM_API_BASE=' . ($tgBase = 'http://127.0.0.1:8098'));
+$ahoraN = new DateTimeImmutable('2026-11-08 12:00');   // domingo
+$diasAna = [];
+foreach ([2, 3, 4, 5, 6] as $d) $diasAna[$d] = ['abre' => '10:00', 'cierra' => '18:00', 'almuerzo_desde' => '13:00', 'almuerzo_hasta' => '14:00'];
+$ag->guardarHorarioProfesional($salon, $ana, $diasAna, false);
+check('Ana no trabaja los lunes (su horario propio)', null, $ag->horarioDelDia($salon, $ana, '2026-11-09'));
+$hAna = $ag->horasDelDia($salon, $ana, '2026-11-10', 30, $ahoraN)['libres'];
+check('Martes de Ana 10:00–18:00 sin el almuerzo = 14 horas', 14, count($hAna));
+check('A las 13:00 Ana está almorzando', false, in_array('13:00', $hAna, true));
+check('A las 12:30 sí (termina justo antes del almuerzo)', true, in_array('12:30', $hAna, true));
+check('Luis sigue con el horario del salón el lunes', 20, count($ag->horasDelDia($salon, $luis, '2026-11-09', 30, $ahoraN)['libres']));
+$msg = '';
+try { $ag->guardarHorarioProfesional($salon, $ana, [2 => ['abre' => '10:00', 'cierra' => '18:00', 'almuerzo_desde' => '19:00', 'almuerzo_hasta' => '20:00']], false); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Almuerzo fuera del horario: no se guarda', true, str_contains($msg, 'no cuadran'));
+$ag->agregarBloqueo($salon, $ana, '2026-11-11 00:00', '2026-11-12 00:00', 'Vacaciones');
+check('Vacaciones el miércoles: sin horas', 0, count($ag->horasDelDia($salon, $ana, '2026-11-11', 30, $ahoraN)['libres']));
+$ag->agregarBloqueo($salon, $ana, '2026-11-12 15:00', '2026-11-12 16:00', 'Médico');
+$hJue = $ag->horasDelDia($salon, $ana, '2026-11-12', 30, $ahoraN)['libres'];
+check('Permiso de 15:00 a 16:00: esas horas no se ofrecen', [false, false], [in_array('15:00', $hJue, true), in_array('15:30', $hJue, true)]);
+check('…pero 14:30 y 16:00 sí', [true, true], [in_array('14:30', $hJue, true), in_array('16:00', $hJue, true)]);
+$msg = '';
+try { $ag->reservarOnline($salon, $ana, '2026-11-11', '11:00', [$corte], 'Cliente Vacaciones', '0990001111', $ahoraN); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No se puede reservar con Ana en vacaciones', true, str_contains($msg, 'no está disponible'));
+check('Hay 2 bloqueos programados', 2, count($ag->bloqueos($ana)));
+
+// ------------------------------------------------------------------
+echo "\n15. Servicios que solo hacen algunos y precio por peluquero\n";
+$st = $db->prepare("INSERT INTO servicios (salon_id, nombre, descripcion, precio, duracion_minutos) VALUES (?, 'Keratina', ?, 40, 90) RETURNING id");
+$st->execute([$salon, 'Alisado con keratina: lavado, aplicación, secado y planchado.']);
+$keratina = (int) $st->fetchColumn();
+$ag->guardarServicioProfesionales($salon, $keratina, [$ana => 45.0]);
+$deAna = array_column($ag->serviciosDe($salon, $ana, true), null, 'id');
+check('Ana hace la keratina a $45 (su precio)', 45.0, (float) ($deAna[$keratina]['precio'] ?? 0));
+check('La explicación del servicio llega al portal', true, str_contains((string) ($deAna[$keratina]['descripcion'] ?? ''), 'keratina'));
+check('Luis no hace keratina', false, isset(array_column($ag->serviciosDe($salon, $luis, true), null, 'id')[$keratina]));
+check('El corte (sin restricción) lo hacen todos', true, isset(array_column($ag->serviciosDe($salon, $luis, true), null, 'id')[$corte]));
+$msg = '';
+try { $ag->reservarOnline($salon, $luis, '2026-11-09', '10:00', [$keratina], 'Pide Keratina', '0990002222', $ahoraN); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No se puede reservar keratina con Luis', true, $msg !== '');
+$cK = $ag->reservarOnline($salon, $ana, '2026-11-10', '10:00', [$keratina], 'Rosa Keratina', '0990003333', $ahoraN);
+check('Con Ana la cita queda a $45', 45.0, (float) $db->query("SELECT precio FROM cita_servicios WHERE cita_id = $cK")->fetchColumn());
+check('La cita dura 90 minutos', '11:30', (new DateTimeImmutable($db->query("SELECT fin FROM citas WHERE id = $cK")->fetchColumn()))->format('H:i'));
+check('Cada cita tiene su enlace secreto', 32, strlen((string) $db->query("SELECT token FROM citas WHERE id = $cK")->fetchColumn()));
+$ag->guardarServicioProfesionales($salon, $keratina, []);
+check('Vacío = lo vuelven a hacer todos', true, isset(array_column($ag->serviciosDe($salon, $luis, true), null, 'id')[$keratina]));
+$ag->guardarServicioProfesionales($salon, $keratina, [$ana => null]);
+
+// ------------------------------------------------------------------
+echo "\n16. El dueño acepta y pone el valor que paga el cliente\n";
+$ag->responderSolicitud($salon, $cK, $uPepe, true, [$keratina => '50.00']);
+$citaK = $ag->cita($salon, $cK);
+check('La cita queda reservada', 'reservada', $citaK['estado']);
+check('El valor quedó en $50', 50.0, (float) $citaK['lista_servicios'][0]['precio']);
+$msgK = $ag->mensajeConfirmacion($citaK, 'Barbería Don Pepe', 'https://tusalon.qfradioec.com');
+check('El mensaje al cliente dice el valor a cancelar', true, str_contains($msgK, 'Valor a cancelar: $50,00'));
+check('…y trae su enlace para ver o cancelar', true, str_contains($msgK, '/?r=confirmar&t=' . $citaK['token']));
+$msg = '';
+try { $ag->responderSolicitud($salon, $ag->reservarOnline($salon, $ana, '2026-11-10', '15:00', [$corte], 'Valor Negativo', '0990004444', $ahoraN), $uPepe, true, [$corte => -5]); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No acepta valores negativos', true, str_contains($msg, 'negativo'));
+
+// ------------------------------------------------------------------
+echo "\n17. Faltas: tras 2, no puede reservar en línea\n";
+$f1 = $ag->reservarOnline($salon, $luis, '2026-11-09', '09:00', [$corte], 'Pedro Faltón', '0990005555', $ahoraN);
+$f2 = $ag->reservarOnline($salon, $luis, '2026-11-09', '09:30', [$corte], 'Pedro Faltón', '0990005555', $ahoraN);
+$ag->cambiarEstado($salon, $f1, 'no_asistio');
+$ag->cambiarEstado($salon, $f2, 'no_asistio');
+$pedro = (int) $db->query("SELECT cliente_id FROM citas WHERE id = $f1")->fetchColumn();
+check('Pedro tiene 2 faltas', 2, $ag->faltas($salon, $pedro));
+$msg = '';
+try { $ag->reservarOnline($salon, $luis, '2026-11-09', '11:00', [$corte], 'Pedro Faltón', '0990005555', $ahoraN); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Con 2 faltas no puede reservar en línea', true, str_contains($msg, 'no llegaste'));
+$ag->perdonarFaltas($salon, $pedro);
+check('El dueño perdona: 0 faltas', 0, $ag->faltas($salon, $pedro));
+$f3 = $ag->reservarOnline($salon, $luis, '2026-11-09', '11:00', [$corte], 'Pedro Faltón', '0990005555', $ahoraN);
+check('Ya puede reservar otra vez', true, $f3 > 0);
+$db->exec("UPDATE salones SET max_faltas = 0 WHERE id = $salon");
+$ag->cambiarEstado($salon, $f3, 'no_asistio');
+$db->exec("UPDATE clientes SET faltas_desde = NULL WHERE id = $pedro");
+check('Con "nunca bloquear" puede reservar aunque tenga faltas', true,
+    $ag->reservarOnline($salon, $luis, '2026-11-09', '11:30', [$corte], 'Pedro Faltón', '0990005555', $ahoraN) > 0);
+$db->exec("UPDATE salones SET max_faltas = 2 WHERE id = $salon");
+
+// ------------------------------------------------------------------
+echo "\n18. El cliente confirma, cancela o cambia (hasta 2 horas antes)\n";
+$ag->responderSolicitud($salon, $f3 + 1, $uPepe, true);
+$cC = $ag->reservarOnline($salon, $luis, '2026-11-09', '16:00', [$corte], 'Carla Cancela', '0990006666', $ahoraN);
+$ag->responderSolicitud($salon, $cC, $uPepe, true);
+$citaC = $ag->porToken($ag->cita($salon, $cC)['token']);
+check('Se encuentra la cita con su enlace secreto', $cC, (int) $citaC['id']);
+check('Un enlace inventado no sirve', null, $ag->porToken(str_repeat('a', 32)));
+check('Un enlace con letras raras no sirve', null, $ag->porToken("x' OR 1=1 --"));
+check('A 1 hora de la cita ya no puede cancelar', true,
+    str_contains((string) $ag->motivoNoCancelar($citaC, new DateTimeImmutable('2026-11-09 15:00')), 'menos de 2 horas'));
+check('A 3 horas sí puede', null, $ag->motivoNoCancelar($citaC, new DateTimeImmutable('2026-11-09 13:00')));
+$antesAvisos = (int) $db->query("SELECT count(*) FROM notificaciones WHERE cita_id = $cC")->fetchColumn();
+$ag->cancelarPorCliente($cC, new DateTimeImmutable('2026-11-09 10:00'));
+check('Cancelada por el cliente', ['cancelada', 'cliente'], array_values($db->query("SELECT estado, cancelada_por FROM citas WHERE id = $cC")->fetch(PDO::FETCH_NUM)));
+check('Se avisa a los mismos que reciben las reservas', $antesAvisos * 2, (int) $db->query("SELECT count(*) FROM notificaciones WHERE cita_id = $cC")->fetchColumn());
+check('La hora quedó libre', true, in_array('16:00', $ag->horasDelDia($salon, $luis, '2026-11-09', 30, $ahoraN)['libres'], true));
+$msg = '';
+try { $ag->cancelarPorCliente($cC, new DateTimeImmutable('2026-11-09 10:00')); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No se cancela dos veces', true, str_contains($msg, 'ya no está activa'));
+$cOk = $ag->reservarOnline($salon, $luis, '2026-11-09', '17:00', [$corte], 'Daniel Confirma', '0990007777', $ahoraN);
+$ag->responderSolicitud($salon, $cOk, $uPepe, true);
+$ag->confirmarPorCliente($cOk);
+$fila = $db->query("SELECT estado, confirmada_cliente_en IS NOT NULL FROM citas WHERE id = $cOk")->fetch(PDO::FETCH_NUM);
+check('El cliente confirma: queda confirmada', ['confirmada', true], [$fila[0], (bool) $fila[1]]);
+$ag->cambiarEstado($salon, $cOk, 'cancelada');
+check('Si cancela el salón, queda marcado como salón', 'salon', $db->query("SELECT cancelada_por FROM citas WHERE id = $cOk")->fetchColumn());
+
+// ------------------------------------------------------------------
+echo "\n19. Recordatorio el día anterior (Telegram del cliente con botones)\n";
+$auto = new Automaticas($db);
+$tg = new Telegram($db);
+$cR = $ag->reservarOnline($salon, $luis, '2026-11-16', '10:00', [$corte], 'Raúl Recuerda', '0990008888', new DateTimeImmutable('2026-11-14 12:00'));
+$ag->responderSolicitud($salon, $cR, $uPepe, true);
+$raul = (int) $db->query("SELECT cliente_id FROM citas WHERE id = $cR")->fetchColumn();
+$enlaceC = $tg->enlaceCliente($raul);
+check('El cliente tiene su enlace para conectar Telegram', true, str_contains((string) $enlaceC, '?start=c'));
+$tg->procesar(['message' => ['chat' => ['id' => 5551], 'text' => '/start ' . substr($enlaceC, strpos($enlaceC, '=') + 1)]]);
+check('El cliente queda conectado', 5551, (int) $db->query("SELECT telegram_chat_id FROM clientes WHERE id = $raul")->fetchColumn());
+$lista = $auto->recordatoriosManana($salon, new DateTimeImmutable('2026-11-15 10:00'));
+$deRaul = array_values(array_filter($lista, fn($c) => (int) $c['id'] === $cR))[0] ?? null;
+check('Aparece en "recordar mañana"', true, $deRaul !== null);
+check('El WhatsApp trae el valor y el enlace', true, str_contains(urldecode((string) $deRaul['wa']), 'Valor: $10,00') && str_contains(urldecode((string) $deRaul['wa']), 'r=confirmar'));
+file_put_contents($logTg, '');
+check('Antes de las 9:00 no se envía', 0, $auto->enviarRecordatorios($salon, new DateTimeImmutable('2026-11-15 08:00')));
+check('Desde las 9:00 se envía a quien tiene Telegram', 1, $auto->enviarRecordatorios($salon, new DateTimeImmutable('2026-11-15 10:00')));
+check('No se envía dos veces', 0, $auto->enviarRecordatorios($salon, new DateTimeImmutable('2026-11-15 11:00')));
+$llamadas = array_map(fn($l) => json_decode($l, true), array_filter(explode("\n", (string) file_get_contents($logTg))));
+$rec = array_values(array_filter($llamadas, fn($l) => ($l['datos']['chat_id'] ?? 0) === 5551))[0] ?? null;
+check('Trae botones "Confirmo" y "Cancelar"', ["cc:$cR", "cx:$cR"],
+    array_column($rec['datos']['reply_markup']['inline_keyboard'][0] ?? [], 'callback_data'));
+$tg->procesar(['callback_query' => ['id' => 'q9', 'data' => "cx:$cR", 'message' => ['chat' => ['id' => 9999], 'message_id' => 3, 'text' => 'x']]]);
+check('Otro Telegram no puede cancelar la cita de Raúl', 'reservada', $db->query("SELECT estado FROM citas WHERE id = $cR")->fetchColumn());
+$tg->procesar(['callback_query' => ['id' => 'q10', 'data' => "cc:$cR", 'message' => ['chat' => ['id' => 5551], 'message_id' => 3, 'text' => 'x']]]);
+check('Raúl toca "Confirmo": cita confirmada', 'confirmada', $db->query("SELECT estado FROM citas WHERE id = $cR")->fetchColumn());
+$cR2 = $ag->crearCita($salon, $ana, $raul, '2026-11-20 10:00', [$corte]);
+file_put_contents($logTg, '');
+check('Al aceptar, la confirmación con el valor le llega por Telegram', true, $tg->confirmacionAlCliente($salon, $cR2));
+check('…y dice el valor', true, str_contains((string) file_get_contents($logTg), 'Valor a cancelar: $10,00'));
+
+// ------------------------------------------------------------------
+echo "\n20. Cumpleaños (solo día y mes)\n";
+$cc2 = new CuentaCliente($db);
+$msg = '';
+try { CuentaCliente::validarCumple(4, 31); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('31 de abril no existe', true, str_contains($msg, 'no existe'));
+$msg = '';
+try { CuentaCliente::validarCumple(5, null); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Si pone el mes, debe poner el día', true, str_contains($msg, 'mes y el día'));
+check('29 de febrero sí vale', [2, 29], CuentaCliente::validarCumple(2, 29));
+check('Vacío = no lo dio', [null, null], CuentaCliente::validarCumple(null, null));
+$sofia = $cc2->crear($salon, 'Sofía Cumple', '0990009999', 'sofia@x.ec', 'clave1234', false, 11, 20);
+check('Se guarda el cumpleaños al crear la cuenta', [11, 20], array_map('intval', array_values($db->query("SELECT cumple_mes, cumple_dia FROM clientes WHERE id = $sofia")->fetch(PDO::FETCH_NUM))));
+$db->exec("UPDATE clientes SET telegram_chat_id = 5552 WHERE id = $sofia");
+$cc2->guardarCumple($salon, $raul, 2, 29);
+check('Cumpleañeros del 20/11', ['Sofía Cumple'], array_column($auto->cumpleanosHoy($salon, new DateTimeImmutable('2026-11-20 09:00')), 'nombre'));
+file_put_contents($logTg, '');
+check('Antes de las 8:00 no saluda', 0, $auto->saludarCumpleanos($salon, new DateTimeImmutable('2026-11-20 07:00')));
+check('Desde las 8:00 saluda', 1, $auto->saludarCumpleanos($salon, new DateTimeImmutable('2026-11-20 09:00')));
+check('Solo una vez al año', 0, $auto->saludarCumpleanos($salon, new DateTimeImmutable('2026-11-20 15:00')));
+$tgLog = (string) file_get_contents($logTg);
+check('A Sofía le llega "Feliz cumpleaños" por Telegram', true, str_contains($tgLog, 'Feliz cumpleaños, Sofía'));
+check('Al dueño le llega quién cumple hoy', true, str_contains($tgLog, 'Hoy cumplen años: Sofía Cumple'));
+check('El del 29/2 se saluda el 28/2 en año no bisiesto', true,
+    in_array('Raúl Recuerda', array_column($auto->cumpleanosHoy($salon, new DateTimeImmutable('2027-02-28 09:00')), 'nombre'), true));
+check('…y el 29/2 en año bisiesto', [false, true], [
+    in_array('Raúl Recuerda', array_column($auto->cumpleanosHoy($salon, new DateTimeImmutable('2028-02-28 09:00')), 'nombre'), true),
+    in_array('Raúl Recuerda', array_column($auto->cumpleanosHoy($salon, new DateTimeImmutable('2028-02-29 09:00')), 'nombre'), true)]);
+
+// ------------------------------------------------------------------
+echo "\n21. Clientes que no vuelven\n";
+$st = $db->prepare("INSERT INTO clientes (salon_id, nombre, telefono) VALUES (?, ?, ?) RETURNING id");
+$st->execute([$salon, 'Tomás Olvidado', '0991230001']); $tomas = (int) $st->fetchColumn();
+$st->execute([$salon, 'Vale Frecuente', '0991230002']); $vale = (int) $st->fetchColumn();
+$st->execute([$salon, 'Juan Ya Agendó', '0991230003']); $juanA = (int) $st->fetchColumn();
+foreach ([[$tomas, '2026-09-01 10:00'], [$tomas, '2026-08-01 10:00'], [$vale, '2026-11-25 10:00'], [$juanA, '2026-09-02 10:00']] as [$cl, $cuando]) {
+    $id = $ag->crearCita($salon, $marta, $cl, $cuando, [$corte]);
+    $ag->cambiarEstado($salon, $id, 'atendida');
+}
+$ag->crearCita($salon, $marta, $juanA, '2026-12-05 10:00', [$corte]);
+$rec = array_column($auto->porRecuperar($salon, new DateTimeImmutable('2026-12-01 10:00')), null, 'nombre');
+check('Tomás (13 semanas sin venir) aparece', true, isset($rec['Tomás Olvidado']));
+check('Vale (vino hace 1 semana) no aparece', false, isset($rec['Vale Frecuente']));
+check('Juan (ya tiene cita) no aparece', false, isset($rec['Juan Ya Agendó']));
+check('Mensaje listo con el enlace de reservas', true, str_contains(urldecode((string) ($rec['Tomás Olvidado']['wa'] ?? '')), 'r=reservar&s=donpepe'));
+
+// ------------------------------------------------------------------
+echo "\n22. Calificación después del servicio\n";
+$cal = new Calificaciones($db);
+$db->exec("UPDATE salones SET google_resenas_url = 'https://g.page/r/donpepe/review' WHERE id = $salon");
+$msg = '';
+try { $cal->calificar($ag->cita($salon, $cR), 5); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No se califica antes de ser atendido', true, str_contains($msg, 'cuando te hayan atendido'));
+$ag->cambiarEstado($salon, $cR, 'atendida');
+check('5 estrellas: invita a reseñar en Google', 'https://g.page/r/donpepe/review', $cal->calificar($ag->cita($salon, $cR), 5, '¡Excelente!'));
+$msg = '';
+try { $cal->calificar($ag->cita($salon, $cR), 1); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Solo se califica una vez', true, str_contains($msg, 'Ya calificaste'));
+$ag->cambiarEstado($salon, $cK, 'atendida');
+check('3 estrellas: no se le manda a Google', null, $cal->calificar($ag->cita($salon, $cK), 3));
+check('El dueño recibe aviso de la calificación', true,
+    (bool) $db->query("SELECT 1 FROM notificaciones WHERE texto LIKE '★★★★★%Raúl Recuerda%'")->fetchColumn());
+$db->exec("UPDATE citas SET fin = '2026-11-16 10:30', calificacion_pedida_en = NULL WHERE id = $cR");
+$cAt = $ag->crearCita($salon, $luis, $raul, '2026-11-16 15:00', [$corte]);
+$ag->cambiarEstado($salon, $cAt, 'atendida');
+check('Se pide calificar por Telegram una sola vez', [1, 0], [
+    $auto->pedirCalificaciones($salon, new DateTimeImmutable('2026-11-16 18:00')),
+    $auto->pedirCalificaciones($salon, new DateTimeImmutable('2026-11-16 19:00'))]);
+
+// ------------------------------------------------------------------
+echo "\n23. Reporte del mes\n";
+$rep = $auto->reporteMes($salon, '2026-10');
+check('Ventas de octubre', true, $rep['total'] > 0 && $rep['ventas'] > 0);
+check('Lo más vendido va primero', (int) max(array_column($rep['servicios'], 'cantidad')), (int) ($rep['servicios'][0]['cantidad'] ?? 0));
+check('El equipo viene ordenado por lo vendido', true, (float) $rep['equipo'][0]['vendido'] >= (float) end($rep['equipo'])['vendido']);
+check('Calcula las horas más vacías', 3, count($rep['horas_muertas']));
+$txt = Automaticas::textoReporte($rep, 'Barbería Don Pepe');
+check('El texto dice el mes', true, str_contains($txt, 'Reporte de octubre 2026'));
+$db->exec("UPDATE calificaciones SET creada_en = '2026-11-16 12:00'");   // en la prueba, calificadas en noviembre
+$repN = $auto->reporteMes($salon, '2026-11');
+check('Noviembre: cuenta las faltas', true, $repN['faltas'] >= 3);
+check('Noviembre: la calificación promedio (5 y 3 = 4)', 4.0, $repN['estrellas']);
+file_put_contents($logTg, '');
+check('El día 1 antes de las 7:00 no se envía', false, $auto->enviarReporteMensual($salon, new DateTimeImmutable('2026-11-01 06:00')));
+check('El día 1 desde las 7:00 se envía', true, $auto->enviarReporteMensual($salon, new DateTimeImmutable('2026-11-01 07:30')));
+check('Solo una vez por mes', false, $auto->enviarReporteMensual($salon, new DateTimeImmutable('2026-11-01 08:30')));
+check('Otro día del mes no se envía', false, $auto->enviarReporteMensual($salon, new DateTimeImmutable('2026-11-02 08:30')));
+check('Le llega al Telegram del dueño', true, str_contains((string) file_get_contents($logTg), 'Reporte de octubre 2026'));
+$todo = $auto->correr(new DateTimeImmutable('2026-11-20 10:00'));
+check('La tarea de cada hora recorre los salones activos', true, $todo['salones'] >= 1);
 
 // ------------------------------------------------------------------
 echo "\n" . str_repeat('=', 50) . "\n";

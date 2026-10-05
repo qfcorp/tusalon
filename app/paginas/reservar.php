@@ -25,23 +25,46 @@ $clienteSesion = isset($_SESSION['cliente'][$sid]) ? $cuentas->datos($sid, (int)
 $st = db()->prepare("SELECT id, nombre, tipo FROM profesionales WHERE salon_id = ? AND activo ORDER BY tipo = 'dueno' DESC, nombre");
 $st->execute([$sid]);
 $profesionales = $st->fetchAll();
-$st = db()->prepare('SELECT id, nombre, precio, duracion_minutos FROM servicios
+$st = db()->prepare('SELECT id, nombre, descripcion, precio, duracion_minutos FROM servicios
                       WHERE salon_id = ? AND activo AND reserva_online AND profesional_id IS NULL ORDER BY nombre');
 $st->execute([$sid]);
 $servicios = $st->fetchAll();
 $horario = $agenda->horario($sid);
 
+// Qué servicios hace cada peluquero (con su precio) y qué días trabaja
+$porProfesional = [];
+$diasProfesional = [];
+foreach ($profesionales as $p) {
+    $pid = (int) $p['id'];
+    foreach ($agenda->serviciosDe($sid, $pid, true) as $sv) {
+        $porProfesional[$pid][(int) $sv['id']] = (float) $sv['precio'];
+    }
+    $propio = $agenda->horarioProfesional($pid);
+    $diasProfesional[$pid] = array_map('intval', array_keys($propio ?: $horario));
+}
+
+// Cambio de hora desde el enlace de la cita: la anterior se cancela al reservar la nueva
+$citaVieja = null;
+if (!empty($_GET['cambia'])) {
+    $cv = $agenda->porToken((string) $_GET['cambia']);
+    if ($cv && (int) $cv['salon_id'] === $sid && $agenda->motivoNoCancelar($cv) === null) {
+        $citaVieja = $cv;
+    }
+}
+
 $error = null;
 $d = [
-    'profesional' => (int) ($_POST['profesional'] ?? $_GET['p'] ?? 0),
-    'servicio'    => (int) ($_POST['servicio'] ?? 0),
+    'profesional' => (int) ($_POST['profesional'] ?? $_GET['p'] ?? $citaVieja['profesional_id'] ?? 0),
+    'servicio'    => (int) ($_POST['servicio'] ?? $citaVieja['lista_servicios'][0]['id'] ?? 0),
     'fecha'       => (string) ($_POST['fecha'] ?? date('Y-m-d')),
     'hora'        => (string) ($_POST['hora'] ?? ''),
-    'nombre'      => trim((string) ($_POST['nombre'] ?? '')),
-    'telefono'    => trim((string) ($_POST['telefono'] ?? '')),
+    'nombre'      => trim((string) ($_POST['nombre'] ?? $citaVieja['cliente'] ?? '')),
+    'telefono'    => trim((string) ($_POST['telefono'] ?? $citaVieja['telefono'] ?? '')),
     'modo'        => (string) ($_POST['modo'] ?? 'invitado'),
     'email'       => trim((string) ($_POST['email'] ?? '')),
     'acepta_fotos'=> !empty($_POST['acepta_fotos']),
+    'cumple_mes'  => (int) ($_POST['cumple_mes'] ?? 0),
+    'cumple_dia'  => (int) ($_POST['cumple_dia'] ?? 0),
 ];
 
 if (es_post()) {
@@ -60,6 +83,9 @@ if (es_post()) {
         if (!in_array($d['servicio'], array_map('intval', array_column($servicios, 'id')), true)) {
             throw new RuntimeException('Elige un servicio.');
         }
+        if (!isset($porProfesional[$d['profesional']][$d['servicio']])) {
+            throw new RuntimeException('Ese servicio no lo hace el peluquero que elegiste. Elige otro servicio u otro peluquero.');
+        }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $d['fecha']) || !preg_match('/^\d{2}:\d{2}$/', $d['hora'])) {
             throw new RuntimeException('Elige el día y la hora.');
         }
@@ -67,7 +93,8 @@ if (es_post()) {
             $citaId = $agenda->reservarConCuenta($sid, (int) $clienteSesion['id'], $d['profesional'], $d['fecha'], $d['hora'], [$d['servicio']]);
         } elseif ($d['modo'] === 'cuenta') {
             // Crea la cuenta y reserva con ella (si la hora ya no está libre, la cuenta queda creada igual)
-            $nuevo = $cuentas->crear($sid, $d['nombre'], $d['telefono'], $d['email'], (string) ($_POST['clave'] ?? ''), $d['acepta_fotos']);
+            $nuevo = $cuentas->crear($sid, $d['nombre'], $d['telefono'], $d['email'], (string) ($_POST['clave'] ?? ''), $d['acepta_fotos'],
+                                     $d['cumple_mes'] ?: null, $d['cumple_dia'] ?: null);
             session_regenerate_id(true);
             $_SESSION['cliente'][$sid] = $nuevo;
             $clienteSesion = $cuentas->datos($sid, $nuevo);
@@ -75,6 +102,13 @@ if (es_post()) {
         } else {
             $citaId = $agenda->reservarOnline($sid, $d['profesional'], $d['fecha'], $d['hora'], [$d['servicio']],
                                               $d['nombre'], $d['telefono']);
+        }
+        if ($citaVieja) {
+            try {
+                $agenda->cancelarPorCliente((int) $citaVieja['id']);
+            } catch (RuntimeException $e) {
+                error_log('TuSalón: no se pudo cancelar la cita anterior al cambiar: ' . $e->getMessage());
+            }
         }
         $reservas[] = time();
         $_SESSION['reservas_online'] = array_values($reservas);
@@ -90,5 +124,6 @@ $confirmada = null;
 if (isset($_GET['ok']) && !empty($_SESSION['ultima_reserva'])) {
     $confirmada = $agenda->cita($sid, (int) $_SESSION['ultima_reserva']);
 }
-vista_publica('reservar', compact('salon', 'profesionales', 'servicios', 'horario', 'd', 'error', 'confirmada', 'clienteSesion'),
+vista_publica('reservar', compact('salon', 'profesionales', 'servicios', 'horario', 'd', 'error', 'confirmada', 'clienteSesion',
+                                  'porProfesional', 'diasProfesional', 'citaVieja'),
               'Reserva tu cita · ' . $salon['nombre']);

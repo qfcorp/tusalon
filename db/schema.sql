@@ -46,6 +46,11 @@ CREATE TABLE salones (
     avisar_a              VARCHAR(10) NOT NULL DEFAULT 'ambos'
                           CHECK (avisar_a IN ('dueno','peluquero','ambos')),
     minutos_para_aceptar  INT NOT NULL DEFAULT 120,     -- si nadie acepta, la hora se libera
+    horas_cancelacion     INT NOT NULL DEFAULT 2,       -- el cliente puede cancelar/cambiar hasta X horas antes
+    max_faltas            INT NOT NULL DEFAULT 2,       -- con estas faltas, no puede reservar en línea
+    semanas_sin_volver    INT NOT NULL DEFAULT 6,       -- "clientes por recuperar"
+    google_resenas_url    VARCHAR(300),                 -- enlace para dejar reseña en Google
+    reporte_enviado_mes   CHAR(7),                      -- 'AAAA-MM' del último reporte mensual enviado
     creado_en             TIMESTAMP    NOT NULL DEFAULT now()
 );
 
@@ -125,6 +130,31 @@ CREATE TABLE reglas_pago (
     CHECK (vigente_hasta IS NULL OR vigente_hasta >= vigente_desde)
 );
 
+-- Horario propio de cada peluquero (si no tiene filas, usa el del salón). Sin fila ese día = no trabaja.
+CREATE TABLE horarios_profesional (
+    profesional_id        INT NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
+    dia_semana            INT NOT NULL CHECK (dia_semana BETWEEN 0 AND 6),
+    abre                  TIME NOT NULL,
+    cierra                TIME NOT NULL,
+    almuerzo_desde        TIME,
+    almuerzo_hasta        TIME,
+    PRIMARY KEY (profesional_id, dia_semana),
+    CHECK (cierra > abre),
+    CHECK ((almuerzo_desde IS NULL AND almuerzo_hasta IS NULL) OR (almuerzo_hasta > almuerzo_desde))
+);
+
+-- Vacaciones, días libres o permisos de un peluquero
+CREATE TABLE bloqueos (
+    id                    SERIAL PRIMARY KEY,
+    salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
+    profesional_id        INT NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
+    desde                 TIMESTAMP NOT NULL,
+    hasta                 TIMESTAMP NOT NULL,
+    motivo                VARCHAR(80),
+    CHECK (hasta > desde)
+);
+CREATE INDEX idx_bloqueos ON bloqueos (profesional_id, desde);
+
 -- Escalas de comisión (plan Completa): "si pasa de X, sube a Y %".
 CREATE TABLE escalas_comision (
     id                    SERIAL PRIMARY KEY,
@@ -162,6 +192,12 @@ CREATE TABLE clientes (
     fecha_nacimiento      DATE,
     alergias              TEXT,
     notas                 TEXT,
+    cumple_mes            SMALLINT CHECK (cumple_mes BETWEEN 1 AND 12),   -- cumpleaños sin año (opcional)
+    cumple_dia            SMALLINT CHECK (cumple_dia BETWEEN 1 AND 31),
+    cumple_saludo_anio    INT,                          -- último año en que se le felicitó
+    telegram_chat_id      BIGINT,                       -- recordatorios por Telegram (lo conecta el cliente)
+    telegram_codigo       VARCHAR(32),
+    faltas_desde          TIMESTAMP,                    -- el dueño "perdona" las faltas anteriores a esta fecha
     -- Cuenta opcional del cliente (para ver su historial). Sin contraseña = cliente invitado.
     password_hash         VARCHAR(255),
     acepta_fotos          BOOLEAN NOT NULL DEFAULT false,  -- permiso para guardar fotos de sus servicios
@@ -193,6 +229,7 @@ CREATE TABLE servicios (
     -- Si tiene valor, es un servicio propio de ese arrendatario (su precio).
     profesional_id        INT REFERENCES profesionales(id),
     nombre                VARCHAR(100) NOT NULL,
+    descripcion           TEXT,                         -- explicación detallada para el cliente
     precio                NUMERIC(10,2) NOT NULL,       -- lo que cobra al cliente
     -- Lo que el dueño le paga al peluquero (empleado) por hacer este servicio.
     -- Si es NULL, se usa el % de comisión de su regla de pago.
@@ -211,6 +248,14 @@ CREATE TABLE productos (
     stock                 INT NOT NULL DEFAULT 0
 );
 
+-- Qué peluqueros hacen cada servicio y a qué precio. Sin filas = lo hacen todos al precio normal.
+CREATE TABLE servicio_profesional (
+    servicio_id           INT NOT NULL REFERENCES servicios(id) ON DELETE CASCADE,
+    profesional_id        INT NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
+    precio                NUMERIC(10,2) CHECK (precio IS NULL OR precio >= 0),   -- NULL = precio normal
+    PRIMARY KEY (servicio_id, profesional_id)
+);
+
 -- ---------------------------------------------------------------
 -- Agenda
 -- ---------------------------------------------------------------
@@ -225,6 +270,11 @@ CREATE TABLE citas (
     estado                VARCHAR(12) NOT NULL DEFAULT 'reservada'
                           CHECK (estado IN ('pendiente','reservada','confirmada','atendida','no_asistio','cancelada','rechazada')),
     expira_en             TIMESTAMP,                    -- solicitud en línea sin aceptar: se libera a esta hora
+    token                 VARCHAR(32) UNIQUE DEFAULT md5(random()::text || clock_timestamp()::text), -- enlace del cliente (confirmar, cancelar, calificar)
+    recordatorio_en       TIMESTAMP,                    -- cuándo se envió el recordatorio del día anterior
+    confirmada_cliente_en TIMESTAMP,                    -- cuándo el cliente confirmó que vendrá
+    calificacion_pedida_en TIMESTAMP,                   -- cuándo se le pidió calificar el servicio
+    cancelada_por         VARCHAR(12) CHECK (cancelada_por IN ('cliente','salon')),
     origen                VARCHAR(10) NOT NULL DEFAULT 'local' CHECK (origen IN ('local','online')),
     anticipo              NUMERIC(10,2) NOT NULL DEFAULT 0,
     notas                 TEXT,
@@ -250,6 +300,18 @@ CREATE TABLE fotos (
     creada_en             TIMESTAMP NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_fotos_cliente ON fotos (cliente_id, creada_en);
+
+-- Calificación del cliente después del servicio
+CREATE TABLE calificaciones (
+    id                    SERIAL PRIMARY KEY,
+    salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
+    cita_id               INT NOT NULL UNIQUE REFERENCES citas(id) ON DELETE CASCADE,
+    profesional_id        INT REFERENCES profesionales(id),
+    cliente_id            INT REFERENCES clientes(id),
+    estrellas             SMALLINT NOT NULL CHECK (estrellas BETWEEN 1 AND 5),
+    comentario            VARCHAR(500),
+    creada_en             TIMESTAMP NOT NULL DEFAULT now()
+);
 
 -- Avisos dentro del sistema (campana) para dueño y peluqueros
 CREATE TABLE notificaciones (

@@ -21,6 +21,15 @@ $nombre = explode(' ', trim($u['nombre']))[0];
     </a>
 <?php endif; ?>
 
+<?php if ($porRecordar > 0 || $cumpleHoy > 0): ?>
+    <a class="aviso franja-avisos" href="<?= e(url('avisos_clientes')) ?>">
+        <?= $porRecordar > 0 ? "⏰ $porRecordar " . ($porRecordar === 1 ? 'cita de mañana por recordar' : 'citas de mañana por recordar') : '' ?>
+        <?= $porRecordar > 0 && $cumpleHoy > 0 ? ' · ' : '' ?>
+        <?= $cumpleHoy > 0 ? "🎂 $cumpleHoy " . ($cumpleHoy === 1 ? 'cliente cumple años hoy' : 'clientes cumplen años hoy') : '' ?>
+        · Ver
+    </a>
+<?php endif; ?>
+
 <div class="rejilla rejilla-3">
     <div class="bloque">
         <div class="cifra"><?= dinero($caja['cobrado_local']) ?></div>
