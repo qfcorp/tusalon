@@ -232,6 +232,17 @@ try {
 check('Venta vacía se rechaza', true, $error !== '');
 
 // ------------------------------------------------------------------
+echo "\n8. WhatsApp con un clic\n";
+require_once __DIR__ . '/../src/WhatsApp.php';
+check('0991234567 → 593991234567', '593991234567', TuSalon\WhatsApp::normalizarTelefono('0991234567'));
+check('+593 99 123 4567 → 593991234567', '593991234567', TuSalon\WhatsApp::normalizarTelefono('+593 99 123 4567'));
+check('991234567 → 593991234567', '593991234567', TuSalon\WhatsApp::normalizarTelefono('991234567'));
+check('Teléfono vacío → sin enlace', null, TuSalon\WhatsApp::enlace('', 'hola'));
+$msg = TuSalon\WhatsApp::recordatorio('Juan Pérez', 'Barbería Don Pepe', new DateTimeImmutable('2026-10-13 10:00'), 'Ana');
+check('Recordatorio con día, hora y peluquero', true,
+    str_contains($msg, 'Hola Juan') && str_contains($msg, 'martes 13/10') && str_contains($msg, '10:00') && str_contains($msg, 'con Ana'));
+
+// ------------------------------------------------------------------
 echo "\n" . str_repeat('=', 50) . "\n";
 echo "Resultado: $ok correctas, " . count($fallos) . " fallidas\n";
 exit($fallos ? 1 : 0);

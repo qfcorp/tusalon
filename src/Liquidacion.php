@@ -74,7 +74,11 @@ final class Liquidacion
         unset($it);
         $total = self::r($total);
 
-        $this->db->beginTransaction();
+        // Si quien llama ya abrió una transacción (ej. cobrar una cita), se usa esa.
+        $propia = !$this->db->inTransaction();
+        if ($propia) {
+            $this->db->beginTransaction();
+        }
         try {
             $st = $this->db->prepare(
                 'INSERT INTO ventas (salon_id, cliente_id, fecha, cobrado_por, cobrado_por_profesional_id,
@@ -117,10 +121,14 @@ final class Liquidacion
                                               'propina', $propina, $ventaId, 'Propina');
                 }
             }
-            $this->db->commit();
+            if ($propia) {
+                $this->db->commit();
+            }
             return $ventaId;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
+            if ($propia) {
+                $this->db->rollBack();
+            }
             throw $e;
         }
     }
