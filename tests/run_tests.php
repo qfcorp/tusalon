@@ -14,8 +14,9 @@ require __DIR__ . '/../src/Db.php';
 require __DIR__ . '/../src/Planes.php';
 require __DIR__ . '/../src/Profesionales.php';
 require __DIR__ . '/../src/Liquidacion.php';
+require __DIR__ . '/../src/FacturasRecibidas.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas};
 
 $ok = 0;
 $fallos = [];
@@ -152,6 +153,31 @@ check('Producción de Pepe en la silla = $10', 10.0, $res['produccion_dueno']);
 check('Entró a la caja del local = $97 (10+67+12+8)', 97.0, $res['entro_a_caja']);
 // 10 Pepe + (65-11,5) Ana + (12-7,2) Luis + 6 Marta + 13,5 shampoo Carlos + 0 + 60 arriendo = 147,80
 check('Ganancia del local = $147,80', 147.80, $res['ganancia_local']);
+
+// ------------------------------------------------------------------
+echo "\n3b. Facturas que RECIBE el salón (gastos del panel)\n";
+$fact = new FacturasRecibidas($db);
+$clave = fn($n) => str_pad((string) $n, 49, '0', STR_PAD_LEFT);
+$nueva = $fact->importar($salon, ['clave_acceso' => $clave(1), 'fecha_emision' => '2026-10-13',
+    'ruc_proveedor' => '1790000000001', 'proveedor' => 'Distribuidora de Tintes', 'subtotal' => 17.39,
+    'iva' => 2.61, 'total' => 20.00], 'insumos');
+check('Factura de tintes importada', true, $nueva);
+$fact->importar($salon, ['clave_acceso' => $clave(2), 'fecha_emision' => '2026-10-13',
+    'ruc_proveedor' => '1760000000001', 'proveedor' => 'Empresa Eléctrica', 'subtotal' => 15.00,
+    'total' => 15.00], 'servicios_basicos');
+$repetida = $fact->importar($salon, ['clave_acceso' => $clave(1), 'fecha_emision' => '2026-10-13',
+    'ruc_proveedor' => '1790000000001', 'subtotal' => 17.39, 'total' => 20.00]);
+check('La misma factura no se importa dos veces', false, $repetida);
+// Nueva factura del mismo proveedor sin categoría: debe recordar "insumos"
+$fact->importar($salon, ['clave_acceso' => $clave(3), 'fecha_emision' => '2026-10-14',
+    'ruc_proveedor' => '1790000000001', 'subtotal' => 8.70, 'iva' => 1.30, 'total' => 10.00]);
+check('Recuerda la categoría del proveedor',
+    'insumos', $db->query("SELECT categoria FROM facturas_recibidas WHERE clave_acceso = '{$clave(3)}'")->fetchColumn());
+
+$res = $liq->resumenDueno($salon, '2026-10-13', '2026-10-13');
+check('Gastos del día por facturas recibidas = $35', 35.0, $res['gastos_facturas']);
+check('Gasto en insumos = $20', 20.0, $res['gastos_por_categoria']['insumos']);
+check('Ganancia después de gastos = 147,80 - 35 = $112,80', 112.80, $res['ganancia_despues_de_gastos']);
 
 // ------------------------------------------------------------------
 echo "\n4. Clientes privados del arrendatario\n";

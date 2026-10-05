@@ -15,7 +15,7 @@ PHP 8.3+ y PostgreSQL 16.
 | Carpeta | Qué tiene |
 |---|---|
 | `db/schema.sql` | Todas las tablas |
-| `src/` | La lógica: planes, profesionales, liquidación y rol de pagos |
+| `src/` | La lógica: planes, profesionales, liquidación, rol de pagos y facturas recibidas (gastos) |
 | `tests/run_tests.php` | Pruebas con una barbería de ejemplo |
 
 ## Correr las pruebas

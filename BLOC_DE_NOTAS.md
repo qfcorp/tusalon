@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 20:45
+Última actualización: 4 de octubre de 2026, 20:50
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -13,7 +13,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Nombre: TuSalón (sigue el esquema TuPass, TuVocalía)
 - [x] Se arranca con los 4 tipos de peluquero desde el inicio
 - [x] Tomar lo mejor de cada programa (tabla en el informe, sección "Nuestra propuesta")
-- [x] SRI: NO emitimos facturas. Solo se importan las facturas que el local ya emite (como el sincronizador del ERP)
+- [x] SRI: NO emitimos facturas. Se importan del SRI las facturas que el salón **RECIBE** de sus proveedores (tintes, shampoo, luz, agua, arriendo del local) para mostrar los gastos en el panel del dueño
 - [x] Plan Básica $25/mes: muy básico, para empujar a contratar la Completa
 - [x] Plan Completa $35/mes: todo incluido
 - [x] Semestral: paga 5, recibe 6 (Básica $125, Completa $175) — sale a $20,83 y $29,17 al mes
@@ -36,7 +36,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 | Cobro automático de arriendo, reparto del porcentaje | No | Sí |
 | Clientes privados del arrendatario, vista doble del dueño | No | Sí |
 | App del peluquero, inventario, fidelidad | No | Sí |
-| Importar facturas del SRI | No | Sí |
+| Importar facturas recibidas (gastos en el panel) | No | Sí |
 | Reportes | Del día | Rentabilidad por servicio y peluquero |
 
 ## Decisiones pendientes
@@ -46,10 +46,11 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Investigación de mercado (21 programas mundiales, 15 de Latinoamérica, contexto Ecuador)
 - [x] Revisión de precios de Beauty360Pro (competidor ecuatoriano): $14 / $29 / $49 al mes, solo mensual, sin descuento anual, 15 días de prueba, cobra con Payphone
 - [x] Definición de planes y precios
-- [x] Base de datos completa (`db/schema.sql`): salones, planes, suscripciones, 4 tipos de peluquero, reglas de pago, escalas, clientes privados, ficha técnica, citas, ventas, cuenta corriente, liquidaciones, caja, facturas importadas
+- [x] Base de datos completa (`db/schema.sql`): salones, planes, suscripciones, 4 tipos de peluquero, reglas de pago, escalas, clientes privados, ficha técnica, citas, ventas, cuenta corriente, liquidaciones, caja, facturas recibidas de proveedores
 - [x] Lógica del dinero (`src/`): reparto por tipo, propinas, arriendo, anticipos, escalas, rol de pagos con IESS, liquidación, vista doble del dueño
-- [x] Prueba simulada "Barbería Don Pepe": **49 de 49 pruebas correctas**. Se metió un error a propósito y las pruebas lo detectaron
+- [x] Prueba simulada "Barbería Don Pepe": 49 de 49 pruebas correctas. Se metió un error a propósito y las pruebas lo detectaron
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
+- [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
 
 ## Plan de trabajo
 1. [x] Repositorio qfcorp/tusalon en GitHub con este bloc de notas
@@ -57,7 +58,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 3. [ ] **SIGUIENTE:** Plan Básica: pantallas de login, agenda, clientes, caja diaria, cálculo simple de los 4 tipos, WhatsApp con un clic; primera instalación en tusalon.qfradioec.com
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
-6. [ ] Completa 3: ficha técnica, inventario, fidelidad, importar facturas SRI, app del peluquero
+6. [ ] Completa 3: ficha técnica, inventario, fidelidad, importar facturas recibidas del SRI, app del peluquero
 7. [ ] Cobro de la suscripción (mensual, semestral, anual) y bloqueo de funciones según el plan
 8. [ ] Prueba real en una peluquería, ajustes y lanzamiento en tukansoftware.com
 

@@ -278,7 +278,7 @@ ALTER TABLE movimientos_profesional
     ADD CONSTRAINT fk_mov_liquidacion FOREIGN KEY (liquidacion_id) REFERENCES liquidaciones(id);
 
 -- ---------------------------------------------------------------
--- Caja y facturas importadas del SRI
+-- Caja y facturas RECIBIDAS (compras y gastos del salón, importadas del SRI)
 -- ---------------------------------------------------------------
 CREATE TABLE cierres_caja (
     id                    SERIAL PRIMARY KEY,
@@ -291,19 +291,34 @@ CREATE TABLE cierres_caja (
     UNIQUE (salon_id, sucursal_id, fecha)
 );
 
-CREATE TABLE facturas_importadas (
+-- Facturas que le emiten AL salón sus proveedores (tintes, shampoo, luz, agua,
+-- arriendo del local, equipos...). Se importan del SRI y alimentan los gastos
+-- del panel del dueño. TuSalón NO emite facturas.
+CREATE TABLE facturas_recibidas (
     id                    SERIAL PRIMARY KEY,
     salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
-    tipo                  VARCHAR(10) NOT NULL CHECK (tipo IN ('emitida','recibida')),
     clave_acceso          VARCHAR(49) NOT NULL,
     fecha_emision         DATE NOT NULL,
-    ruc_emisor            VARCHAR(13) NOT NULL,
-    razon_social          VARCHAR(200),
+    ruc_proveedor         VARCHAR(13) NOT NULL,
+    proveedor             VARCHAR(200),
+    categoria             VARCHAR(20) NOT NULL DEFAULT 'otros'
+                          CHECK (categoria IN ('productos_venta','insumos','servicios_basicos',
+                                               'arriendo_local','equipos','publicidad','otros')),
     subtotal              NUMERIC(10,2) NOT NULL,
     iva                   NUMERIC(10,2) NOT NULL DEFAULT 0,
     total                 NUMERIC(10,2) NOT NULL,
     archivo_xml           VARCHAR(255),
+    importada_en          TIMESTAMP NOT NULL DEFAULT now(),
     UNIQUE (salon_id, clave_acceso)
+);
+
+-- Cada proveedor queda con su categoría para clasificar solas las próximas facturas.
+CREATE TABLE proveedores (
+    salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
+    ruc                   VARCHAR(13) NOT NULL,
+    nombre                VARCHAR(200),
+    categoria             VARCHAR(20) NOT NULL DEFAULT 'otros',
+    PRIMARY KEY (salon_id, ruc)
 );
 
 -- Índices para las consultas más comunes
@@ -312,6 +327,7 @@ CREATE INDEX idx_ventas_fecha      ON ventas (salon_id, fecha);
 CREATE INDEX idx_items_profesional ON venta_items (profesional_id);
 CREATE INDEX idx_mov_profesional   ON movimientos_profesional (profesional_id, fecha);
 CREATE INDEX idx_clientes_salon    ON clientes (salon_id, nombre);
+CREATE INDEX idx_facturas_fecha    ON facturas_recibidas (salon_id, fecha_emision);
 
 -- ---------------------------------------------------------------
 -- Datos fijos

@@ -387,10 +387,17 @@ final class Liquidacion
         $st->execute([$salonId, $desde, $hasta]);
         $netoProfesionales = (float) $st->fetchColumn();
 
+        $ganancia = self::r($entroCaja - $netoProfesionales);
+        // Gastos: facturas que el salón RECIBIÓ de sus proveedores (importadas del SRI)
+        $gastos = (new FacturasRecibidas($this->db))->gastos($salonId, $desde, $hasta);
+
         return [
-            'produccion_dueno' => $produccionDueno,
-            'entro_a_caja'     => $entroCaja,
-            'ganancia_local'   => self::r($entroCaja - $netoProfesionales),
+            'produccion_dueno'          => $produccionDueno,
+            'entro_a_caja'              => $entroCaja,
+            'ganancia_local'            => $ganancia,
+            'gastos_facturas'           => $gastos['total'],
+            'gastos_por_categoria'      => $gastos['por_categoria'],
+            'ganancia_despues_de_gastos'=> self::r($ganancia - $gastos['total']),
         ];
     }
 }
