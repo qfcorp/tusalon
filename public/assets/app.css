@@ -18,6 +18,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
     margin: 0;
@@ -407,3 +408,39 @@ fieldset.campo legend { font-weight: 600; font-size: .95rem; padding: 0; margin-
 .calificar label:hover, .calificar label:hover ~ label,
 .calificar input:checked ~ label { color: var(--navaja); }
 .calificar input:focus-visible + label { outline: 3px solid var(--navaja); border-radius: 6px; }
+
+/* ---------- Panel Tukán (super administrador) ---------- */
+body.admin { background: var(--fondo); }
+.admin-barra {
+    position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 8px 16px; padding: 10px 16px; background: var(--verde-oscuro); color: #fff;
+}
+.admin-marca { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+.admin-marca small { display: block; color: rgba(255,255,255,.7); font-size: .78rem; }
+.admin-menu { display: flex; flex-wrap: wrap; gap: 4px; }
+.admin-menu a { color: rgba(255,255,255,.85); text-decoration: none; padding: 8px 12px; border-radius: 8px; font-weight: 500; font-size: .95rem; }
+.admin-menu a:hover { background: rgba(255,255,255,.1); }
+.admin-menu a.activo { background: var(--navaja); color: var(--verde-oscuro); }
+.admin-principal { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
+.acceso-caja { max-width: 420px; }
+.rejilla-4 { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 900px) { .rejilla-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.cifra-chica { font-size: 1.3rem; }
+.chips-estado { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-estado { display: inline-flex; gap: 6px; align-items: baseline; padding: 8px 12px; border-radius: 999px; text-decoration: none;
+    border: 1px solid var(--linea); color: var(--tinta); background: var(--superficie); }
+.chip-estado strong { font-size: 1.1rem; }
+.etq.est-prueba, .chip-estado.est-prueba { background: #E8F0FB; color: #1F4E8C; border-color: #C9DAF2; }
+.etq.est-activo, .chip-estado.est-activo { background: var(--ok-claro); color: #1C5A31; border-color: #BFE0C9; }
+.etq.est-por_vencer, .chip-estado.est-por_vencer { background: #FFF4D9; color: #7A5300; border-color: #F2DCA2; }
+.etq.est-prueba_vencida, .etq.est-vencido, .chip-estado.est-prueba_vencida, .chip-estado.est-vencido { background: var(--rojo-claro); color: #7E2A23; border-color: #F0C9C3; }
+.etq.est-suspendido, .etq.est-cancelado, .chip-estado.est-suspendido, .chip-estado.est-cancelado { background: #ECEEED; color: #4A5551; border-color: #D5DAD8; }
+.filtros-admin { display: grid; gap: 12px; align-items: end; }
+@media (min-width: 700px) { .filtros-admin { grid-template-columns: 2fr 1fr auto; } .filtros-admin .campo { margin: 0; } .filtros-admin .boton { margin-bottom: 0; } }
+.tabla-admin td { vertical-align: top; }
+.fila-accion { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: center; margin-bottom: 12px; }
+.fila-accion label { grid-column: 1 / -1; font-weight: 600; font-size: .95rem; }
+.clave-temporal { font-family: ui-monospace, monospace; font-size: 1.15rem; background: var(--fondo); padding: 2px 8px; border-radius: 6px; letter-spacing: .5px; }
+.franja-admin { background: var(--verde-oscuro); color: #fff; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
+.franja-admin a { color: var(--navaja); font-weight: 700; }
+@media (max-width: 699px) { .admin-barra { position: static; } .admin-marca .marca-sello { flex: none; } }

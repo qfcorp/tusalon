@@ -14,6 +14,7 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 | Dueño y recepción | `/` (entrar con correo y contraseña) |
 | Peluquero | `/` con el acceso que le crea el dueño → su portal |
 | Clientes (reservas) | `/?r=reservar&s=<nombre-del-salón>` |
+| Tukán (super administrador) | `/?r=admin_entrar` · cuenta creada con `php bin/crear_admin.php` en el servidor |
 | Cliente (su cita: confirmar, cambiar, cancelar, calificar) | `/?r=confirmar&t=<enlace secreto>` (le llega por WhatsApp o Telegram) |
 
 ## Tecnología

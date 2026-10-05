@@ -422,6 +422,91 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/bin/tareas.php")
 if [ "$code" == "200" ] && curl -s "$BASE/bin/tareas.php" | grep -q "salones"; then FALLAS=$((FALLAS+1)); echo "  FALLA Las tareas se pueden correr desde internet";
 else OK=$((OK+1)); echo "  OK    Las tareas automáticas no se pueden correr desde internet"; fi
 
+echo "20. Panel Tukán (super administrador)"
+JAR="$TMP/c_admin"
+code=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=admin")
+check "Sin sesión, el panel manda a la entrada" "302 $BASE/?r=admin_entrar" "$code"
+ADM="tukan$RANDOM@tukan.ec"
+TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=prueba TUSALON_ADMIN_NOMBRE="Dimitry Tukán" TUSALON_ADMIN_EMAIL=$ADM \
+  TUSALON_ADMIN_CLAVE=claveAdminSegura1 php bin/crear_admin.php > "$TMP/crear_admin.txt"
+contiene "El comando crea el super usuario" "$TMP/crear_admin.txt" "super usuario creado"
+r=$(post "r=admin_entrar" -d email=$ADM -d clave=claveEquivocada)
+contiene "Con clave equivocada no entra" "$TMP/post.html" "no coinciden"
+r=$(post "r=admin_entrar" -d email=$ADM -d clave=claveAdminSegura1)
+check "Con su clave entra al panel" "302 $BASE/?r=admin" "$r"
+get "r=admin" > /dev/null
+contiene "El resumen muestra los salones registrados" "$TMP/pag.html" "Salones registrados"
+get "r=admin_salones" > /dev/null
+contiene "La lista trae todos los salones" "$TMP/pag.html" "Peluquería Estrella"
+get "r=admin_salones&q=estrella" > /dev/null
+if grep -q "Barbería El Tucán" "$TMP/pag.html"; then FALLAS=$((FALLAS+1)); echo "  FALLA Buscar filtra"; else OK=$((OK+1)); echo "  OK    Buscar filtra la lista"; fi
+MAILN="nuevo$RANDOM@salon.ec"
+r=$(post "r=admin_nuevo" --data-urlencode "salon=Barbería Creada Por Tukán" --data-urlencode "nombre=Pedro Cliente" -d telefono=0998887766 -d email=$MAILN -d plan=completa)
+SIDN=$(sql "SELECT salon_id FROM usuarios WHERE email='$MAILN'")
+check "Crear un salón desde el panel" "302 $BASE/?r=admin_salon&id=$SIDN&nuevo=1" "$r"
+get "r=admin_salon&id=$SIDN&nuevo=1" > /dev/null
+CLAVEN=$(grep -o 'class="clave-temporal">[^<]*' "$TMP/pag.html" | sed 's/.*>//')
+check "Muestra la contraseña para el dueño (10 letras)" "10" "${#CLAVEN}"
+contiene "…con botón para enviarla por WhatsApp" "$TMP/pag.html" "wa.me/593998887766"
+r=$(post "r=admin_salon&id=$SIDN" -d accion=pago -d plan=completa -d periodo=anual -d inicio=$(date +%F) -d metodo=transferencia -d dominio=barberiacreada.com)
+check "Registrar pago anual con dominio" "anual|350.00|barberiacreada.com|activo" "$(sql "SELECT su.periodo||'|'||su.monto||'|'||su.dominio||'|'||s.estado FROM suscripciones su JOIN salones s ON s.id=su.salon_id WHERE su.salon_id=$SIDN")"
+check "Queda pagado por 12 meses" "$(date -d '+12 months -1 day' +%F)" "$(sql "SELECT activo_hasta FROM salones WHERE id=$SIDN")"
+r=$(post "r=admin_salon&id=$SIDN" -d accion=pago -d plan=completa -d periodo=mensual -d inicio=$(date +%F) -d metodo=transferencia -d dominio="no valido")
+check "Un dominio mal escrito no se acepta" "1" "$(sql "SELECT count(*) FROM suscripciones WHERE salon_id=$SIDN")"
+JAR="$TMP/c_pedro"
+r=$(post "r=login" -d email=$MAILN -d clave="$CLAVEN")
+check "El dueño entra con la contraseña que le diste" "302 $BASE/?r=inicio" "$r"
+JAR="$TMP/c_admin"
+r=$(post "r=admin_planes" -d accion=plan -d codigo=completa --data-urlencode "nombre=Completa" -d precio_mensual=39 -d max_profesionales= )
+check "Cambiar el precio de la Completa a \$39" "39.00" "$(sql "SELECT precio_mensual FROM planes WHERE codigo='completa'")"
+JAR="$TMP/c_pedro"
+get "r=completa" > /dev/null
+contiene "El dueño ve el precio nuevo" "$TMP/pag.html" 'Completa · \$39,00'
+JAR="$TMP/c_admin"
+post "r=admin_planes" -d accion=plan -d codigo=completa --data-urlencode "nombre=Completa" -d precio_mensual=35 -d max_profesionales= > /dev/null
+r=$(post "r=admin_planes" -d accion=ajustes -d dias_prueba=10 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593996408397)
+code=$(curl -s -o "$TMP/reg.html" -w '%{http_code}' "$BASE/?r=registro")
+contiene "La prueba gratis pasa a 10 días en el registro" "$TMP/reg.html" "10 días, sin tarjeta"
+post "r=admin_planes" -d accion=ajustes -d dias_prueba=7 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593996408397 > /dev/null
+r=$(post "r=admin_salon&id=$SIDN" -d accion=estado -d estado=suspendido)
+JAR="$TMP/c_pedro"
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=agenda")
+check "Salón pausado: el dueño solo ve el aviso" "302 $BASE/?r=prueba_terminada" "$code"
+get "r=prueba_terminada" > /dev/null
+contiene "…que dice que su cuenta está pausada" "$TMP/pag.html" "Tu cuenta está pausada"
+JAR="$TMP/c_admin"
+post "r=admin_salon&id=$SIDN" -d accion=estado -d estado=activo > /dev/null
+sql "UPDATE salones SET activo_hasta = '$(date -d '-10 day' +%F)' WHERE id=$SIDN" > /dev/null
+JAR="$TMP/c_pedro"
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=agenda")
+check "Plan vencido (pasada la gracia): bloqueado" "302 $BASE/?r=prueba_terminada" "$code"
+SLUGN=$(sql "SELECT slug FROM salones WHERE id=$SIDN")
+curl -s -o "$TMP/resn.html" "$BASE/?r=reservar&s=$SLUGN"
+contiene "…y su página de reservas se pausa" "$TMP/resn.html" "todavía no recibe reservas"
+sql "UPDATE salones SET activo_hasta = '$(date -d '-1 day' +%F)' WHERE id=$SIDN" > /dev/null
+get "r=inicio" > /dev/null
+contiene "En los días de gracia entra con un aviso para renovar" "$TMP/pag.html" "Renueva en los próximos días"
+JAR="$TMP/c_admin"
+code=$(curl -s -b "$JAR" -c "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=admin_ver&id=$SID3")
+check "Entrar como dueño no funciona con un simple enlace" "302 $BASE/?r=admin_salon&id=$SID3" "$code"
+get "r=admin_salon&id=$SID3" > /dev/null; T=$(csrf)
+r=$(curl -s -b "$JAR" -c "$JAR" -o "$TMP/post.html" -w "%{http_code} %{redirect_url}" --data-urlencode "csrf=$T" "$BASE/?r=admin_ver&id=$SID3")
+check "Con el botón, el administrador entra al salón" "302 $BASE/?r=inicio" "$r"
+get "r=inicio" > /dev/null
+contiene "Ve el aviso de que está como administrador" "$TMP/pag.html" "como administrador de Tukán"
+contiene "…dentro del salón correcto" "$TMP/pag.html" "Peluquería Estrella"
+r=$(curl -s -b "$JAR" -c "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=admin_volver")
+check "Vuelve a su panel" "302 $BASE/?r=admin_salon&id=$SID3" "$r"
+check "Queda registrado en el historial" "1" "$(sql "SELECT count(*) FROM registro_admin WHERE salon_id=$SID3 AND accion LIKE 'Entró al salón%'")"
+JAR=$JAR_DUENA
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=admin_salones")
+check "Un dueño de salón no puede entrar al panel Tukán" "302 $BASE/?r=admin_entrar" "$code"
+JAR="$TMP/c_ataque"
+for i in 1 2 3 4 5; do post "r=admin_entrar" -d email=$ADM -d clave=adivinando$i > /dev/null; done
+JAR="$TMP/c_ataque2"
+r=$(post "r=admin_entrar" -d email=$ADM -d clave=claveAdminSegura1)
+contiene "Tras 5 intentos fallidos se frena (aunque cambie de navegador)" "$TMP/post.html" "Demasiados intentos"
+
 echo "13. Telegram: solo acepta avisos con el texto secreto"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' "$BASE/?r=telegram")
 check "Sin el texto secreto, se rechaza" "403" "$code"

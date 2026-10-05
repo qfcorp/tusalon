@@ -67,4 +67,25 @@ document.addEventListener('DOMContentLoaded', () => {
         ponerAhora();
         setInterval(ponerAhora, 60000);
     }
+
+    // Panel Tukán: registrar pago — muestra el precio normal y el dominio solo en el anual
+    const formPago = document.querySelector('#form-pago');
+    if (formPago) {
+        let cot = {};
+        try { cot = JSON.parse(formPago.dataset.cotizaciones || '{}'); } catch (e) { /* nada */ }
+        const plan = formPago.querySelector('#plan'), periodo = formPago.querySelector('#periodo');
+        const monto = formPago.querySelector('#monto'), ayuda = formPago.querySelector('#monto-ayuda');
+        const dominio = formPago.querySelector('#campo-dominio');
+        const actualizar = () => {
+            const c = cot[plan.value]?.[periodo.value];
+            if (c) {
+                monto.placeholder = Number(c.monto).toFixed(2);
+                ayuda.textContent = `Vacío = precio normal ($${Number(c.monto).toFixed(2).replace('.', ',')} por ${c.meses_recibidos} ${c.meses_recibidos === 1 ? 'mes' : 'meses'}).`;
+            }
+            dominio.hidden = periodo.value !== 'anual';
+        };
+        plan.addEventListener('change', actualizar);
+        periodo.addEventListener('change', actualizar);
+        actualizar();
+    }
 });

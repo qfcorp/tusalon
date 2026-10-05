@@ -126,7 +126,7 @@ function usuario(): ?array
     }
     $st = db()->prepare(
         'SELECT u.id, u.nombre, u.email, u.rol, u.profesional_id, u.salon_id,
-                s.nombre AS salon, s.slug, s.plan_codigo, s.estado, s.prueba_hasta,
+                s.nombre AS salon, s.slug, s.plan_codigo, s.estado, s.prueba_hasta, s.activo_hasta,
                 p.tipo AS tipo_profesional
            FROM usuarios u JOIN salones s ON s.id = u.salon_id
       LEFT JOIN profesionales p ON p.id = u.profesional_id
@@ -172,6 +172,17 @@ function vista(string $nombre, array $datos = [], string $titulo = 'TuSalón'): 
     require RAIZ . '/app/vistas/_diseno.php';
 }
 
+/** Vista del panel del super administrador (Tukán). */
+function vista_admin(string $nombre, array $datos = [], string $titulo = 'Panel Tukán'): void
+{
+    extract($datos, EXTR_SKIP);
+    $admin = superadmin();
+    ob_start();
+    require RAIZ . "/app/vistas/$nombre.php";
+    $contenido = ob_get_clean();
+    require RAIZ . '/app/vistas/_admin.php';
+}
+
 /** Muestra una vista pública (portal de reservas), sin menú del sistema. */
 function vista_publica(string $nombre, array $datos = [], string $titulo = 'TuSalón'): void
 {
@@ -187,4 +198,41 @@ function es_peluquero(?array $u): bool
     return $u !== null && $u['rol'] === 'profesional';
 }
 
-const WHATSAPP_VENTAS = '593996408397';
+function planes(): \TuSalon\Planes
+{
+    static $p = null;
+    return $p ??= new \TuSalon\Planes(db());
+}
+
+/** WhatsApp de ventas de Tukán (se cambia en el panel del super administrador). */
+function whatsapp_ventas(): string
+{
+    return planes()->ajuste('whatsapp_ventas') ?: '593996408397';
+}
+
+/** Precio mensual de un plan, con formato ($25,00). */
+function precio_plan(string $codigo): string
+{
+    foreach (planes()->lista() as $p) {
+        if ($p['codigo'] === $codigo) return dinero($p['precio_mensual']);
+    }
+    return '';
+}
+
+/** Super administrador con sesión (o null). */
+function superadmin(): ?array
+{
+    static $a = false;
+    if ($a !== false) return $a;
+    if (empty($_SESSION['admin_id'])) return $a = null;
+    $st = db()->prepare('SELECT id, nombre, email FROM superadmins WHERE id = ? AND activo');
+    $st->execute([$_SESSION['admin_id']]);
+    return $a = ($st->fetch() ?: null);
+}
+
+function registrar_admin(string $accion, ?int $salonId = null): void
+{
+    $a = superadmin();
+    db()->prepare('INSERT INTO registro_admin (admin_id, salon_id, accion) VALUES (?,?,?)')
+        ->execute([$a['id'] ?? null, $salonId, mb_substr($accion, 0, 300)]);
+}

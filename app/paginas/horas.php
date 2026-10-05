@@ -8,7 +8,7 @@ use TuSalon\Agenda;
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-$st = db()->prepare("SELECT id, plan_codigo, estado, prueba_hasta FROM salones WHERE slug = ?");
+$st = db()->prepare("SELECT id, plan_codigo, estado, prueba_hasta, activo_hasta FROM salones WHERE slug = ?");
 $st->execute([(string) ($_GET['s'] ?? '')]);
 $salon = $st->fetch();
 $fecha = (string) ($_GET['f'] ?? '');
@@ -16,7 +16,7 @@ $prof = (int) ($_GET['p'] ?? 0);
 $serv = (int) ($_GET['serv'] ?? 0);
 
 $ok = $salon && $salon['plan_codigo'] === 'completa'
-    && ($salon['estado'] === 'activo' || ($salon['estado'] === 'prueba' && $salon['prueba_hasta'] >= date('Y-m-d')));
+    && planes()->alDia($salon);
 if (!$ok || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) || $fecha < date('Y-m-d')
     || $fecha > date('Y-m-d', strtotime('+60 days')) || !$prof || !$serv) {
     echo json_encode(['horas' => [], 'en_confirmacion' => []]);

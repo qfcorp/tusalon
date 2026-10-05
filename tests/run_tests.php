@@ -23,8 +23,10 @@ require __DIR__ . '/../src/CuentaCliente.php';
 require __DIR__ . '/../src/Fotos.php';
 require __DIR__ . '/../src/Calificaciones.php';
 require __DIR__ . '/../src/Automaticas.php';
+require __DIR__ . '/../src/Altas.php';
+require __DIR__ . '/../src/PanelTukan.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas, Altas, PanelTukan};
 
 $ok = 0;
 $fallos = [];
@@ -664,6 +666,74 @@ check('Otro día del mes no se envía', false, $auto->enviarReporteMensual($salo
 check('Le llega al Telegram del dueño', true, str_contains((string) file_get_contents($logTg), 'Reporte de octubre 2026'));
 $todo = $auto->correr(new DateTimeImmutable('2026-11-20 10:00'));
 check('La tarea de cada hora recorre los salones activos', true, $todo['salones'] >= 1);
+
+
+// ------------------------------------------------------------------
+echo "\n24. Panel Tukán: planes, pagos, vencimientos y salones\n";
+$pl = new Planes($db);
+check('Días de prueba por defecto: 7', '7', $pl->ajuste('dias_prueba'));
+$pl->guardarAjustes(['dias_prueba' => '10', 'semestral_paga' => '5', 'semestral_recibe' => '6', 'anual_paga' => '9',
+                     'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '+593 99 640 8397']);
+check('El panel cambia la promoción anual a "paga 9"', 315.0, $pl->cotizar('completa', 'anual')['monto']);
+check('…y el texto de la promoción', 'Paga 9, recibe 12 + dominio propio', $pl->textoPeriodo('anual'));
+check('El WhatsApp de ventas queda solo con números', '593996408397', $pl->ajuste('whatsapp_ventas'));
+$msg = '';
+try { $pl->guardarAjustes(['dias_prueba' => '7', 'semestral_paga' => '7', 'semestral_recibe' => '6', 'anual_paga' => '10', 'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '593996408397']); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No deja pagar más meses de los que recibe', true, $msg !== '');
+$pl->guardarPlan('basica', 'Básica', 27.5, 3, 'Para empezar');
+check('El panel cambia el precio de la Básica', 27.5, $pl->cotizar('basica', 'mensual')['monto']);
+$pl->guardarPlan('basica', 'Básica', 25, 3);
+$pl->guardarAjustes(['dias_prueba' => '7', 'semestral_paga' => '5', 'semestral_recibe' => '6', 'anual_paga' => '10',
+                     'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '593996408397']);
+
+$alta = (new Altas($db))->crearSalonConDueno('Barbería Panel', 'Mario Dueño', '0991231234', 'mario@panel.ec', 'claveMario1', 'completa');
+$sp = (int) $alta['salon_id'];
+check('El panel crea el salón con su dueño y 5 servicios', [true, 5],
+    [$alta['usuario_id'] > 0, (int) $db->query("SELECT count(*) FROM servicios WHERE salon_id = $sp")->fetchColumn()]);
+$msg = '';
+try { (new Altas($db))->crearSalonConDueno('Otra', 'Xavier', '', 'mario@panel.ec', 'claveMario1', 'completa'); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No repite el correo de un dueño', true, str_contains($msg, 'Ya existe'));
+check('Dos salones con el mismo nombre tienen enlaces distintos', 'barberia-panel-2', (new Altas($db))->slugLibre('Barbería Panel'));
+
+$fila = fn() => $db->query("SELECT estado, prueba_hasta, activo_hasta FROM salones WHERE id = $sp")->fetch();
+$hoyP = new DateTimeImmutable('today');
+check('Recién creado: en prueba', 'prueba', $pl->estadoCuenta($fila(), $hoyP));
+check('Al día 8: prueba terminada (bloqueado)', [false, 'prueba_vencida'],
+    [$pl->alDia($fila(), $hoyP->modify('+8 days')), $pl->estadoCuenta($fila(), $hoyP->modify('+8 days'))]);
+$panel = new PanelTukan($db);
+$panel->extenderPrueba($sp, 7);
+check('El panel da 7 días más de prueba', $hoyP->modify('+14 days')->format('Y-m-d'), $fila()['prueba_hasta']);
+
+$pago1 = $pl->suscribir($sp, 'completa', 'mensual', $hoyP, 'transferencia');
+$finMes = $hoyP->modify('+1 month')->modify('-1 day')->format('Y-m-d');
+check('Pago mensual: activo y pagado hasta dentro de un mes', ['activo', $finMes], [$fila()['estado'], $fila()['activo_hasta']]);
+check('Inicio sugerido del próximo pago: el día siguiente', $hoyP->modify('+1 month')->format('Y-m-d'), $pl->inicioSugerido($sp)->format('Y-m-d'));
+$pago2 = $pl->suscribir($sp, 'completa', 'semestral', $pl->inicioSugerido($sp), 'deuna', null, 150.0);
+check('Renovar semestral con precio especial: suma 6 meses y guarda $150', [$hoyP->modify('+7 months')->modify('-1 day')->format('Y-m-d'), '150.00'],
+    [$fila()['activo_hasta'], $db->query("SELECT monto FROM suscripciones WHERE id = $pago2")->fetchColumn()]);
+$pl->anularPago($pago2);
+check('Anular el pago devuelve la fecha anterior', $finMes, $fila()['activo_hasta']);
+$diaVence = new DateTimeImmutable($finMes);
+check('Al vencer: 3 días de gracia con aviso', ['por_vencer', true],
+    [$pl->estadoCuenta($fila(), $diaVence->modify('+2 days')), $pl->alDia($fila(), $diaVence->modify('+2 days'))]);
+check('Pasada la gracia: vencido y bloqueado', ['vencido', false],
+    [$pl->estadoCuenta($fila(), $diaVence->modify('+4 days')), $pl->alDia($fila(), $diaVence->modify('+4 days'))]);
+$panel->cambiarEstado($sp, 'suspendido');
+check('Suspendido: bloqueado aunque haya pagado', false, $pl->alDia($fila(), $hoyP));
+$panel->cambiarEstado($sp, 'activo');
+
+$lista = array_column($panel->salones(), null, 'id');
+check('La lista del panel trae dueño y estado', ['Mario Dueño', 'activo'], [$lista[$sp]['dueno'], $lista[$sp]['estado_cuenta']]);
+check('Buscar por correo del dueño', [$sp], array_map('intval', array_column($panel->salones('', 'mario@panel'), 'id')));
+check('Filtrar "en prueba" no trae a Mario', false, in_array($sp, array_map('intval', array_column($panel->salones('prueba'), 'id')), true));
+$res = $panel->resumen($hoyP);
+check('Resumen: cobrado este mes ($35 de Mario + $350 anual de Don Pepe; el anulado no cuenta)', 385.0, $res['cobrado_mes']);
+check('Resumen: ingreso mensual de lo vigente', true, $res['mensual'] >= 35.0);
+$nueva = $panel->nuevaClaveDueno($sp);
+$hash = $db->query("SELECT password_hash FROM usuarios WHERE id = {$alta['usuario_id']}")->fetchColumn();
+check('Nueva contraseña del dueño: funciona y la anterior no', [true, false],
+    [password_verify($nueva['clave'], $hash), password_verify('claveMario1', $hash)]);
 
 // ------------------------------------------------------------------
 echo "\n" . str_repeat('=', 50) . "\n";

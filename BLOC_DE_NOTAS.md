@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 23:20
+Última actualización: 4 de octubre de 2026, 23:40
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -88,6 +88,15 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - Tareas automáticas cada hora: `bin/tareas.php` (cada aviso se envía una sola vez)
     - Nuevas pantallas: Avisos a clientes, Reporte del mes, Horario del peluquero, página de la cita del cliente
     - Probado: **lógica 202/202, web 145/145**, capturas en celular y computadora, respaldo restaurado en otra base
+3f. [x] **Panel Tukán (super administrador)** — `/?r=admin_entrar` (sesión aparte de los salones)
+    - Resumen: salones por estado, ingreso mensual, cobrado del mes y del año, pruebas que terminan en 3 días y planes que vencen en 15 días (con WhatsApp listo), últimos registrados, historial
+    - Salones: buscar y filtrar; ficha con pagos (registrar, precio especial, dominio en el anual, anular), cambiar plan, pausar/reactivar/cancelado, dar días de prueba, nueva contraseña del dueño, notas internas y **entrar como el dueño** para soporte (queda registrado)
+    - Nuevo salón creado por Tukán (genera la contraseña y la manda por WhatsApp)
+    - Planes y precios: nombre, precio, máximo de personas; días de prueba, promociones semestral/anual, días de gracia, WhatsApp de ventas
+    - Vencimiento real: al pasar la fecha pagada + días de gracia, el salón queda bloqueado (y su página de reservas se pausa); en la gracia ve un aviso para renovar
+    - Super usuario: se crea en el servidor con `php /var/www/tusalon/bin/crear_admin.php` (la contraseña solo la escribe Dimitry)
+    - Migraciones: `db/migraciones/` (el instalador las aplica sin borrar datos)
+    - Probado: lógica 227/227, web 175/175, capturas en celular y computadora
 3b. [x] **TuSalón en línea: https://tusalon.qfradioec.com** (4 oct, 23:20). Instalación en qfcorp (4 oct, 23:08): **hecha** con el instalador de una línea (`deploy/instalar.sh`): base PostgreSQL 18 con 29 tablas, nginx, PHP 8.5, tareas cada hora y respaldo diario 3:15 funcionando (prueba local 200)
     - [x] Cloudflare: ruta `tusalon.qfradioec.com` → `http://localhost:80` agregada en el túnel **servidorqf** (Redes → Conectores → servidorqf → Rutas de aplicaciones publicadas). El config.yml del servidor es solo una plantilla; el túnel se maneja desde la web
     - [ ] Falta: crear el bot de Telegram (docs/TELEGRAM.md)

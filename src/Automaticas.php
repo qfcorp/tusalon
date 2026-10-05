@@ -345,10 +345,11 @@ final class Automaticas
 
     public function correr(DateTimeImmutable $ahora): array
     {
-        $st = $this->db->query("SELECT id, plan_codigo FROM salones
-                                 WHERE estado = 'activo' OR (estado = 'prueba' AND prueba_hasta >= CURRENT_DATE - 1)");
+        $planes = new Planes($this->db);
+        $st = $this->db->query("SELECT id, plan_codigo, estado, prueba_hasta, activo_hasta FROM salones WHERE estado IN ('prueba','activo')");
         $total = ['salones' => 0, 'recordatorios' => 0, 'cumpleanos' => 0, 'calificaciones' => 0, 'reportes' => 0];
         foreach ($st->fetchAll() as $s) {
+            if (!$planes->alDia($s, $ahora)) continue;
             $id = (int) $s['id'];
             $total['salones']++;
             try {

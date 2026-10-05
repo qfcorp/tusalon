@@ -10,8 +10,15 @@ $privadas = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 's
 // Lo único que ve un peluquero con acceso propio
 $dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada'];
 
+// Panel del super administrador (Tukán): sesión aparte
+$deAdmin = ['admin', 'admin_salones', 'admin_salon', 'admin_nuevo', 'admin_planes', 'admin_ver', 'admin_volver', 'admin_salir'];
+$publicas[] = 'admin_entrar';
+
 $ruta = (string) ($_GET['r'] ?? 'inicio');
-if (!in_array($ruta, array_merge($publicas, $privadas), true)) {
+if (in_array($ruta, $deAdmin, true) && !superadmin()) {
+    redirigir('admin_entrar');
+}
+if (!in_array($ruta, array_merge($publicas, $privadas, $deAdmin), true)) {
     http_response_code(404);
     $ruta = usuario() ? 'inicio' : 'login';
 }
@@ -24,9 +31,9 @@ if (in_array($ruta, $privadas, true)) {
     if (!es_peluquero($u) && $ruta === 'mi_portal') {
         redirigir('inicio');
     }
-    // Prueba vencida y sin pagar: solo puede ver cómo pagar
+    // Prueba vencida, plan vencido o cuenta suspendida: solo puede ver cómo pagar
     if (!in_array($ruta, ['prueba_terminada', 'salir', 'completa'], true)
-        && ($u['estado'] === 'suspendido' || dias_prueba($u) === -1)) {
+        && !planes()->alDia($u) && !(!empty($_SESSION['admin_viendo']) && superadmin())) {
         redirigir('prueba_terminada');
     }
 }

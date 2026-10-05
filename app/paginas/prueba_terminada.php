@@ -1,5 +1,6 @@
 <?php
-if ($u['estado'] === 'activo' && dias_prueba($u) === null) {
+if (planes()->alDia($u)) {
     redirigir('inicio');
 }
-vista('prueba_terminada', [], 'Tu prueba terminó · TuSalón');
+$estadoCuenta = planes()->estadoCuenta($u);
+vista('prueba_terminada', compact('estadoCuenta'), 'Tu cuenta · TuSalón');

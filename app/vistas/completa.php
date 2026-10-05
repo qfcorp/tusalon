@@ -1,7 +1,7 @@
 <?php
-$wa = fn(string $plan, string $periodo) => 'https://wa.me/' . WHATSAPP_VENTAS . '?text=' . rawurlencode(
+$wa = fn(string $plan, string $periodo) => 'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode(
     "Hola, quiero contratar TuSalón plan $plan ($periodo) para mi salón \"{$u['salon']}\" ({$u['email']}).");
-$filas = ['mensual' => 'Mensual', 'semestral' => 'Paga 5, recibe 6', 'anual' => 'Paga 10, recibe 12 + dominio propio'];
+$filas = ['mensual' => planes()->textoPeriodo('mensual'), 'semestral' => planes()->textoPeriodo('semestral'), 'anual' => planes()->textoPeriodo('anual')];
 $completa = [
     'Personas ilimitadas y varias sucursales',
     'Reservas en línea con enlace y código QR',

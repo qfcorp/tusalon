@@ -47,6 +47,13 @@ else
     && echo "   base creada" || echo "   ERROR al crear las tablas"
 fi
 
+echo "== 3b. Actualizaciones de la base (migraciones)"
+for m in "$APP"/db/migraciones/*.sql; do
+  [ -f "$m" ] || continue
+  PGPASSWORD="$CLAVE" psql -h 127.0.0.1 -U tusalon -d tusalon -q -v ON_ERROR_STOP=1 -f "$m" < /dev/null 2>/dev/null \
+    && echo "   $(basename "$m"): listo" || echo "   ERROR en $(basename "$m")"
+done
+
 echo "== 4. Configuración"
 TG=""
 if [ -f "$APP/config/.env" ]; then   # conservar los datos de Telegram si ya estaban
@@ -107,4 +114,6 @@ if command -v nginx > /dev/null; then
 fi
 echo "5) Tareas: $(php "$APP/bin/tareas.php" < /dev/null)"
 echo "6) Respaldo: $(sudo APP="$APP" "$APP/deploy/respaldo.sh" < /dev/null 2>&1 | tail -1)"
+echo "7) Super usuarios del panel: $(PGPASSWORD="$CLAVE" psql -h 127.0.0.1 -U tusalon -d tusalon -tAc "SELECT count(*) FROM superadmins" < /dev/null)"
 echo "================================="
+echo "Para crear o cambiar tu super usuario:  php $APP/bin/crear_admin.php"

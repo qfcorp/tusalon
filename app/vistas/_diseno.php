@@ -25,6 +25,10 @@ if ($u) {
 }
 $avisos = tomar_avisos();
 $diasPrueba = ($u && !es_peluquero($u)) ? dias_prueba($u) : null;
+$estadoCuenta = ($u && !es_peluquero($u)) ? planes()->estadoCuenta($u) : null;
+$diasPlan = ($estadoCuenta === 'activo' && !empty($u['activo_hasta']))
+    ? (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($u['activo_hasta']))->days : null;
+$adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
 ?>
 <!doctype html>
 <html lang="es">
@@ -36,7 +40,7 @@ $diasPrueba = ($u && !es_peluquero($u)) ? dias_prueba($u) : null;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=9">
+<link rel="stylesheet" href="/assets/app.css?v=11">
 </head>
 <body class="<?= $u ? 'con-sesion' : 'sin-sesion' ?>">
 <?php if ($u): ?>
@@ -80,11 +84,22 @@ $diasPrueba = ($u && !es_peluquero($u)) ? dias_prueba($u) : null;
             <a href="<?= e(url('completa')) ?>">Ver planes</a>
         </p>
     <?php endif; ?>
+    <?php if ($adminViendo): ?>
+        <p class="franja-admin">Estás viendo <strong><?= e($u['salon']) ?></strong> como administrador de Tukán.
+            <a href="<?= e(url('admin_volver')) ?>">Volver al panel</a></p>
+    <?php endif; ?>
+    <?php if ($estadoCuenta === 'por_vencer'): ?>
+        <p class="franja-prueba">Tu plan venció el <?= (new DateTimeImmutable($u['activo_hasta']))->format('d/m') ?>. Renueva en los próximos días para no perder el acceso.
+            <a href="<?= e(url('completa')) ?>">Renovar</a></p>
+    <?php elseif ($diasPlan !== null && $diasPlan <= 5): ?>
+        <p class="franja-prueba">Tu plan vence <?= $diasPlan === 0 ? 'hoy' : "en $diasPlan " . ($diasPlan === 1 ? 'día' : 'días') ?>.
+            <a href="<?= e(url('completa')) ?>">Renovar</a></p>
+    <?php endif; ?>
     <?php foreach ($avisos as $a): ?>
         <p class="aviso aviso-<?= e($a['tipo']) ?>" role="status"><?= e($a['texto']) ?></p>
     <?php endforeach; ?>
     <?= $contenido ?>
 </main>
-<script src="/assets/app.js?v=9" defer></script>
+<script src="/assets/app.js?v=10" defer></script>
 </body>
 </html>

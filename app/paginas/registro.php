@@ -1,5 +1,4 @@
 <?php
-use TuSalon\{Planes, Profesionales};
 
 if (usuario()) {
     redirigir('inicio');
@@ -22,51 +21,16 @@ if (es_post()) {
     if (!in_array($d['plan'], ['basica', 'completa'], true)) $errores[] = 'Elige un plan.';
 
     if (!$errores) {
-        $st = db()->prepare('SELECT 1 FROM usuarios WHERE email = ?');
-        $st->execute([$d['email']]);
-        if ($st->fetchColumn()) {
-            $errores[] = 'Ya existe una cuenta con ese correo. Entra con tu contraseña.';
+        try {
+            $alta = (new \TuSalon\Altas(db()))->crearSalonConDueno($d['salon'], $d['nombre'], $d['telefono'], $d['email'], $clave, $d['plan']);
+            session_regenerate_id(true);
+            $_SESSION['usuario_id'] = $alta['usuario_id'];
+            $dias = (int) (new \TuSalon\Planes(db()))->ajuste('dias_prueba');
+            aviso("¡Listo! Tu salón está creado. Tienes $dias días gratis para probar todo.");
+            redirigir('inicio');
+        } catch (RuntimeException $e) {
+            $errores[] = $e->getMessage();
         }
-    }
-
-    if (!$errores) {
-        // Dirección corta única del salón (para el enlace de reservas)
-        $base = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower(iconv('UTF-8', 'ASCII//TRANSLIT', $d['salon']))), '-') ?: 'salon';
-        $slug = substr($base, 0, 50);
-        $n = 1;
-        $chk = db()->prepare('SELECT 1 FROM salones WHERE slug = ?');
-        while (true) {
-            $chk->execute([$slug]);
-            if (!$chk->fetchColumn()) break;
-            $slug = substr($base, 0, 46) . '-' . (++$n);
-        }
-
-        $pdo = db();
-        $planes = new Planes($pdo);
-        $salonId = $planes->crearSalon($d['salon'], $slug, $d['plan']);
-        $pdo->prepare('UPDATE salones SET telefono = ? WHERE id = ?')->execute([$d['telefono'] ?: null, $salonId]);
-
-        $profId = (new Profesionales($pdo, $planes))->agregar($salonId, $d['nombre'], 'dueno');
-        $pdo->prepare('UPDATE profesionales SET telefono = ? WHERE id = ?')->execute([$d['telefono'] ?: null, $profId]);
-
-        $st = $pdo->prepare("INSERT INTO usuarios (salon_id, profesional_id, nombre, email, password_hash, rol)
-                             VALUES (?,?,?,?,?, 'dueno') RETURNING id");
-        $st->execute([$salonId, $profId, $d['nombre'], $d['email'], password_hash($clave, PASSWORD_DEFAULT)]);
-        $usuarioId = (int) $st->fetchColumn();
-
-        // Servicios de ejemplo para empezar (se pueden cambiar)
-        $ins = $pdo->prepare('INSERT INTO servicios (salon_id, nombre, precio, duracion_minutos) VALUES (?,?,?,?)');
-        foreach ([['Corte de caballero', 6, 30], ['Barba', 4, 20], ['Corte y barba', 9, 45],
-                  ['Corte de dama', 10, 45], ['Tinte', 25, 90]] as [$nom, $precio, $min]) {
-            $ins->execute([$salonId, $nom, $precio, $min]);
-        }
-
-        (new \TuSalon\Agenda($pdo))->horarioPorDefecto($salonId);   // lunes a sábado 9:00–19:00
-
-        session_regenerate_id(true);
-        $_SESSION['usuario_id'] = $usuarioId;
-        aviso('¡Listo! Tu salón está creado. Tienes 7 días gratis para probar todo.');
-        redirigir('inicio');
     }
 }
 vista('registro', ['errores' => $errores, 'd' => $d], 'Prueba gratis · TuSalón');

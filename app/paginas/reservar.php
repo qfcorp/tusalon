@@ -6,12 +6,12 @@ use TuSalon\Agenda;
  * El cliente elige peluquero, servicio, día y una hora libre (calculada en el momento).
  */
 $slug = (string) ($_GET['s'] ?? '');
-$st = db()->prepare("SELECT id, nombre, slug, telefono, plan_codigo, estado, prueba_hasta FROM salones WHERE slug = ?");
+$st = db()->prepare("SELECT id, nombre, slug, telefono, plan_codigo, estado, prueba_hasta, activo_hasta FROM salones WHERE slug = ?");
 $st->execute([$slug]);
 $salon = $st->fetch();
 
 $disponible = $salon && $salon['plan_codigo'] === 'completa'
-    && ($salon['estado'] === 'activo' || ($salon['estado'] === 'prueba' && $salon['prueba_hasta'] >= date('Y-m-d')));
+    && planes()->alDia($salon);
 if (!$disponible) {
     http_response_code($salon ? 200 : 404);
     vista_publica('reservar_no', ['salon' => $salon], 'Reservas · TuSalón');

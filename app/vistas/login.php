@@ -20,4 +20,4 @@
     </div>
     <button class="boton boton-ancho" type="submit">Entrar</button>
 </form>
-<p>¿Todavía no tienes cuenta? <a href="<?= e(url('registro')) ?>">Prueba TuSalón 7 días gratis</a></p>
+<p>¿Todavía no tienes cuenta? <a href="<?= e(url('registro')) ?>">Prueba TuSalón <?= (int) planes()->ajuste('dias_prueba') ?> días gratis</a></p>

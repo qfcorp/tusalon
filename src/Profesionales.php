@@ -32,7 +32,8 @@ final class Profesionales
         $this->validarRegla($tipo, $regla);
 
         $fecha = (new \DateTimeImmutable($fechaIngreso))->format('Y-m-d');
-        $this->db->beginTransaction();
+        $propia = !$this->db->inTransaction();
+        if ($propia) $this->db->beginTransaction();
         $st = $this->db->prepare(
             'INSERT INTO profesionales (salon_id, nombre, tipo, fecha_ingreso) VALUES (?,?,?,?) RETURNING id'
         );
@@ -57,7 +58,7 @@ final class Profesionales
             $regla['monto_arriendo'] ?? null,
             $regla['frecuencia_arriendo'] ?? null,
         ]);
-        $this->db->commit();
+        if ($propia) $this->db->commit();
         return $id;
     }
 
