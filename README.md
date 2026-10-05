@@ -28,9 +28,17 @@ PHP 8.3+ y PostgreSQL 16.
 | `deploy/respaldo.sh` | Respaldo diario de la base y las fotos (guarda 14 días) |
 | `tests/` | Pruebas de lógica y de pantallas |
 
-## Tareas automáticas y respaldo (en el servidor)
-Escribir `crontab -e` y pegar estas dos líneas al final:
+## Instalar en un servidor (Ubuntu + PHP 8.5 + PostgreSQL + nginx)
+Una sola línea, como el usuario normal (no root). Se puede repetir para actualizar: si ya hay salones, no borra la base.
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar.sh -o ~/instalar_tusalon.sh && bash ~/instalar_tusalon.sh
+```
+
+Después, en Cloudflare (Zero Trust → Networks → Tunnels → tu túnel → Public Hostname) agregar `tusalon.qfradioec.com` → `HTTP` → `localhost:80`.
+
+## Tareas automáticas y respaldo (en el servidor)
+El instalador ya las deja programadas. Son estas dos líneas de cron:
 ```
 5 * * * * php /var/www/tusalon/bin/tareas.php >> /var/log/tusalon-tareas.log 2>&1
 15 3 * * * /var/www/tusalon/deploy/respaldo.sh >> /var/log/tusalon-respaldo.log 2>&1
