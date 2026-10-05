@@ -10,4 +10,5 @@ $resumen = (new Liquidacion(db()))->resumenDueno($sid, $hoy, $hoy);
 $pendientes = array_values(array_filter($citas, fn($c) => in_array($c['estado'], ['reservada', 'confirmada'], true)));
 $atendidas = count(array_filter($citas, fn($c) => $c['estado'] === 'atendida'));
 
-vista('inicio', compact('citas', 'caja', 'resumen', 'pendientes', 'atendidas'), 'Hoy · TuSalón');
+$solicitudes = count($agendaObj = (new Agenda(db()))->solicitudes($sid, $u));
+vista('inicio', compact('citas', 'caja', 'resumen', 'pendientes', 'atendidas', 'solicitudes'), 'Hoy · TuSalón');

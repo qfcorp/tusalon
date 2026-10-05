@@ -14,6 +14,8 @@ Cada vez que se cobra algo, el sistema anota automáticamente lo que le toca a c
 | **Porcentaje** | + su % (ej. 60 % de $12 = +$7,20) | − la parte del local (ej. 50 % de $12 = −$6) | + comisión, o − (precio − comisión) si cobró él |
 | **Alquiler** | + todo el valor (el local cobró por él) | Nada (el dinero ya es suyo) | Igual que porcentaje |
 
+**Pago fijo por servicio:** el dueño puede definir en cada servicio cuánto le paga al peluquero (ej. Corte premium: cliente paga $15, al peluquero $6). Para los **empleados** se usa ese pago fijo en lugar de su %; si el dueño cobra otro precio al cliente, el peluquero gana igual su pago fijo. Quien trabaja por porcentaje sigue con su % y quien alquila se queda con todo.
+
 Además:
 - **Propina:** va al peluquero del primer servicio. Si la cobró el local, se le suma; si la cobró él, ya la tiene.
 - **Arriendo:** se le resta al arrendatario cada semana, quincena o mes.

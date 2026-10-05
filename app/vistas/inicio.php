@@ -15,6 +15,12 @@ $nombre = explode(' ', trim($u['nombre']))[0];
     </div>
 </div>
 
+<?php if ($solicitudes > 0): ?>
+    <a class="aviso franja-solicitudes" href="<?= e(url('solicitudes')) ?>">
+        Tienes <?= $solicitudes ?> <?= $solicitudes === 1 ? 'solicitud' : 'solicitudes' ?> de cita por aceptar. Ver ahora
+    </a>
+<?php endif; ?>
+
 <div class="rejilla rejilla-3">
     <div class="bloque">
         <div class="cifra"><?= dinero($caja['cobrado_local']) ?></div>

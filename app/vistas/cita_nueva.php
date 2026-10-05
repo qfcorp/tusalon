@@ -51,17 +51,20 @@
     </div>
 
     <fieldset class="campo" style="border:0;padding:0">
-        <legend class="etiqueta" style="margin-bottom:6px">Servicios</legend>
+        <legend class="etiqueta" style="margin-bottom:6px">Servicios <small>(puedes cambiar el precio para este cliente)</small></legend>
         <?php if (!$servicios): ?>
             <p>Primero agrega tus servicios en <a href="<?= e(url('servicios')) ?>">Servicios y precios</a>.</p>
         <?php endif; ?>
         <div class="opciones">
-            <?php foreach ($servicios as $s): ?>
-                <label class="opcion">
-                    <input type="checkbox" name="servicios[]" value="<?= $s['id'] ?>" <?= in_array((int) $s['id'], $d['servicios'], true) ? 'checked' : '' ?>>
-                    <span><strong><?= e($s['nombre']) ?></strong>
-                        <small><?= dinero($s['precio']) ?> · <?= (int) $s['duracion_minutos'] ?> min</small></span>
-                </label>
+            <?php foreach ($servicios as $s):
+                $precio = $d['precios'][$s['id']] ?? number_format((float) $s['precio'], 2, '.', ''); ?>
+                <div class="opcion">
+                    <input type="checkbox" id="sv<?= $s['id'] ?>" name="servicios[]" value="<?= $s['id'] ?>" <?= in_array((int) $s['id'], $d['servicios'], true) ? 'checked' : '' ?>>
+                    <label for="sv<?= $s['id'] ?>" style="flex:1"><strong><?= e($s['nombre']) ?></strong>
+                        <small style="display:block"><?= (int) $s['duracion_minutos'] ?> min · precio normal <?= dinero($s['precio']) ?></small></label>
+                    <input type="number" name="precio[<?= $s['id'] ?>]" value="<?= e($precio) ?>" step="0.01" min="0"
+                           style="width:110px" aria-label="Precio de <?= e($s['nombre']) ?> para este cliente">
+                </div>
             <?php endforeach; ?>
         </div>
     </fieldset>

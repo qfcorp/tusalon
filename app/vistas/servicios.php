@@ -1,55 +1,82 @@
+<?php
+$campos = function (array $s, string $sufijo) {
+    $pago = $s['pago_profesional'] ?? null;
+    ob_start(); ?>
+    <div class="campo"><label for="n<?= $sufijo ?>">Nombre del servicio</label>
+        <input type="text" id="n<?= $sufijo ?>" name="nombre" value="<?= e($s['nombre'] ?? '') ?>" placeholder="Corte degradado" required></div>
+    <div class="fila-campos">
+        <div class="campo"><label for="p<?= $sufijo ?>">Precio al cliente</label>
+            <input type="number" id="p<?= $sufijo ?>" name="precio" value="<?= e($s['precio'] ?? '') ?>" step="0.01" min="0" required></div>
+        <div class="campo"><label for="g<?= $sufijo ?>">Pago al peluquero</label>
+            <input type="number" id="g<?= $sufijo ?>" name="pago_profesional" value="<?= e($pago ?? '') ?>" step="0.01" min="0">
+            <small>Lo que le pagas a un empleado por hacerlo. Vacío = usa su % de comisión.</small></div>
+    </div>
+    <div class="fila-campos">
+        <div class="campo"><label for="d<?= $sufijo ?>">Duración (minutos)</label>
+            <input type="number" id="d<?= $sufijo ?>" name="duracion_minutos" value="<?= (int) ($s['duracion_minutos'] ?? 30) ?>" min="5" step="5" required></div>
+        <label class="opcion" style="align-self:end;margin-bottom:14px">
+            <input type="checkbox" name="reserva_online" value="1" <?= ($s['reserva_online'] ?? true) ? 'checked' : '' ?>>
+            <span><strong>Se puede reservar en línea</strong></span></label>
+    </div>
+    <?php return ob_get_clean();
+};
+?>
 <div class="cabecera">
-    <h1>Servicios y precios</h1>
+    <div>
+        <h1>Servicios y precios</h1>
+        <p>Crea todos los servicios que ofreces, con lo que cobras y lo que pagas al peluquero.</p>
+    </div>
 </div>
 <?php if ($error): ?><p class="aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
 
 <div class="rejilla rejilla-2">
     <section class="bloque">
-        <h2>Tus servicios</h2>
+        <h2>Tus servicios (<?= count($servicios) ?>)</h2>
         <?php if (!$servicios): ?><p class="vacio">Agrega tu primer servicio.</p><?php endif; ?>
-        <ul class="lista">
-            <?php foreach ($servicios as $s): ?>
-                <li>
-                    <details style="flex:1">
-                        <summary style="cursor:pointer">
-                            <span class="principal-linea" style="<?= $s['activo'] ? '' : 'text-decoration:line-through;color:var(--tinta-suave)' ?>"><?= e($s['nombre']) ?></span>
-                            <span class="linea-sub"> · <?= dinero($s['precio']) ?> · <?= (int) $s['duracion_minutos'] ?> min</span>
-                        </summary>
-                        <form method="post" style="margin-top:10px">
+        <div class="desliza">
+        <table class="tabla">
+            <thead><tr><th>Servicio</th><th class="der">Cliente paga</th><th class="der">Al peluquero</th><th class="der">Queda al local</th><th></th></tr></thead>
+            <tbody>
+            <?php foreach ($servicios as $s):
+                $pago = $s['pago_profesional']; ?>
+                <tr style="<?= $s['activo'] ? '' : 'opacity:.55' ?>">
+                    <td>
+                        <details>
+                            <summary style="cursor:pointer"><strong><?= e($s['nombre']) ?></strong>
+                                <br><small><?= (int) $s['duracion_minutos'] ?> min<?= $s['reserva_online'] ? ' · en línea' : '' ?><?= $s['activo'] ? '' : ' · oculto' ?></small></summary>
+                            <form method="post" style="margin-top:10px;min-width:260px">
+                                <?= campo_csrf() ?>
+                                <input type="hidden" name="accion" value="editar">
+                                <input type="hidden" name="id" value="<?= $s['id'] ?>">
+                                <?= $campos($s, (string) $s['id']) ?>
+                                <button class="boton boton-chico" type="submit">Guardar cambios</button>
+                            </form>
+                        </details>
+                    </td>
+                    <td class="der"><?= dinero($s['precio']) ?></td>
+                    <td class="der"><?= $pago === null ? '<small>según %</small>' : dinero($pago) ?></td>
+                    <td class="der"><?= $pago === null ? '—' : dinero((float) $s['precio'] - (float) $pago) ?></td>
+                    <td class="der">
+                        <form method="post">
                             <?= campo_csrf() ?>
-                            <input type="hidden" name="accion" value="editar">
+                            <input type="hidden" name="accion" value="activar">
                             <input type="hidden" name="id" value="<?= $s['id'] ?>">
-                            <div class="campo"><label for="n<?= $s['id'] ?>">Nombre</label>
-                                <input type="text" id="n<?= $s['id'] ?>" name="nombre" value="<?= e($s['nombre']) ?>" required></div>
-                            <div class="fila-campos">
-                                <div class="campo"><label for="p<?= $s['id'] ?>">Precio</label>
-                                    <input type="number" id="p<?= $s['id'] ?>" name="precio" value="<?= e($s['precio']) ?>" step="0.01" min="0" required></div>
-                                <div class="campo"><label for="d<?= $s['id'] ?>">Minutos</label>
-                                    <input type="number" id="d<?= $s['id'] ?>" name="duracion_minutos" value="<?= (int) $s['duracion_minutos'] ?>" min="5" step="5" required></div>
-                            </div>
-                            <button class="boton boton-chico" type="submit">Guardar</button>
+                            <button class="boton boton-claro boton-chico" type="submit"><?= $s['activo'] ? 'Ocultar' : 'Mostrar' ?></button>
                         </form>
-                    </details>
-                    <form method="post">
-                        <?= campo_csrf() ?>
-                        <input type="hidden" name="accion" value="activar">
-                        <input type="hidden" name="id" value="<?= $s['id'] ?>">
-                        <button class="boton boton-claro boton-chico" type="submit"><?= $s['activo'] ? 'Ocultar' : 'Mostrar' ?></button>
-                    </form>
-                </li>
+                    </td>
+                </tr>
             <?php endforeach; ?>
-        </ul>
+            </tbody>
+        </table>
+        </div>
+        <p class="suave" style="margin-top:12px">El pago fijo se aplica a los <strong>empleados</strong>. Quien trabaja por porcentaje se lleva su % y quien alquila se queda con todo.</p>
     </section>
 
     <form method="post" class="bloque">
         <?= campo_csrf() ?>
         <input type="hidden" name="accion" value="crear">
         <h2>Agregar servicio</h2>
-        <div class="campo"><label for="nombre">Nombre</label><input type="text" id="nombre" name="nombre" placeholder="Corte degradado" required></div>
-        <div class="fila-campos">
-            <div class="campo"><label for="precio">Precio</label><input type="number" id="precio" name="precio" step="0.01" min="0" required></div>
-            <div class="campo"><label for="duracion_minutos">Minutos</label><input type="number" id="duracion_minutos" name="duracion_minutos" value="30" min="5" step="5" required></div>
-        </div>
+        <?= $campos([], 'nuevo') ?>
         <button class="boton boton-ancho" type="submit">Agregar servicio</button>
     </form>
 </div>

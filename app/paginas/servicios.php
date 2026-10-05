@@ -2,24 +2,35 @@
 $sid = (int) $u['salon_id'];
 $pdo = db();
 $error = null;
+$num = fn($k) => trim((string) ($_POST[$k] ?? '')) === '' ? null : (float) str_replace(',', '.', (string) $_POST[$k]);
 
 if (es_post()) {
     verificar_csrf();
     $accion = (string) ($_POST['accion'] ?? '');
     if ($accion === 'crear' || $accion === 'editar') {
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
-        $precio = (float) str_replace(',', '.', (string) ($_POST['precio'] ?? ''));
+        $precio = $num('precio');
+        $pago = $num('pago_profesional');
         $min = (int) ($_POST['duracion_minutos'] ?? 30);
-        if (mb_strlen($nombre) < 2 || $precio < 0 || $min < 5 || $min > 600) {
-            $error = 'Revisa el nombre, el precio y la duración (entre 5 y 600 minutos).';
+        $online = !empty($_POST['reserva_online']);
+        if (mb_strlen($nombre) < 2) {
+            $error = 'Escribe el nombre del servicio.';
+        } elseif ($precio === null || $precio < 0) {
+            $error = 'Escribe el precio que cobras al cliente.';
+        } elseif ($pago !== null && ($pago < 0 || $pago > $precio)) {
+            $error = 'Lo que pagas al peluquero no puede ser mayor que el precio al cliente.';
+        } elseif ($min < 5 || $min > 600) {
+            $error = 'La duración debe estar entre 5 y 600 minutos.';
         } elseif ($accion === 'crear') {
-            $pdo->prepare('INSERT INTO servicios (salon_id, nombre, precio, duracion_minutos) VALUES (?,?,?,?)')
-                ->execute([$sid, $nombre, $precio, $min]);
-            aviso('Servicio agregado.');
+            $pdo->prepare('INSERT INTO servicios (salon_id, nombre, precio, pago_profesional, duracion_minutos, reserva_online)
+                           VALUES (?,?,?,?,?,?)')
+                ->execute([$sid, $nombre, $precio, $pago, $min, $online ? 'true' : 'false']);
+            aviso("Servicio \"$nombre\" agregado.");
             redirigir('servicios');
         } else {
-            $pdo->prepare('UPDATE servicios SET nombre=?, precio=?, duracion_minutos=? WHERE id=? AND salon_id=?')
-                ->execute([$nombre, $precio, $min, (int) $_POST['id'], $sid]);
+            $pdo->prepare('UPDATE servicios SET nombre=?, precio=?, pago_profesional=?, duracion_minutos=?, reserva_online=?
+                            WHERE id=? AND salon_id=?')
+                ->execute([$nombre, $precio, $pago, $min, $online ? 'true' : 'false', (int) $_POST['id'], $sid]);
             aviso('Servicio guardado.');
             redirigir('servicios');
         }

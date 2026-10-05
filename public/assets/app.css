@@ -45,7 +45,7 @@ small, .suave { color: var(--tinta-suave); }
     padding-bottom: env(safe-area-inset-bottom);
 }
 .lateral .marca, .lateral-pie { display: none; }
-.menu { display: grid; grid-template-columns: repeat(5, 1fr); }
+.menu { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
 .menu a {
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     padding: 8px 2px 10px; color: #BFD3CC; text-decoration: none; font-size: .75rem; font-weight: 500;
@@ -90,6 +90,7 @@ small, .suave { color: var(--tinta-suave); }
 .bloque > h2:first-child { margin-bottom: 12px; }
 .rejilla { display: grid; gap: 12px; margin-bottom: 16px; align-items: start; }
 .rejilla > .bloque { margin-bottom: 0; }
+.rejilla > * { min-width: 0; }
 .rejilla-3 { grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .rejilla-3 > .bloque { padding: 12px 10px; }
 @media (min-width: 700px) {
@@ -233,3 +234,81 @@ input:focus, select:focus, textarea:focus { border-color: var(--verde); outline:
 .acceso-marca p { margin: 0; color: var(--tinta-suave); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- Horario ---------- */
+.fila-horario { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; align-items: center; margin-bottom: 12px; }
+.fila-horario > * { min-width: 0; }
+.fila-horario > .opcion { grid-column: 1 / -1; }
+@media (min-width: 600px) {
+    .fila-horario { grid-template-columns: 1.3fr 1fr 1fr; margin-bottom: 8px; }
+    .fila-horario > .opcion { grid-column: auto; }
+}
+
+/* ---------- Portal público de reservas ---------- */
+.publico-principal { max-width: 640px; padding-top: 20px; padding-bottom: 32px; }
+.publico-cabeza { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.publico-cabeza .marca-sello {
+    width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; flex: none;
+    background: var(--verde); color: var(--navaja); font-weight: 700; font-size: 1.4rem;
+}
+.publico-cabeza h1 { margin: 0; }
+.publico-cabeza p { margin: 0; color: var(--tinta-suave); }
+.publico-pie { text-align: center; color: var(--tinta-suave); font-size: .85rem; margin-top: 24px; }
+.paso { border: 1px solid var(--linea); min-width: 0; }
+.paso legend { font-weight: 700; font-size: 1.05rem; padding: 0 6px; display: flex; align-items: center; gap: 8px; }
+.paso-num {
+    width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center;
+    background: var(--verde); color: #fff; font-size: .85rem;
+}
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.tarjeta {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; text-align: center;
+    border: 1px solid var(--linea); border-radius: 10px; cursor: pointer; font-weight: 600; background: #fff;
+}
+.tarjeta input, .dia input, .hora-libre input { position: absolute; opacity: 0; pointer-events: none; }
+.tarjeta:has(input:checked) { border-color: var(--verde); background: var(--verde-claro); box-shadow: inset 0 0 0 1px var(--verde); }
+.tarjeta:has(input:focus-visible), .dia:has(input:focus-visible), .hora-libre:has(input:focus-visible) { outline: 3px solid var(--navaja); outline-offset: 2px; }
+.avatar {
+    width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--verde-oscuro); color: var(--navaja); font-size: 1.2rem;
+}
+.dias { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x mandatory; }
+.dia {
+    flex: none; width: 70px; display: flex; flex-direction: column; align-items: center; padding: 8px 4px;
+    border: 1px solid var(--linea); border-radius: 10px; cursor: pointer; background: #fff; scroll-snap-align: start; position: relative;
+}
+.dia-sem { font-size: .8rem; color: var(--tinta-suave); }
+.dia-num { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+.dia-mes { font-size: .75rem; color: var(--tinta-suave); }
+.dia:has(input:checked) { background: var(--verde); border-color: var(--verde); color: #fff; }
+.dia:has(input:checked) .dia-sem, .dia:has(input:checked) .dia-mes { color: #DCEBE6; }
+.dia.cerrado { opacity: .45; cursor: not-allowed; }
+.horas-libres { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.hora-libre {
+    position: relative; display: grid; place-items: center; min-height: 44px; border-radius: 8px; cursor: pointer;
+    border: 1px solid #BFD3CC; background: #fff; font-weight: 600; color: var(--verde-oscuro);
+}
+.hora-libre:has(input:checked) { background: var(--navaja); border-color: var(--navaja); color: var(--verde-oscuro); }
+.trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.confirmacion { border-color: var(--verde); box-shadow: 0 0 0 3px var(--verde-claro); }
+
+/* ---------- Portal del peluquero ---------- */
+.cifras-peluquero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+
+.hora-libre.en-confirmacion { background: #F4F1E6; border-style: dashed; border-color: #D9C58F; color: #7A6A3A; cursor: help; font-weight: 500; }
+.hora-libre.en-confirmacion span { display: flex; flex-direction: column; align-items: center; line-height: 1.1; padding: 4px 0; }
+.hora-libre.en-confirmacion small { font-size: .65rem; }
+.turno.pendiente { background: #FBF3DC; color: #6A4D0D; border-left-color: var(--navaja); border-style: dashed; }
+.etq-pendiente { background: #FBF0D3; color: #6A4D0D; }
+.etq-rechazada { background: var(--rojo-claro); color: #7E2A23; }
+.campana { position: relative; }
+.contador {
+    display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+    background: var(--navaja); color: var(--verde-oscuro); font-size: .72rem; font-weight: 700; margin-left: 4px;
+}
+.menu .contador { position: absolute; top: 4px; right: calc(50% - 22px); margin: 0; }
+@media (min-width: 900px) { .menu .contador { position: static; margin-left: auto; } }
+
+.franja-solicitudes { display: block; background: var(--navaja); color: var(--verde-oscuro); text-decoration: none; font-weight: 700; }
+.franja-solicitudes:hover { filter: brightness(.96); }
+.turno.rechazada { background: var(--rojo-claro); color: #7E2A23; border-left-color: var(--rojo); text-decoration: line-through; }

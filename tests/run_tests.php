@@ -15,8 +15,11 @@ require __DIR__ . '/../src/Planes.php';
 require __DIR__ . '/../src/Profesionales.php';
 require __DIR__ . '/../src/Liquidacion.php';
 require __DIR__ . '/../src/FacturasRecibidas.php';
+require __DIR__ . '/../src/Agenda.php';
+require __DIR__ . '/../src/Notificaciones.php';
+require __DIR__ . '/../src/WhatsApp.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones};
 
 $ok = 0;
 $fallos = [];
@@ -233,7 +236,6 @@ check('Venta vacía se rechaza', true, $error !== '');
 
 // ------------------------------------------------------------------
 echo "\n8. WhatsApp con un clic\n";
-require_once __DIR__ . '/../src/WhatsApp.php';
 check('0991234567 → 593991234567', '593991234567', TuSalon\WhatsApp::normalizarTelefono('0991234567'));
 check('+593 99 123 4567 → 593991234567', '593991234567', TuSalon\WhatsApp::normalizarTelefono('+593 99 123 4567'));
 check('991234567 → 593991234567', '593991234567', TuSalon\WhatsApp::normalizarTelefono('991234567'));
@@ -241,6 +243,87 @@ check('Teléfono vacío → sin enlace', null, TuSalon\WhatsApp::enlace('', 'hol
 $msg = TuSalon\WhatsApp::recordatorio('Juan Pérez', 'Barbería Don Pepe', new DateTimeImmutable('2026-10-13 10:00'), 'Ana');
 check('Recordatorio con día, hora y peluquero', true,
     str_contains($msg, 'Hola Juan') && str_contains($msg, 'martes 13/10') && str_contains($msg, '10:00') && str_contains($msg, 'con Ana'));
+
+// ------------------------------------------------------------------
+echo "\n9. Pago al peluquero definido por el dueño en cada servicio\n";
+$db->exec("INSERT INTO servicios (salon_id, nombre, precio, pago_profesional, duracion_minutos) VALUES ($salon, 'Corte premium', 15, 6, 30)");
+$premium = (int) $db->query("SELECT id FROM servicios WHERE nombre = 'Corte premium'")->fetchColumn();
+$antes = $liq->saldo($ana);
+$v = $liq->registrarVenta(['salon_id' => $salon, 'fecha' => '2026-10-21 10:00', 'cobrado_por' => 'local'],
+    [['tipo' => 'servicio', 'servicio_id' => $premium, 'profesional_id' => $ana, 'precio_unitario' => 15]]);
+check('Ana (empleada) gana el pago fijo $6, no su 20 %', 6.0, $liq->saldo($ana) - $antes);
+$v2 = $liq->registrarVenta(['salon_id' => $salon, 'fecha' => '2026-10-21 11:00', 'cobrado_por' => 'local'],
+    [['tipo' => 'servicio', 'servicio_id' => $premium, 'profesional_id' => $ana, 'precio_unitario' => 20]]);
+check('Si el dueño cobra más ($20), el peluquero sigue ganando $6', 6.0,
+    (float) $db->query("SELECT ganancia_profesional FROM venta_items WHERE venta_id = $v2")->fetchColumn());
+check('Servicio sin pago fijo usa el %: tinte $40 → $8', 8.0,
+    (float) $db->query("SELECT ganancia_profesional FROM venta_items vi JOIN servicios s ON s.id = vi.servicio_id
+                         WHERE s.nombre = 'Tinte' AND vi.profesional_id = $ana LIMIT 1")->fetchColumn());
+$antesLuis = $liq->saldo($luis);
+$liq->registrarVenta(['salon_id' => $salon, 'fecha' => '2026-10-21 12:00', 'cobrado_por' => 'local'],
+    [['tipo' => 'servicio', 'servicio_id' => $premium, 'profesional_id' => $luis, 'precio_unitario' => 15]]);
+check('Luis (porcentaje 60 %) sigue con su %: $9', 9.0, $liq->saldo($luis) - $antesLuis);
+
+// ------------------------------------------------------------------
+echo "\n10. Horas libres, solicitudes en línea y avisos\n";
+$ag = new Agenda($db);
+$ag->horarioPorDefecto($salon);
+$db->exec("UPDATE salones SET intervalo_reservas = 30, anticipacion_minutos = 0, acepta_reservas = 'dueno', avisar_a = 'ambos' WHERE id = $salon");
+$db->exec("INSERT INTO usuarios (salon_id, profesional_id, nombre, email, password_hash, rol) VALUES
+           ($salon, $pepe, 'Pepe', 'pepe@x.ec', 'x', 'dueno'), ($salon, $luis, 'Luis', 'luis@x.ec', 'x', 'profesional')");
+$uPepe = $db->query("SELECT * FROM usuarios WHERE email = 'pepe@x.ec'")->fetch();
+$uLuis = $db->query("SELECT * FROM usuarios WHERE email = 'luis@x.ec'")->fetch();
+$lunes = '2026-11-02';   // lunes
+$ahora = new DateTimeImmutable('2026-11-01 12:00');
+$h = $ag->horasDelDia($salon, $luis, $lunes, 30, $ahora);
+check('Lunes 9:00–19:00 cada 30 min = 20 horas libres', 20, count($h['libres']));
+check('Domingo cerrado: sin horas', 0, count($ag->horasLibres($salon, $luis, '2026-11-01', 30, $ahora)));
+
+$cita = $ag->reservarOnline($salon, $luis, $lunes, '10:00', [$corte], 'María Cliente', '0991112233', $ahora);
+check('Reserva en línea queda como solicitud pendiente', 'pendiente', $db->query("SELECT estado FROM citas WHERE id = $cita")->fetchColumn());
+check('Se crea cliente con su celular', '0991112233', $db->query("SELECT telefono FROM clientes WHERE nombre = 'María Cliente'")->fetchColumn());
+check('Avisa al dueño y al peluquero (ambos)', 2, (int) $db->query("SELECT count(*) FROM notificaciones WHERE cita_id = $cita")->fetchColumn());
+$h = $ag->horasDelDia($salon, $luis, $lunes, 30, $ahora);
+check('Las 10:00 ya no aparece libre', false, in_array('10:00', $h['libres'], true));
+check('Las 10:00 aparece "en confirmación"', true, in_array('10:00', $h['en_confirmacion'], true));
+$msg = '';
+try { $ag->reservarOnline($salon, $luis, $lunes, '10:00', [$corte], 'Otro Cliente', '0982223344', $ahora); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Otro cliente que pide las 10:00 recibe "estamos confirmando"', true, str_contains($msg, 'confirmando esa hora para otro cliente'));
+check('Ana sigue libre a las 10:00 (es otro peluquero)', true, in_array('10:00', $ag->horasLibres($salon, $ana, $lunes, 30, $ahora), true));
+
+$msg = '';
+try { $ag->responderSolicitud($salon, $cita, $uLuis, true); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Si acepta "solo el dueño", el peluquero no puede aceptar', true, str_contains($msg, 'otra persona'));
+$ag->responderSolicitud($salon, $cita, $uPepe, true);
+check('El dueño acepta: la cita queda reservada', 'reservada', $db->query("SELECT estado FROM citas WHERE id = $cita")->fetchColumn());
+check('Los avisos de esa cita quedan leídos', 0, (int) $db->query("SELECT count(*) FROM notificaciones WHERE cita_id = $cita AND NOT leida")->fetchColumn());
+$h = $ag->horasDelDia($salon, $luis, $lunes, 30, $ahora);
+check('Ya aceptada, las 10:00 no está ni libre ni en confirmación', false,
+    in_array('10:00', $h['libres'], true) || in_array('10:00', $h['en_confirmacion'], true));
+
+$db->exec("UPDATE salones SET acepta_reservas = 'peluquero', avisar_a = 'peluquero' WHERE id = $salon");
+$c2 = $ag->reservarOnline($salon, $luis, $lunes, '11:00', [$corte], 'Pedro', '0993334455', $ahora);
+check('Avisar solo al peluquero: 1 aviso para Luis', [(int) $uLuis['id']],
+    array_map('intval', $db->query("SELECT usuario_id FROM notificaciones WHERE cita_id = $c2")->fetchAll(PDO::FETCH_COLUMN)));
+$ag->responderSolicitud($salon, $c2, $uLuis, false);
+check('El peluquero rechaza: la hora vuelve a estar libre', true, in_array('11:00', $ag->horasLibres($salon, $luis, $lunes, 30, $ahora), true));
+
+// Solicitud vencida: la hora se libera sola
+$db->exec("UPDATE salones SET acepta_reservas = 'dueno', minutos_para_aceptar = 30 WHERE id = $salon");
+$c3 = $ag->reservarOnline($salon, $luis, $lunes, '12:00', [$corte], 'Rosa', '0994445566', $ahora);
+$db->exec("UPDATE citas SET expira_en = now() - interval '1 minute' WHERE id = $c3");
+check('Solicitud vencida: la hora se muestra libre otra vez', true, in_array('12:00', $ag->horasLibres($salon, $luis, $lunes, 30, $ahora), true));
+
+$db->exec("UPDATE salones SET acepta_reservas = 'automatico' WHERE id = $salon");
+$c4 = $ag->reservarOnline($salon, $luis, $lunes, '15:00', [$corte], 'Juan', '0995556677', $ahora);
+check('Aceptación automática: queda reservada al instante', 'reservada', $db->query("SELECT estado FROM citas WHERE id = $c4")->fetchColumn());
+
+$msg = '';
+try { $ag->crearCita($salon, $luis, null, "$lunes 15:15", [$corte]); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('El dueño tampoco puede agendar encima', true, str_contains($msg, 'choca'));
+$c5 = $ag->crearCita($salon, $ana, null, "$lunes 16:00", [$corte], null, [$corte => 4.5]);
+check('El dueño cambia el precio al agendar: $4,50', 4.5, (float) $db->query("SELECT precio FROM cita_servicios WHERE cita_id = $c5")->fetchColumn());
 
 // ------------------------------------------------------------------
 echo "\n" . str_repeat('=', 50) . "\n";

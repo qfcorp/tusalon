@@ -38,6 +38,14 @@ CREATE TABLE salones (
     estado                VARCHAR(15)  NOT NULL DEFAULT 'prueba'
                           CHECK (estado IN ('prueba','activo','suspendido','cancelado')),
     prueba_hasta          DATE,                         -- 7 días gratis
+    intervalo_reservas    INT NOT NULL DEFAULT 15,      -- cada cuántos minutos se ofrecen horas
+    anticipacion_minutos  INT NOT NULL DEFAULT 30,      -- reservar con al menos X minutos de anticipación
+    -- Reservas en línea: quién las acepta y a quién se avisa (lo programa el dueño)
+    acepta_reservas       VARCHAR(12) NOT NULL DEFAULT 'dueno'
+                          CHECK (acepta_reservas IN ('automatico','dueno','peluquero','cualquiera')),
+    avisar_a              VARCHAR(10) NOT NULL DEFAULT 'ambos'
+                          CHECK (avisar_a IN ('dueno','peluquero','ambos')),
+    minutos_para_aceptar  INT NOT NULL DEFAULT 120,     -- si nadie acepta, la hora se libera
     creado_en             TIMESTAMP    NOT NULL DEFAULT now()
 );
 
@@ -65,6 +73,16 @@ CREATE TABLE sucursales (
     salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
     nombre                VARCHAR(80) NOT NULL,
     direccion             VARCHAR(200)
+);
+
+-- Horario de atención del salón (0 = domingo ... 6 = sábado). Sin fila = cerrado.
+CREATE TABLE horarios (
+    salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
+    dia_semana            INT NOT NULL CHECK (dia_semana BETWEEN 0 AND 6),
+    abre                  TIME NOT NULL,
+    cierra                TIME NOT NULL,
+    PRIMARY KEY (salon_id, dia_semana),
+    CHECK (cierra > abre)
 );
 
 -- ---------------------------------------------------------------
@@ -168,8 +186,12 @@ CREATE TABLE servicios (
     -- Si tiene valor, es un servicio propio de ese arrendatario (su precio).
     profesional_id        INT REFERENCES profesionales(id),
     nombre                VARCHAR(100) NOT NULL,
-    precio                NUMERIC(10,2) NOT NULL,
+    precio                NUMERIC(10,2) NOT NULL,       -- lo que cobra al cliente
+    -- Lo que el dueño le paga al peluquero (empleado) por hacer este servicio.
+    -- Si es NULL, se usa el % de comisión de su regla de pago.
+    pago_profesional      NUMERIC(10,2) CHECK (pago_profesional IS NULL OR pago_profesional >= 0),
     duracion_minutos      INT NOT NULL DEFAULT 30,
+    reserva_online        BOOLEAN NOT NULL DEFAULT true, -- aparece en el portal de reservas
     activo                BOOLEAN NOT NULL DEFAULT true
 );
 
@@ -194,7 +216,8 @@ CREATE TABLE citas (
     inicio                TIMESTAMP NOT NULL,
     fin                   TIMESTAMP NOT NULL,
     estado                VARCHAR(12) NOT NULL DEFAULT 'reservada'
-                          CHECK (estado IN ('reservada','confirmada','atendida','no_asistio','cancelada')),
+                          CHECK (estado IN ('pendiente','reservada','confirmada','atendida','no_asistio','cancelada','rechazada')),
+    expira_en             TIMESTAMP,                    -- solicitud en línea sin aceptar: se libera a esta hora
     origen                VARCHAR(10) NOT NULL DEFAULT 'local' CHECK (origen IN ('local','online')),
     anticipo              NUMERIC(10,2) NOT NULL DEFAULT 0,
     notas                 TEXT,
@@ -204,8 +227,21 @@ CREATE TABLE citas (
 CREATE TABLE cita_servicios (
     cita_id               INT NOT NULL REFERENCES citas(id) ON DELETE CASCADE,
     servicio_id           INT NOT NULL REFERENCES servicios(id),
+    precio                NUMERIC(10,2) NOT NULL,       -- precio acordado (el dueño lo puede cambiar al agendar)
     PRIMARY KEY (cita_id, servicio_id)
 );
+
+-- Avisos dentro del sistema (campana) para dueño y peluqueros
+CREATE TABLE notificaciones (
+    id                    SERIAL PRIMARY KEY,
+    salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
+    usuario_id            INT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    cita_id               INT REFERENCES citas(id) ON DELETE CASCADE,
+    texto                 VARCHAR(300) NOT NULL,
+    leida                 BOOLEAN NOT NULL DEFAULT false,
+    creada_en             TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_notif_usuario ON notificaciones (usuario_id, leida);
 
 -- ---------------------------------------------------------------
 -- Ventas (cobros). Clave: quién recibe el dinero.
@@ -237,6 +273,8 @@ CREATE TABLE venta_items (
     cantidad              INT NOT NULL DEFAULT 1 CHECK (cantidad > 0),
     precio_unitario       NUMERIC(10,2) NOT NULL,
     subtotal              NUMERIC(10,2) NOT NULL,
+    -- Lo que gana el profesional por este ítem (sin importar quién cobró)
+    ganancia_profesional  NUMERIC(10,2) NOT NULL DEFAULT 0,
     CHECK ((tipo = 'servicio' AND servicio_id IS NOT NULL) OR
            (tipo = 'producto' AND producto_id IS NOT NULL))
 );

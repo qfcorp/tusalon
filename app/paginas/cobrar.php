@@ -31,6 +31,8 @@ $st->execute([$sid]);
 $servicios = $st->fetchAll();
 
 $seleccion = $cita ? array_column($cita['lista_servicios'], 'id') : [];
+// Precio acordado al agendar (el dueño pudo cambiarlo); si no hay cita, el precio normal
+$preciosCita = $cita ? array_column($cita['lista_servicios'], 'precio', 'id') : [];
 $profElegido = $cita ? (int) $cita['profesional_id'] : 0;
 
 if (es_post()) {
@@ -85,4 +87,4 @@ if (es_post()) {
         $profElegido = $profId;
     }
 }
-vista('cobrar', compact('cita', 'profesionales', 'servicios', 'seleccion', 'profElegido', 'error'), 'Cobrar · TuSalón');
+vista('cobrar', compact('cita', 'profesionales', 'servicios', 'seleccion', 'profElegido', 'error', 'preciosCita'), 'Cobrar · TuSalón');

@@ -148,6 +148,91 @@ get "r=completa" > /dev/null
 contiene "Puede ver planes y precios: Completa anual \$350" "$TMP/pag.html" '\$350,00'
 sql "UPDATE salones SET prueba_hasta = '$(date -d '+7 days' +%F)' WHERE id=$SID" > /dev/null
 
+echo "9. Salón Completa: servicios con pago al peluquero"
+JAR="$TMP/c_completa"
+EMAIL3="completa$RANDOM@prueba.ec"
+post "r=registro" --data-urlencode "salon=Peluquería Estrella" --data-urlencode "nombre=Rosa Dueña" -d telefono=0990001111 \
+     --data-urlencode "email=$EMAIL3" -d clave=claveSegura3 -d plan=completa > /dev/null
+SID3=$(sql "SELECT salon_id FROM usuarios WHERE email='$EMAIL3'")
+SLUG3=$(sql "SELECT slug FROM salones WHERE id=$SID3")
+check "Salón nuevo trae horario lunes a sábado" "6" "$(sql "SELECT count(*) FROM horarios WHERE salon_id=$SID3")"
+r=$(post "r=servicios" -d accion=crear --data-urlencode "nombre=Corte premium" -d precio=15 -d pago_profesional=6 -d duracion_minutos=30 -d reserva_online=1)
+check "Crear servicio con precio \$15 y pago al peluquero \$6" "6.00" "$(sql "SELECT pago_profesional FROM servicios WHERE salon_id=$SID3 AND nombre='Corte premium'")"
+r=$(post "r=servicios" -d accion=crear --data-urlencode "nombre=Mal pagado" -d precio=5 -d pago_profesional=9 -d duracion_minutos=30)
+contiene "No deja pagar al peluquero más que el precio" "$TMP/post.html" "no puede ser mayor"
+get "r=servicios" > /dev/null
+contiene "La lista muestra lo que queda al local (\$9,00)" "$TMP/pag.html" '\$9,00'
+post "r=equipo" --data-urlencode "nombre=Luis" -d tipo=empleado -d comision_servicio_pct=40 > /dev/null
+LUIS3=$(sql "SELECT id FROM profesionales WHERE salon_id=$SID3 AND nombre='Luis'")
+EMAIL_LUIS="luis$RANDOM@prueba.ec"
+r=$(post "r=equipo" -d accion=acceso -d id=$LUIS3 -d email=$EMAIL_LUIS -d clave=claveLuis1)
+check "El dueño le da acceso a Luis" "profesional" "$(sql "SELECT rol FROM usuarios WHERE email='$EMAIL_LUIS'")"
+r=$(post "r=horario" -d "abierto[1]=1" -d "abre[1]=09:00" -d "cierra[1]=19:00" -d "abierto[2]=1" -d "abre[2]=09:00" -d "cierra[2]=19:00" \
+     -d "abierto[3]=1" -d "abre[3]=09:00" -d "cierra[3]=19:00" -d "abierto[4]=1" -d "abre[4]=09:00" -d "cierra[4]=19:00" \
+     -d "abierto[5]=1" -d "abre[5]=09:00" -d "cierra[5]=19:00" -d "abierto[6]=1" -d "abre[6]=09:00" -d "cierra[6]=19:00" \
+     -d "abierto[0]=1" -d "abre[0]=09:00" -d "cierra[0]=19:00" \
+     -d intervalo_reservas=30 -d anticipacion_minutos=0 -d acepta_reservas=dueno -d avisar_a=ambos -d minutos_para_aceptar=120)
+check "Guardar horario y reglas de aceptación" "dueno|ambos|30" "$(sql "SELECT acepta_reservas||'|'||avisar_a||'|'||intervalo_reservas FROM salones WHERE id=$SID3")"
+JAR_DUENA=$JAR
+
+echo "10. Portal de reservas del cliente"
+MAN=$(date -d '+1 day' +%F)
+PREM=$(sql "SELECT id FROM servicios WHERE salon_id=$SID3 AND nombre='Corte premium'")
+code=$(curl -s -o "$TMP/pub.html" -w '%{http_code}' "$BASE/?r=reservar&s=$SLUG3")
+check "Página pública abre sin cuenta" "200" "$code"
+contiene "Muestra al peluquero Luis" "$TMP/pub.html" "Luis"
+contiene "Muestra el servicio con su precio" "$TMP/pub.html" '\$15,00'
+curl -s "$BASE/?r=horas&s=$SLUG3&p=$LUIS3&serv=$PREM&f=$MAN" > "$TMP/horas.json"
+contiene "Horas libres en tiempo real: aparece 10:00" "$TMP/horas.json" '"10:00"'
+JAR="$TMP/c_cliente1"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 \
+     --data-urlencode "nombre=Carla Cliente" -d telefono=0997776655)
+check "El cliente reserva y ve la confirmación" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
+get "r=reservar&s=$SLUG3&ok=1" > /dev/null
+contiene "Le dice que la solicitud se está confirmando" "$TMP/pag.html" "Solicitud enviada"
+CITA3=$(sql "SELECT max(id) FROM citas WHERE salon_id=$SID3")
+check "La cita queda pendiente de aceptar" "pendiente" "$(sql "SELECT estado FROM citas WHERE id=$CITA3")"
+curl -s "$BASE/?r=horas&s=$SLUG3&p=$LUIS3&serv=$PREM&f=$MAN" > "$TMP/horas2.json"
+contiene "Para otros clientes las 10:00 sale 'en confirmación'" "$TMP/horas2.json" '"en_confirmacion":\["10:00"\]'
+JAR="$TMP/c_cliente2"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 \
+     --data-urlencode "nombre=Otro Cliente" -d telefono=0981112222)
+contiene "Otro cliente que intenta las 10:00 recibe 'estamos confirmando'" "$TMP/post.html" "confirmando esa hora para otro cliente"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 -d sitio_web=spam \
+     --data-urlencode "nombre=Robot" -d telefono=0981112222)
+check "El campo trampa frena a los robots" "1" "$(sql "SELECT count(*) FROM citas WHERE salon_id=$SID3")"
+code=$(curl -s -o "$TMP/pubb.html" -w '%{http_code}' "$BASE/?r=reservar&s=$(sql "SELECT slug FROM salones WHERE id=$SID")")
+contiene "Un salón Básica no tiene reservas en línea" "$TMP/pubb.html" "todavía no recibe reservas"
+
+echo "11. Avisos, aceptación y portal del peluquero"
+check "Se avisa a la dueña y a Luis" "2" "$(sql "SELECT count(*) FROM notificaciones WHERE cita_id=$CITA3")"
+JAR=$JAR_DUENA
+get "r=inicio" > /dev/null
+contiene "La dueña ve la franja de solicitudes" "$TMP/pag.html" "1 solicitud de cita por aceptar"
+JAR="$TMP/c_luis"
+r=$(post "r=login" -d email=$EMAIL_LUIS -d clave=claveLuis1)
+check "Luis entra y va a su portal" "302 $BASE/?r=mi_portal" "$r"
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=caja")
+check "Luis no puede ver la caja del salón" "302 $BASE/?r=mi_portal" "$code"
+get "r=mi_portal" > /dev/null
+contiene "Luis ve lo que le toca por el corte premium (\$6,00)" "$TMP/pag.html" '\$6,00'
+r=$(post "r=solicitudes" -d cita=$CITA3 -d accion=aceptar)
+check "Luis no puede aceptar (lo acepta solo la dueña)" "pendiente" "$(sql "SELECT estado FROM citas WHERE id=$CITA3")"
+JAR=$JAR_DUENA
+r=$(post "r=solicitudes" -d cita=$CITA3 -d accion=aceptar)
+check "La dueña acepta la cita" "reservada" "$(sql "SELECT estado FROM citas WHERE id=$CITA3")"
+get "r=solicitudes" > /dev/null
+contiene "Ofrece avisar al cliente por WhatsApp" "$TMP/pag.html" "wa.me/593997776655"
+r=$(post "r=cobrar&cita=$CITA3" -d cita=$CITA3 -d profesional_id=$LUIS3 -d "servicio[]=$PREM" -d "precio[$PREM]=18" -d metodo_pago=efectivo -d propina=0 -d cobrado_por=local)
+check "La dueña cobra \$18 (subió el precio)" "18.00" "$(sql "SELECT total FROM ventas WHERE salon_id=$SID3")"
+check "Luis gana igual su pago fijo \$6" "6.00" "$(sql "SELECT ganancia_profesional FROM venta_items vi JOIN ventas v ON v.id=vi.venta_id WHERE v.salon_id=$SID3")"
+JAR="$TMP/c_luis"
+get "r=mi_portal&p=mes" > /dev/null
+contiene "En su portal ve el servicio cobrado" "$TMP/pag.html" "Corte premium"
+contiene "Y que el local le debe \$6,00" "$TMP/pag.html" "El local te debe"
+r=$(post "r=cita_nueva" -d fecha=$MAN -d hora=12:00 -d profesional=$LUIS3 -d "servicios[]=$PREM")
+check "Luis no puede agendar desde el sistema del dueño" "1" "$(sql "SELECT count(*) FROM citas WHERE salon_id=$SID3")"
+
 echo
 echo "=================================================="
 echo "Resultado: $OK correctas, $FALLAS fallidas"

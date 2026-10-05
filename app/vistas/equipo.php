@@ -18,8 +18,12 @@ $resumenRegla = function (array $p) use ($num): string {
 <div class="cabecera">
     <h1>Equipo</h1>
     <div class="acciones">
-        <a class="boton boton-claro" href="<?= e(url('servicios')) ?>">Servicios</a>
-        <a class="boton boton-claro" href="<?= e(url('cuentas')) ?>">Cuentas</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('clientes')) ?>">Clientes</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('servicios')) ?>">Servicios</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('horario')) ?>">Horario y reservas</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>
+        <a class="boton boton-claro boton-chico solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
     </div>
 </div>
 
@@ -34,6 +38,32 @@ $resumenRegla = function (array $p) use ($num): string {
                     <div style="flex:1">
                         <div class="principal-linea"><?= e($p['nombre']) ?> <span class="etq etq-<?= e($p['tipo']) ?>"><?= $tipos[$p['tipo']] ?></span></div>
                         <div class="linea-sub"><?= e($resumenRegla($p)) ?></div>
+                        <?php if ($p['tipo'] !== 'dueno'): ?>
+                            <details style="margin-top:6px">
+                                <summary style="cursor:pointer;font-size:.9rem;color:var(--verde)">
+                                    <?= $p['acceso_email'] ? 'Entra a su portal con ' . e($p['acceso_email']) : 'Darle acceso a su portal' ?></summary>
+                                <?php if (es_completa($u)): ?>
+                                <form method="post" style="margin-top:8px">
+                                    <?= campo_csrf() ?>
+                                    <input type="hidden" name="accion" value="acceso"><input type="hidden" name="id" value="<?= $p['id'] ?>">
+                                    <div class="fila-campos">
+                                        <div class="campo"><label for="ae<?= $p['id'] ?>">Su correo</label>
+                                            <input type="email" id="ae<?= $p['id'] ?>" name="email" value="<?= e($p['acceso_email'] ?? '') ?>" required></div>
+                                        <div class="campo"><label for="ac<?= $p['id'] ?>"><?= $p['acceso_email'] ? 'Nueva contraseña' : 'Contraseña' ?></label>
+                                            <input type="text" id="ac<?= $p['id'] ?>" name="clave" minlength="8" required autocomplete="off"></div>
+                                    </div>
+                                    <button class="boton boton-chico" type="submit"><?= $p['acceso_email'] ? 'Cambiar contraseña' : 'Crear acceso' ?></button>
+                                </form>
+                                <?php if ($p['acceso_email']): ?>
+                                    <form method="post" style="margin-top:6px"><?= campo_csrf() ?>
+                                        <input type="hidden" name="accion" value="quitar_acceso"><input type="hidden" name="id" value="<?= $p['id'] ?>">
+                                        <button class="boton boton-peligro boton-chico" type="submit" data-confirmar="¿Quitarle el acceso a <?= e($p['nombre']) ?>?">Quitar acceso</button></form>
+                                <?php endif; ?>
+                                <?php else: ?>
+                                    <p class="candado" style="margin-top:6px">Portal del peluquero: <a href="<?= e(url('completa')) ?>">plan Completa</a></p>
+                                <?php endif; ?>
+                            </details>
+                        <?php endif; ?>
                     </div>
                     <?php if ($p['tipo'] !== 'dueno'): ?>
                         <div style="text-align:right">
@@ -44,9 +74,7 @@ $resumenRegla = function (array $p) use ($num): string {
                 </li>
             <?php endforeach; ?>
         </ul>
-        <?php if (!es_completa($u)): ?>
-            <p class="candado" style="margin-top:12px">Acceso de cada peluquero desde su celular: <a href="<?= e(url('completa')) ?>">plan Completa</a></p>
-        <?php endif; ?>
+
     </section>
 
     <?php if (!$puedeAgregar): ?>

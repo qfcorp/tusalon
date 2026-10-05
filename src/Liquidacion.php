@@ -94,19 +94,21 @@ final class Liquidacion
 
             $insItem = $this->db->prepare(
                 'INSERT INTO venta_items (venta_id, tipo, servicio_id, producto_id, profesional_id,
-                                          cantidad, precio_unitario, subtotal)
-                 VALUES (?,?,?,?,?,?,?,?)'
+                                          cantidad, precio_unitario, subtotal, ganancia_profesional)
+                 VALUES (?,?,?,?,?,?,?,?,?)'
             );
             foreach ($items as $it) {
+                $calc = $this->calcularItem($it, $cobradoPor, $fecha);
                 $insItem->execute([
                     $ventaId, $it['tipo'], $it['servicio_id'] ?? null, $it['producto_id'] ?? null,
                     $it['profesional_id'], $it['cantidad'], $it['precio_unitario'], $it['subtotal'],
+                    $calc['ganancia'],
                 ]);
                 if ($it['tipo'] === 'producto') {
                     $this->db->prepare('UPDATE productos SET stock = stock - ? WHERE id = ?')
                              ->execute([$it['cantidad'], $it['producto_id']]);
                 }
-                foreach ($this->movimientosDeItem($it, $cobradoPor, $fecha) as [$tipo, $monto, $desc]) {
+                foreach ($calc['movimientos'] as [$tipo, $monto, $desc]) {
                     $this->insertarMovimiento((int) $venta['salon_id'], (int) $it['profesional_id'],
                                               $fecha, $tipo, $monto, $ventaId, $desc);
                 }
@@ -133,8 +135,27 @@ final class Liquidacion
         }
     }
 
-    /** Devuelve [[tipo, monto, descripcion], ...] para un ítem de venta. */
-    private function movimientosDeItem(array $it, string $cobradoPor, string $fecha): array
+    /** Pago fijo que el dueño definió para este servicio (o null si se usa el %). */
+    private function pagoFijoDelServicio(array $it): ?float
+    {
+        if (array_key_exists('pago_profesional', $it)) {
+            return $it['pago_profesional'] === null ? null : (float) $it['pago_profesional'];
+        }
+        if ($it['tipo'] !== 'servicio' || empty($it['servicio_id'])) {
+            return null;
+        }
+        $st = $this->db->prepare('SELECT pago_profesional FROM servicios WHERE id = ?');
+        $st->execute([$it['servicio_id']]);
+        $v = $st->fetchColumn();
+        return ($v === false || $v === null) ? null : (float) $v;
+    }
+
+    /**
+     * Calcula, para un ítem de venta:
+     *  - ganancia:    lo que gana el profesional por ese ítem (para su portal)
+     *  - movimientos: [[tipo, monto, descripción], ...] para su cuenta corriente
+     */
+    private function calcularItem(array $it, string $cobradoPor, string $fecha): array
     {
         $r = $this->reglaVigente((int) $it['profesional_id'], $fecha);
         $sub = (float) $it['subtotal'];
@@ -143,29 +164,37 @@ final class Liquidacion
 
         switch ($r['tipo']) {
             case 'dueno':
-                return [];
+                return ['ganancia' => 0.0, 'movimientos' => []];
 
             case 'empleado':
-                return $esServicio
-                    ? [['comision_servicio', self::r($sub * (float) $r['comision_servicio_pct'] / 100), 'Comisión servicio']]
-                    : [['comision_producto', $comProd, 'Comisión producto']];
+                if (!$esServicio) {
+                    return ['ganancia' => $comProd, 'movimientos' => [['comision_producto', $comProd, 'Comisión producto']]];
+                }
+                $fijo = $this->pagoFijoDelServicio($it);
+                if ($fijo !== null) {   // el dueño definió cuánto paga por este servicio
+                    $g = self::r($fijo * (int) $it['cantidad']);
+                    return ['ganancia' => $g, 'movimientos' => [['comision_servicio', $g, 'Pago por servicio']]];
+                }
+                $g = self::r($sub * (float) $r['comision_servicio_pct'] / 100);
+                return ['ganancia' => $g, 'movimientos' => [['comision_servicio', $g, 'Comisión servicio']]];
 
             case 'porcentaje':
                 if ($esServicio) {
                     $pct = (float) $r['pct_profesional'];
-                    return $cobradoPor === 'local'
-                        ? [['porcentaje', self::r($sub * $pct / 100), "Su $pct %"]]
-                        : [['parte_local', -self::r($sub * (100 - $pct) / 100), 'Parte del local']];
+                    $g = self::r($sub * $pct / 100);
+                    return ['ganancia' => $g, 'movimientos' => $cobradoPor === 'local'
+                        ? [['porcentaje', $g, "Su $pct %"]]
+                        : [['parte_local', -self::r($sub - $g), 'Parte del local']]];
                 }
-                return $this->productoDelLocal($sub, $comProd, $cobradoPor);
+                return ['ganancia' => $comProd, 'movimientos' => $this->productoDelLocal($sub, $comProd, $cobradoPor)];
 
             case 'alquiler':
-                if ($esServicio) {
-                    return $cobradoPor === 'local'
+                if ($esServicio) {   // el servicio es todo suyo
+                    return ['ganancia' => $sub, 'movimientos' => $cobradoPor === 'local'
                         ? [['cobro_recibido_local', $sub, 'El local cobró un servicio suyo']]
-                        : [];
+                        : []];
                 }
-                return $this->productoDelLocal($sub, $comProd, $cobradoPor);
+                return ['ganancia' => $comProd, 'movimientos' => $this->productoDelLocal($sub, $comProd, $cobradoPor)];
         }
         throw new RuntimeException('Tipo de profesional desconocido: ' . $r['tipo']);
     }

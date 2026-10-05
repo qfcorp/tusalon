@@ -61,6 +61,8 @@ if (es_post()) {
             $ins->execute([$salonId, $nom, $precio, $min]);
         }
 
+        (new \TuSalon\Agenda($pdo))->horarioPorDefecto($salonId);   // lunes a sábado 9:00–19:00
+
         session_regenerate_id(true);
         $_SESSION['usuario_id'] = $usuarioId;
         aviso('¡Listo! Tu salón está creado. Tienes 7 días gratis para probar todo.');

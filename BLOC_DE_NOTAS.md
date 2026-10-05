@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 21:00
+Última actualización: 4 de octubre de 2026, 22:00
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -56,7 +56,18 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 1. [x] Repositorio qfcorp/tusalon en GitHub con este bloc de notas
 2. [x] Base de datos con los 4 tipos de peluquero + prueba en entorno simulado
 3. [x] Plan Básica: registro con 7 días gratis, entrada, inicio "Hoy", agenda por sillas, citas, cobros, caja con cierre, clientes, servicios, equipo con los tipos, cuentas del equipo, WhatsApp con un clic, página de planes. Pruebas web 46/46 y lógica 60/60; revisado en capturas de celular y computadora
+3a. [x] Pedido del 4 de octubre (antes de instalar):
+    - Servicios ilimitados creados por el dueño con **precio al cliente** y **pago al peluquero** (pago fijo para empleados; si se deja vacío, usa su %)
+    - El dueño puede **cambiar el precio al agendar**; el peluquero gana igual su pago fijo
+    - **Portal de reservas** para clientes (`/?r=reservar&s=<salón>`): elige peluquero, servicio, día y ve las horas libres en tiempo real (se actualiza cada 30 s)
+    - **Solicitudes:** la reserva del cliente llega como solicitud. El dueño programa quién la acepta (dueño, peluquero, cualquiera o automático), a quién se avisa (dueño, peluquero o ambos) y en cuánto tiempo se libera si nadie responde
+    - Mientras espera, la hora aparece **"en confirmación"**; si otro cliente la intenta, recibe "Estamos confirmando esa hora para otro cliente"
+    - Campana de avisos y página de Solicitudes con Aceptar/Rechazar y WhatsApp al cliente con un toque
+    - **Portal del peluquero** (acceso que crea el dueño): sus citas, lo que hizo, lo que ganó, su saldo y lo que le toca por cada servicio; no ve la caja ni nada del dueño
+    - Probado: lógica 83/83, web 76/76, tres clientes reservando la misma hora al mismo instante (solo uno la obtiene), capturas en celular
+    - Portal de reservas y portal del peluquero son del plan **Completa** (en Básica aparecen con candado)
 3b. [ ] **SIGUIENTE:** primera instalación en tusalon.qfradioec.com (servidor qfcorp)
+3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta) al llegar una solicitud; hoy el aviso es la campana dentro del sistema
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
 6. [ ] Completa 3: ficha técnica, inventario, fidelidad, importar facturas recibidas del SRI, app del peluquero

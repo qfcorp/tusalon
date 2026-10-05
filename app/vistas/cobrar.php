@@ -39,7 +39,7 @@ foreach ($profesionales as $p) {
                 <div class="opcion" data-servicio>
                     <input type="checkbox" id="s<?= $s['id'] ?>" name="servicio[]" value="<?= $s['id'] ?>" <?= $marcado ? 'checked' : '' ?>>
                     <label for="s<?= $s['id'] ?>" style="flex:1"><strong><?= e($s['nombre']) ?></strong></label>
-                    <input type="number" name="precio[<?= $s['id'] ?>]" value="<?= e(number_format((float) $s['precio'], 2, '.', '')) ?>"
+                    <input type="number" name="precio[<?= $s['id'] ?>]" value="<?= e(number_format((float) ($preciosCita[$s['id']] ?? $s['precio']), 2, '.', '')) ?>"
                            step="0.01" min="0" style="width:110px" aria-label="Precio de <?= e($s['nombre']) ?>">
                 </div>
             <?php endforeach; ?>

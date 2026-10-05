@@ -4,8 +4,8 @@ $ini = new DateTimeImmutable($cita['inicio']);
 $fin = new DateTimeImmutable($cita['fin']);
 $total = array_sum(array_map(fn($s) => (float) $s['precio'], $cita['lista_servicios']));
 $wa = WhatsApp::enlace($cita['telefono'], WhatsApp::recordatorio($cita['cliente'] ?: 'cliente', $u['salon'], $ini, $cita['profesional']));
-$estados = ['reservada' => 'Reservada', 'confirmada' => 'Confirmada', 'atendida' => 'Atendida y cobrada',
-            'no_asistio' => 'No asistió', 'cancelada' => 'Cancelada'];
+$estados = ['pendiente' => 'Solicitud por aceptar', 'reservada' => 'Reservada', 'confirmada' => 'Confirmada',
+            'atendida' => 'Atendida y cobrada', 'no_asistio' => 'No asistió', 'cancelada' => 'Cancelada', 'rechazada' => 'Rechazada'];
 $abierta = in_array($cita['estado'], ['reservada', 'confirmada'], true);
 $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string $confirmar = '') =>
     '<form method="post" style="display:inline">' . campo_csrf()
@@ -25,7 +25,7 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
         <h2>Servicios</h2>
         <ul class="lista">
             <?php foreach ($cita['lista_servicios'] as $s): ?>
-                <li><span><?= e($s['nombre']) ?></span><span class="monto"><?= dinero($s['precio']) ?></span></li>
+                <li><span><?= e($s['nombre']) ?><?php if ((float) $s['precio'] !== (float) $s['precio_lista']): ?><br><small>Precio normal <?= dinero($s['precio_lista']) ?></small><?php endif; ?></span><span class="monto"><?= dinero($s['precio']) ?></span></li>
             <?php endforeach; ?>
             <li><strong>Total</strong><strong class="monto"><?= dinero($total) ?></strong></li>
         </ul>
@@ -35,7 +35,13 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
     <section class="bloque">
         <h2>Qué hacer</h2>
         <div class="acciones" style="flex-direction:column;align-items:stretch">
-            <?php if ($abierta): ?>
+            <?php if ($cita['estado'] === 'pendiente'): ?>
+                <p>El cliente la pidió en línea<?= $cita['expira_en'] ? '. Si nadie responde, la hora se libera a las ' . (new DateTimeImmutable($cita['expira_en']))->format('H:i') : '' ?>.</p>
+                <form method="post" action="<?= e(url('solicitudes')) ?>"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= (int) $cita['id'] ?>">
+                    <button class="boton boton-ancho" name="accion" value="aceptar" type="submit">Aceptar cita</button></form>
+                <form method="post" action="<?= e(url('solicitudes')) ?>"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= (int) $cita['id'] ?>">
+                    <button class="boton boton-peligro boton-ancho" name="accion" value="rechazar" type="submit" data-confirmar="¿Rechazar esta solicitud?">Rechazar</button></form>
+            <?php elseif ($abierta): ?>
                 <a class="boton" href="<?= e(url('cobrar', ['cita' => $cita['id']])) ?>">Cobrar <?= dinero($total) ?></a>
                 <?php if ($wa): ?>
                     <a class="boton boton-wa" href="<?= e($wa) ?>" target="_blank" rel="noopener">Enviar recordatorio por WhatsApp</a>

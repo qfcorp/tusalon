@@ -172,4 +172,19 @@ function vista(string $nombre, array $datos = [], string $titulo = 'TuSalón'): 
     require RAIZ . '/app/vistas/_diseno.php';
 }
 
+/** Muestra una vista pública (portal de reservas), sin menú del sistema. */
+function vista_publica(string $nombre, array $datos = [], string $titulo = 'TuSalón'): void
+{
+    extract($datos, EXTR_SKIP);
+    ob_start();
+    require RAIZ . "/app/vistas/$nombre.php";
+    $contenido = ob_get_clean();
+    require RAIZ . '/app/vistas/_publico.php';
+}
+
+function es_peluquero(?array $u): bool
+{
+    return $u !== null && $u['rol'] === 'profesional';
+}
+
 const WHATSAPP_VENTAS = '593996408397';

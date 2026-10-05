@@ -14,6 +14,7 @@ $d = [
     'telefono'    => trim((string) ($_POST['telefono'] ?? '')),
     'servicios'   => array_map('intval', (array) ($_POST['servicios'] ?? [])),
     'notas'       => trim((string) ($_POST['notas'] ?? '')),
+    'precios'     => (array) ($_POST['precio'] ?? []),
 ];
 
 if (es_post()) {
@@ -31,8 +32,15 @@ if (es_post()) {
             $st->execute([$sid, $d['cliente_nuevo'], $d['telefono'] ?: null]);
             $clienteId = (int) $st->fetchColumn();
         }
+        // El dueño puede cambiar el precio para este cliente; solo se guardan los servicios marcados
+        $precios = [];
+        foreach ($d['servicios'] as $sId) {
+            if (isset($d['precios'][$sId]) && $d['precios'][$sId] !== '') {
+                $precios[$sId] = (float) str_replace(',', '.', (string) $d['precios'][$sId]);
+            }
+        }
         $id = (new Agenda($pdo))->crearCita($sid, $d['profesional'], $clienteId, $d['fecha'] . ' ' . $d['hora'],
-                                            $d['servicios'], $d['notas'] ?: null);
+                                            $d['servicios'], $d['notas'] ?: null, $precios);
         aviso('Cita agendada.');
         redirigir('cita', ['id' => $id]);
     } catch (RuntimeException $e) {
