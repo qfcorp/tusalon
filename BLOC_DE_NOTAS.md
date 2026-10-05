@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 23:10
+Última actualización: 4 de octubre de 2026, 23:20
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -88,8 +88,8 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - Tareas automáticas cada hora: `bin/tareas.php` (cada aviso se envía una sola vez)
     - Nuevas pantallas: Avisos a clientes, Reporte del mes, Horario del peluquero, página de la cita del cliente
     - Probado: **lógica 202/202, web 145/145**, capturas en celular y computadora, respaldo restaurado en otra base
-3b. [~] Instalación en qfcorp (4 oct, 23:08): **hecha** con el instalador de una línea (`deploy/instalar.sh`): base PostgreSQL 18 con 29 tablas, nginx, PHP 8.5, tareas cada hora y respaldo diario 3:15 funcionando (prueba local 200)
-    - [ ] Falta: agregar `tusalon.qfradioec.com` → `HTTP localhost:80` en Cloudflare (Zero Trust → Tunnels → Public Hostname). El túnel se maneja desde la web de Cloudflare (el config.yml del servidor es solo una plantilla)
+3b. [x] **TuSalón en línea: https://tusalon.qfradioec.com** (4 oct, 23:20). Instalación en qfcorp (4 oct, 23:08): **hecha** con el instalador de una línea (`deploy/instalar.sh`): base PostgreSQL 18 con 29 tablas, nginx, PHP 8.5, tareas cada hora y respaldo diario 3:15 funcionando (prueba local 200)
+    - [x] Cloudflare: ruta `tusalon.qfradioec.com` → `http://localhost:80` agregada en el túnel **servidorqf** (Redes → Conectores → servidorqf → Rutas de aplicaciones publicadas). El config.yml del servidor es solo una plantilla; el túnel se maneja desde la web
     - [ ] Falta: crear el bot de Telegram (docs/TELEGRAM.md)
     - [ ] Manual para clientes: empezado (documento "Manual de TuSalón", con índice), falta llenarlo con capturas
     - [ ] Decidir si el repositorio de GitHub pasa a privado (hoy es público)
