@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 20:50
+Última actualización: 4 de octubre de 2026, 21:00
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -55,12 +55,14 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 ## Plan de trabajo
 1. [x] Repositorio qfcorp/tusalon en GitHub con este bloc de notas
 2. [x] Base de datos con los 4 tipos de peluquero + prueba en entorno simulado
-3. [ ] **SIGUIENTE:** Plan Básica: pantallas de login, agenda, clientes, caja diaria, cálculo simple de los 4 tipos, WhatsApp con un clic; primera instalación en tusalon.qfradioec.com
+3. [x] Plan Básica: registro con 7 días gratis, entrada, inicio "Hoy", agenda por sillas, citas, cobros, caja con cierre, clientes, servicios, equipo con los tipos, cuentas del equipo, WhatsApp con un clic, página de planes. Pruebas web 46/46 y lógica 60/60; revisado en capturas de celular y computadora
+3b. [ ] **SIGUIENTE:** primera instalación en tusalon.qfradioec.com (servidor qfcorp)
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
 6. [ ] Completa 3: ficha técnica, inventario, fidelidad, importar facturas recibidas del SRI, app del peluquero
 7. [ ] Cobro de la suscripción (mensual, semestral, anual) y bloqueo de funciones según el plan
 8. [ ] Prueba real en una peluquería, ajustes y lanzamiento en tukansoftware.com
+9. [ ] **Después del programa base:** versión con logo para **Daniel Mendoza Asesores de Imagen** (Quito). Datos y lo que falta conseguir en `docs/CLIENTE_DANIEL_MENDOZA.md`. Falta: logo, colores y fotos (Dimitry los baja de su Facebook/Instagram)
 
 ## Datos clave
 - 21.144 peluquerías/salones con RUC en Ecuador (INEC 2023); 67 % sin empleados afiliados
