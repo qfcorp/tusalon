@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 23:00
+Última actualización: 4 de octubre de 2026, 23:10
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -88,7 +88,12 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - Tareas automáticas cada hora: `bin/tareas.php` (cada aviso se envía una sola vez)
     - Nuevas pantallas: Avisos a clientes, Reporte del mes, Horario del peluquero, página de la cita del cliente
     - Probado: **lógica 202/202, web 145/145**, capturas en celular y computadora, respaldo restaurado en otra base
-3b. [ ] **SIGUIENTE:** primera instalación en tusalon.qfradioec.com (servidor qfcorp) + crear el bot de Telegram + poner las 2 líneas de cron (README) para tareas y respaldo
+3b. [~] Instalación en qfcorp (4 oct, 23:08): **hecha** con el instalador de una línea (`deploy/instalar.sh`): base PostgreSQL 18 con 29 tablas, nginx, PHP 8.5, tareas cada hora y respaldo diario 3:15 funcionando (prueba local 200)
+    - [ ] Falta: agregar `tusalon.qfradioec.com` → `HTTP localhost:80` en Cloudflare (Zero Trust → Tunnels → Public Hostname). El túnel se maneja desde la web de Cloudflare (el config.yml del servidor es solo una plantilla)
+    - [ ] Falta: crear el bot de Telegram (docs/TELEGRAM.md)
+    - [ ] Manual para clientes: empezado (documento "Manual de TuSalón", con índice), falta llenarlo con capturas
+    - [ ] Decidir si el repositorio de GitHub pasa a privado (hoy es público)
+    - Para actualizar el servidor: la misma línea del instalador (no borra datos)
 3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
