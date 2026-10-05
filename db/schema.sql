@@ -142,6 +142,8 @@ CREATE TABLE usuarios (
     password_hash         VARCHAR(255) NOT NULL,
     rol                   VARCHAR(12) NOT NULL
                           CHECK (rol IN ('dueno','admin','recepcion','profesional')),
+    telegram_chat_id      BIGINT,                       -- avisos por Telegram (lo conecta el propio usuario)
+    telegram_codigo       VARCHAR(32),                  -- código de un solo uso para conectar Telegram
     activo                BOOLEAN NOT NULL DEFAULT true
 );
 
@@ -160,8 +162,13 @@ CREATE TABLE clientes (
     fecha_nacimiento      DATE,
     alergias              TEXT,
     notas                 TEXT,
+    -- Cuenta opcional del cliente (para ver su historial). Sin contraseña = cliente invitado.
+    password_hash         VARCHAR(255),
+    acepta_fotos          BOOLEAN NOT NULL DEFAULT false,  -- permiso para guardar fotos de sus servicios
+    cuenta_creada_en      TIMESTAMP,
     creado_en             TIMESTAMP NOT NULL DEFAULT now()
 );
+CREATE UNIQUE INDEX uq_cuenta_cliente ON clientes (salon_id, lower(email)) WHERE password_hash IS NOT NULL;
 
 CREATE TABLE fichas_tecnicas (
     id                    SERIAL PRIMARY KEY,
@@ -230,6 +237,19 @@ CREATE TABLE cita_servicios (
     precio                NUMERIC(10,2) NOT NULL,       -- precio acordado (el dueño lo puede cambiar al agendar)
     PRIMARY KEY (cita_id, servicio_id)
 );
+
+-- Fotos de servicios (solo clientes con cuenta que aceptaron). El archivo vive fuera de la carpeta pública.
+CREATE TABLE fotos (
+    id                    SERIAL PRIMARY KEY,
+    salon_id              INT NOT NULL REFERENCES salones(id) ON DELETE CASCADE,
+    cliente_id            INT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+    cita_id               INT REFERENCES citas(id) ON DELETE SET NULL,
+    profesional_id        INT REFERENCES profesionales(id),
+    momento               VARCHAR(8) NOT NULL DEFAULT 'despues' CHECK (momento IN ('antes','despues')),
+    archivo               VARCHAR(120) NOT NULL,         -- nombre aleatorio en uploads/fotos/
+    creada_en             TIMESTAMP NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_fotos_cliente ON fotos (cliente_id, creada_en);
 
 -- Avisos dentro del sistema (campana) para dueño y peluqueros
 CREATE TABLE notificaciones (

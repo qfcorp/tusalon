@@ -84,7 +84,8 @@ $diaAnterior = '';
                 <?php foreach ($hechos as $h): ?>
                     <tr>
                         <td><strong><?= e($h['servicio']) ?></strong><br>
-                            <small><?= (new DateTimeImmutable($h['fecha']))->format('d/m H:i') ?><?= $h['cliente'] ? ' · ' . e($h['cliente']) : '' ?></small></td>
+                            <small><?= (new DateTimeImmutable($h['fecha']))->format('d/m H:i') ?><?= $h['cliente'] ? ' · ' . e($h['cliente']) : '' ?></small>
+                            <?php if ($h['cita_id'] && $h['fotos_ok']): ?><br><a href="<?= e(url('fotos', ['cita' => $h['cita_id']])) ?>" style="font-size:.85rem">Fotos</a><?php endif; ?></td>
                         <td class="der"><?= dinero($h['subtotal']) ?></td>
                         <td class="der"><strong><?= dinero($h['ganancia_profesional']) ?></strong></td>
                     </tr>

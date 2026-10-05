@@ -18,8 +18,11 @@ require __DIR__ . '/../src/FacturasRecibidas.php';
 require __DIR__ . '/../src/Agenda.php';
 require __DIR__ . '/../src/Notificaciones.php';
 require __DIR__ . '/../src/WhatsApp.php';
+require __DIR__ . '/../src/Telegram.php';
+require __DIR__ . '/../src/CuentaCliente.php';
+require __DIR__ . '/../src/Fotos.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos};
 
 $ok = 0;
 $fallos = [];
@@ -324,6 +327,100 @@ try { $ag->crearCita($salon, $luis, null, "$lunes 15:15", [$corte]); } catch (Ru
 check('El dueño tampoco puede agendar encima', true, str_contains($msg, 'choca'));
 $c5 = $ag->crearCita($salon, $ana, null, "$lunes 16:00", [$corte], null, [$corte => 4.5]);
 check('El dueño cambia el precio al agendar: $4,50', 4.5, (float) $db->query("SELECT precio FROM cita_servicios WHERE cita_id = $c5")->fetchColumn());
+
+// ------------------------------------------------------------------
+echo "\n11. Cuenta opcional del cliente\n";
+$cc = new CuentaCliente($db);
+$db->exec("UPDATE salones SET acepta_reservas = 'dueno', avisar_a = 'dueno', minutos_para_aceptar = 120 WHERE id = $salon");
+// Una ficha de invitada ya existe con este celular (de una reserva anterior)
+$fichaInvitada = (int) $db->query("SELECT id FROM clientes WHERE nombre = 'María Cliente'")->fetchColumn();
+$cuentaMaria = $cc->crear($salon, 'María Cliente', '0991112233', 'maria@correo.ec', 'secreto123', true);
+check('Privacidad: con solo el celular NO se une a la ficha ajena', true, $cuentaMaria !== $fichaInvitada);
+$msg = '';
+try { $cc->crear($salon, 'Otra', '0990000001', 'maria@correo.ec', 'secreto123', false); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('No deja crear dos cuentas con el mismo correo', true, str_contains($msg, 'Ya tienes una cuenta'));
+$db->exec("UPDATE clientes SET email = 'pedro@correo.ec' WHERE nombre = 'Pedro'");
+$fichaPedro = (int) $db->query("SELECT id FROM clientes WHERE nombre = 'Pedro'")->fetchColumn();
+check('Si el salón ya tenía su correo, se une a su ficha y conserva su historial', $fichaPedro,
+    $cc->crear($salon, 'Pedro', '0993334455', 'pedro@correo.ec', 'secreto456', false));
+check('Entrar con la contraseña correcta', $cuentaMaria, $cc->entrar($salon, 'MARIA@correo.ec', 'secreto123'));
+check('Contraseña equivocada no entra', null, $cc->entrar($salon, 'maria@correo.ec', 'otra'));
+check('La cuenta es solo de este salón', null, $cc->entrar($salonB, 'maria@correo.ec', 'secreto123'));
+$cCuenta = $ag->reservarConCuenta($salon, $cuentaMaria, $luis, $lunes, '16:00', [$corte], $ahora);
+check('Reserva con su cuenta queda en su ficha', $cuentaMaria, (int) $db->query("SELECT cliente_id FROM citas WHERE id = $cCuenta")->fetchColumn());
+check('Aparece en sus próximas citas (por confirmar)', 1, count(array_filter($cc->proximas($salon, $cuentaMaria), fn($c) => (int) $c['id'] === $cCuenta)));
+$ag->responderSolicitud($salon, $cCuenta, $uPepe, true);
+$ag->cambiarEstado($salon, $cCuenta, 'atendida');
+$h = $cc->historial($salon, $cuentaMaria);
+check('Su historial muestra el servicio atendido', 'Corte', $h[0]['servicios'] ?? null);
+
+echo "\n12. Fotos (solo con cuenta y permiso)\n";
+$carpeta = sys_get_temp_dir() . '/tusalon_fotos_' . getmypid();
+$fotos = new Fotos($db, $carpeta);
+$tmp = tempnam(sys_get_temp_dir(), 'f');
+$im = imagecreatetruecolor(3000, 2000); imagefill($im, 0, 0, imagecolorallocate($im, 30, 90, 76)); imagejpeg($im, $tmp, 90); imagedestroy($im);
+$archivo = fn() => ['name' => 'corte.jpg', 'tmp_name' => $tmp, 'size' => filesize($tmp), 'error' => UPLOAD_ERR_OK];
+$fid = $fotos->subir($salon, $cCuenta, $uLuis, $archivo(), 'despues');
+check('El peluquero que atendió sube la foto', true, $fid > 0);
+$guardada = $carpeta . '/' . $db->query("SELECT archivo FROM fotos WHERE id = $fid")->fetchColumn();
+check('Se achica a máximo 1600 px', 1600, getimagesize($guardada)[0]);
+check('La foto aparece en el historial del cliente', 1, count($cc->historial($salon, $cuentaMaria)[0]['fotos']));
+check('El cliente dueño de la foto la puede ver', $guardada, $fotos->rutaSiPuedeVer($fid, null, [$salon => $cuentaMaria]));
+check('Otro cliente no la puede ver', null, $fotos->rutaSiPuedeVer($fid, null, [$salon => $fichaPedro]));
+check('Alguien sin sesión no la puede ver', null, $fotos->rutaSiPuedeVer($fid, null, []));
+$uOtroSalon = ['salon_id' => $salonB, 'rol' => 'dueno', 'profesional_id' => null];
+check('El dueño de otro salón no la puede ver', null, $fotos->rutaSiPuedeVer($fid, $uOtroSalon, []));
+$msg = '';
+try { $fotos->subir($salon, $cCuenta, ['rol' => 'profesional', 'profesional_id' => $ana, 'salon_id' => $salon], $archivo()); }
+catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Otro peluquero no puede subir fotos a esa cita', true, str_contains($msg, 'Solo el peluquero'));
+$cCuenta2 = $ag->crearCita($salon, $luis, $fichaPedro, "$lunes 17:30", [$corte]);
+$msg = '';
+try { $fotos->subir($salon, $cCuenta2, $uLuis, $archivo()); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Cliente con cuenta pero sin permiso: no se guardan fotos', true, str_contains($msg, 'no dio permiso'));
+$cInv = $ag->crearCita($salon, $luis, null, "$lunes 18:30", [$corte]);
+$msg = '';
+try { $fotos->subir($salon, $cInv, $uLuis, $archivo()); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Cliente invitado: no se guardan fotos', true, str_contains($msg, 'no tiene cuenta'));
+file_put_contents($tmp, 'esto no es una foto');
+$msg = '';
+try { $fotos->subir($salon, $cCuenta, $uLuis, $archivo()); } catch (RuntimeException $e) { $msg = $e->getMessage(); }
+check('Un archivo que no es foto se rechaza', true, str_contains($msg, 'debe ser una foto'));
+$fotos->borrar($salon, $fid, $uPepe);
+check('El dueño borra la foto (y el archivo)', false, is_file($guardada));
+@unlink($tmp);
+
+echo "\n13. Telegram (con Telegram simulado)\n";
+$logTg = getenv('TG_MOCK_LOG');
+if ($logTg && getenv('TELEGRAM_API_BASE')) {
+    $tg = new Telegram($db);
+    $enlace = $tg->enlaceConectar((int) $uPepe['id']);
+    check('Enlace para conectar Telegram', true, str_starts_with((string) $enlace, 'https://t.me/' . getenv('TELEGRAM_BOT_USERNAME') . '?start='));
+    $codigo = substr($enlace, strpos($enlace, '=') + 1);
+    $tg->procesar(['message' => ['chat' => ['id' => 777], 'text' => "/start $codigo"]]);
+    check('Al tocar Iniciar, queda conectado', 777, (int) $db->query("SELECT telegram_chat_id FROM usuarios WHERE id = {$uPepe['id']}")->fetchColumn());
+    $tg->procesar(['message' => ['chat' => ['id' => 888], 'text' => "/start $codigo"]]);
+    check('El mismo enlace no sirve dos veces', 777, (int) $db->query("SELECT telegram_chat_id FROM usuarios WHERE id = {$uPepe['id']}")->fetchColumn());
+    file_put_contents($logTg, '');
+    $cTg = $ag->reservarOnline($salon, $luis, $lunes, '13:00', [$corte], 'Lucía Telegram', '0996667788', $ahora);
+    $llamadas = array_map(fn($l) => json_decode($l, true), array_filter(explode("\n", (string) file_get_contents($logTg))));
+    $msj = array_values(array_filter($llamadas, fn($l) => $l['metodo'] === 'sendMessage'))[0] ?? null;
+    check('Llega el aviso al Telegram del dueño', 777, $msj['datos']['chat_id'] ?? null);
+    check('El aviso dice cliente, servicio y hora', true, str_contains($msj['datos']['text'] ?? '', 'Lucía Telegram') && str_contains($msj['datos']['text'] ?? '', '13:00'));
+    check('Trae botones Aceptar y Rechazar', "ac:$cTg", $msj['datos']['reply_markup']['inline_keyboard'][0][0]['callback_data'] ?? null);
+    $tg->procesar(['callback_query' => ['id' => 'q1', 'data' => "ac:$cTg", 'message' => ['chat' => ['id' => 777], 'message_id' => 5, 'text' => 'x']]]);
+    check('Al tocar Aceptar en Telegram, la cita queda reservada', 'reservada', $db->query("SELECT estado FROM citas WHERE id = $cTg")->fetchColumn());
+    $cTg2 = $ag->reservarOnline($salon, $luis, $lunes, '14:00', [$corte], 'Intruso', '0996660000', $ahora);
+    $tg->procesar(['callback_query' => ['id' => 'q2', 'data' => "ac:$cTg2", 'message' => ['chat' => ['id' => 999], 'message_id' => 6, 'text' => 'x']]]);
+    check('Un Telegram que no es del salón no puede aceptar', 'pendiente', $db->query("SELECT estado FROM citas WHERE id = $cTg2")->fetchColumn());
+    putenv('TELEGRAM_API_BASE=http://127.0.0.1:1');   // Telegram caído
+    $t0 = microtime(true);
+    $ag->reservarOnline($salon, $luis, $lunes, '14:30', [$corte], 'Sin Internet', '0996661111', $ahora);
+    check('Si Telegram no responde, la reserva igual se guarda', 'pendiente',
+        $db->query("SELECT estado FROM citas c JOIN clientes cl ON cl.id = c.cliente_id WHERE cl.nombre = 'Sin Internet'")->fetchColumn());
+} else {
+    echo "  (omitido: falta el Telegram simulado)\n";
+}
 
 // ------------------------------------------------------------------
 echo "\n" . str_repeat('=', 50) . "\n";

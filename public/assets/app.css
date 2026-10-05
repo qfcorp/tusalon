@@ -312,3 +312,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--verde); outline:
 .franja-solicitudes { display: block; background: var(--navaja); color: var(--verde-oscuro); text-decoration: none; font-weight: 700; }
 .franja-solicitudes:hover { filter: brightness(.96); }
 .turno.rechazada { background: var(--rojo-claro); color: #7E2A23; border-left-color: var(--rojo); text-decoration: line-through; }
+
+/* Portal del cliente */
+.modos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.modo { position: relative; display: flex; padding: 12px; border: 1px solid var(--linea); border-radius: 10px; cursor: pointer; background: #fff; }
+.modo input { position: absolute; opacity: 0; pointer-events: none; }
+.modo span { display: flex; flex-direction: column; }
+.modo small { color: var(--tinta-suave); }
+.modo:has(input:checked) { border-color: var(--verde); background: var(--verde-claro); box-shadow: inset 0 0 0 1px var(--verde); }
+.modo:has(input:focus-visible) { outline: 3px solid var(--navaja); outline-offset: 2px; }
+.galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 8px; }
+.galeria figure { margin: 0; position: relative; }
+.galeria img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; background: var(--linea); }
+.galeria figcaption { font-size: .75rem; color: var(--tinta-suave); text-align: center; }

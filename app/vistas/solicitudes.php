@@ -56,6 +56,24 @@ use TuSalon\Agenda;
 </section>
 
 <section class="bloque">
+    <h2>Avisos por Telegram</h2>
+    <?php if (!$tgDisponible): ?>
+        <p class="suave">Los avisos por Telegram se activan cuando el sistema tenga su bot configurado.</p>
+    <?php elseif ($tgConectado): ?>
+        <p>Tu Telegram está conectado. Las solicitudes te llegan con botones para aceptar o rechazar.</p>
+        <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="tg_desconectar">
+            <button class="boton boton-claro boton-chico" type="submit">Dejar de recibir avisos</button></form>
+    <?php elseif ($tgEnlace): ?>
+        <p>Toca el botón, se abrirá Telegram y presiona <strong>Iniciar</strong>. Listo.</p>
+        <a class="boton" href="<?= e($tgEnlace) ?>" target="_blank" rel="noopener">Abrir Telegram</a>
+    <?php else: ?>
+        <p>Recibe cada solicitud de cita en tu Telegram y acéptala desde ahí.</p>
+        <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="tg_conectar">
+            <button class="boton" type="submit">Conectar mi Telegram</button></form>
+    <?php endif; ?>
+</section>
+
+<section class="bloque">
     <h2>Avisos recientes</h2>
     <?php if (!$avisos): ?>
         <p class="suave">Aún no tienes avisos.</p>

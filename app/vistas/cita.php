@@ -53,6 +53,7 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
                 <?= $boton('cancelada', 'Cancelar cita', 'boton-peligro', '¿Cancelar esta cita?') ?>
             <?php elseif ($cita['estado'] === 'atendida'): ?>
                 <p>Esta cita ya se cobró. Puedes verla en <a href="<?= e(url('caja', ['fecha' => $ini->format('Y-m-d')])) ?>">la caja de ese día</a>.</p>
+                <a class="boton boton-claro" href="<?= e(url('fotos', ['cita' => $cita['id']])) ?>">Fotos del servicio</a>
             <?php else: ?>
                 <?= $boton('reservada', 'Volver a abrir la cita') ?>
             <?php endif; ?>

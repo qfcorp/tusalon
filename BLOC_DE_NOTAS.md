@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 4 de octubre de 2026, 22:00
+Última actualización: 4 de octubre de 2026, 22:40
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -66,8 +66,13 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - **Portal del peluquero** (acceso que crea el dueño): sus citas, lo que hizo, lo que ganó, su saldo y lo que le toca por cada servicio; no ve la caja ni nada del dueño
     - Probado: lógica 83/83, web 76/76, tres clientes reservando la misma hora al mismo instante (solo uno la obtiene), capturas en celular
     - Portal de reservas y portal del peluquero son del plan **Completa** (en Básica aparecen con candado)
-3b. [ ] **SIGUIENTE:** primera instalación en tusalon.qfradioec.com (servidor qfcorp)
-3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta) al llegar una solicitud; hoy el aviso es la campana dentro del sistema
+3d. [x] Pedido del 4 de octubre (2):
+    - **Avisos por Telegram** con botones Aceptar/Rechazar; cada usuario conecta su Telegram (guía en `docs/TELEGRAM.md`). Si Telegram falla, la reserva se guarda igual
+    - **Cuenta opcional del cliente:** reserva como invitado o crea su cuenta; ve próximas citas e historial (`/?r=mi_cuenta&s=<salón>`). Por privacidad, una cuenta no se une a una ficha solo por el celular (sí por correo que el salón ya tenía)
+    - **Fotos:** solo si el cliente tiene cuenta y dio permiso; las sube el peluquero que atendió o el dueño; se achican a 1600 px, se borran datos ocultos (GPS) y se guardan fuera de la parte pública; las ve solo el cliente y el salón
+    - Probado: lógica 113/113, web 93/93 (con Telegram simulado)
+3b. [ ] **SIGUIENTE:** primera instalación en tusalon.qfradioec.com (servidor qfcorp) + crear el bot de Telegram
+3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
 6. [ ] Completa 3: ficha técnica, inventario, fidelidad, importar facturas recibidas del SRI, app del peluquero
@@ -81,3 +86,15 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - Recordatorio por WhatsApp oficial: ~$0,0113 cada uno
 - La Completa de $35 queda entre el Profesional ($29) y el Premium ($49) de Beauty360Pro, con más cosas que su Premium (alquiler de silla, porcentaje, WhatsApp automático)
 - La Básica de $25 sirve para que la Completa se vea barata (solo $10 más)
+
+## Mejoras propuestas (por decidir con Dimitry)
+1. Recordatorio automático al cliente el día anterior (WhatsApp o Telegram del cliente) y confirmación con un toque
+2. El cliente cancela o cambia su cita desde su cuenta, con reglas del dueño (ej. hasta 2 horas antes)
+3. Anticipo en línea para clientes nuevos o que faltaron antes (Payphone/Plux), configurable
+4. Lista de clientes que faltan (no asistió) y bloqueo de reserva en línea tras 2 faltas
+5. Días libres, vacaciones y almuerzo por peluquero (hoy el horario es del salón)
+6. Servicios que solo hacen ciertos peluqueros y precio distinto por peluquero
+7. Reseñas después del servicio (1 a 5 estrellas) y enlace a Google
+8. Clientes que no vuelven: aviso "hace 6 semanas no viene" con mensaje listo
+9. Reporte del mes para el dueño (lo más vendido, mejor peluquero, horas muertas) por Telegram
+10. Respaldo automático diario de la base (como el ERP) antes de tener salones pagando

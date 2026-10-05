@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
-$publicas = ['login', 'registro', 'reservar', 'horas'];
+$publicas = ['login', 'registro', 'reservar', 'horas', 'cliente_entrar', 'cliente_salir', 'mi_cuenta', 'foto', 'telegram'];
 $privadas = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 'servicios', 'equipo',
-             'caja', 'cobrar', 'cuentas', 'completa', 'salir', 'prueba_terminada', 'horario', 'solicitudes', 'mi_portal'];
+             'caja', 'cobrar', 'cuentas', 'completa', 'salir', 'prueba_terminada', 'horario', 'solicitudes', 'mi_portal', 'fotos'];
 // Lo único que ve un peluquero con acceso propio
-$dePeluquero = ['mi_portal', 'solicitudes', 'salir', 'prueba_terminada'];
+$dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada'];
 
 $ruta = (string) ($_GET['r'] ?? 'inicio');
 if (!in_array($ruta, array_merge($publicas, $privadas), true)) {

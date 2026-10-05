@@ -22,7 +22,8 @@ $yo = $st->fetch();
 
 // Servicios que hizo en el periodo, con lo que le toca de cada uno
 $st = $pdo->prepare(
-    "SELECT v.fecha, COALESCE(s.nombre, pr.nombre) AS servicio, vi.tipo, cl.nombre AS cliente,
+    "SELECT v.fecha, v.cita_id, (cl.password_hash IS NOT NULL AND cl.acepta_fotos) AS fotos_ok,
+            COALESCE(s.nombre, pr.nombre) AS servicio, vi.tipo, cl.nombre AS cliente,
             vi.subtotal, vi.ganancia_profesional, v.cobrado_por
        FROM venta_items vi JOIN ventas v ON v.id = vi.venta_id
   LEFT JOIN servicios s ON s.id = vi.servicio_id

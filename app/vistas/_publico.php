@@ -12,13 +12,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=7">
+<link rel="stylesheet" href="/assets/app.css?v=8">
 </head>
 <body class="publico">
 <main class="principal publico-principal" id="contenido">
     <?= $contenido ?>
     <p class="publico-pie">Reservas con <strong>TuSalón</strong></p>
 </main>
-<script src="/assets/reservar.js?v=1" defer></script>
+<script src="/assets/reservar.js?v=2" defer></script>
 </body>
 </html>

@@ -5,6 +5,17 @@ $sid = (int) $u['salon_id'];
 $agenda = new Agenda(db());
 $notif = new Notificaciones(db());
 
+$telegram = new \TuSalon\Telegram(db());
+if (es_post() && in_array($_POST['accion'] ?? '', ['tg_conectar', 'tg_desconectar'], true)) {
+    verificar_csrf();
+    if ($_POST['accion'] === 'tg_desconectar') {
+        $telegram->desconectar((int) $u['id']);
+        aviso('Ya no recibirás avisos en Telegram.');
+        redirigir('solicitudes');
+    }
+    $_SESSION['tg_enlace'] = $telegram->enlaceConectar((int) $u['id']);
+    redirigir('solicitudes');
+}
 if (es_post()) {
     verificar_csrf();
     $citaId = (int) ($_POST['cita'] ?? 0);
@@ -35,4 +46,10 @@ $avisos = $notif->recientes((int) $u['id'], 20);
 $notif->marcarLeidas((int) $u['id']);
 $waCliente = $_SESSION['wa_cliente'] ?? null;
 unset($_SESSION['wa_cliente']);
-vista('solicitudes', compact('pendientes', 'avisos', 'waCliente'), 'Solicitudes · TuSalón');
+$st = db()->prepare('SELECT telegram_chat_id IS NOT NULL FROM usuarios WHERE id = ?');
+$st->execute([$u['id']]);
+$tgConectado = (bool) $st->fetchColumn();
+$tgEnlace = $_SESSION['tg_enlace'] ?? null;
+unset($_SESSION['tg_enlace']);
+$tgDisponible = \TuSalon\Telegram::configurado();
+vista('solicitudes', compact('pendientes', 'avisos', 'waCliente', 'tgConectado', 'tgEnlace', 'tgDisponible'), 'Solicitudes · TuSalón');

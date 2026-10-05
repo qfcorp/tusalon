@@ -19,6 +19,8 @@ if (!$disponible) {
 }
 $sid = (int) $salon['id'];
 $agenda = new Agenda(db());
+$cuentas = new \TuSalon\CuentaCliente(db());
+$clienteSesion = isset($_SESSION['cliente'][$sid]) ? $cuentas->datos($sid, (int) $_SESSION['cliente'][$sid]) : null;
 
 $st = db()->prepare("SELECT id, nombre, tipo FROM profesionales WHERE salon_id = ? AND activo ORDER BY tipo = 'dueno' DESC, nombre");
 $st->execute([$sid]);
@@ -37,6 +39,9 @@ $d = [
     'hora'        => (string) ($_POST['hora'] ?? ''),
     'nombre'      => trim((string) ($_POST['nombre'] ?? '')),
     'telefono'    => trim((string) ($_POST['telefono'] ?? '')),
+    'modo'        => (string) ($_POST['modo'] ?? 'invitado'),
+    'email'       => trim((string) ($_POST['email'] ?? '')),
+    'acepta_fotos'=> !empty($_POST['acepta_fotos']),
 ];
 
 if (es_post()) {
@@ -58,8 +63,19 @@ if (es_post()) {
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $d['fecha']) || !preg_match('/^\d{2}:\d{2}$/', $d['hora'])) {
             throw new RuntimeException('Elige el día y la hora.');
         }
-        $citaId = $agenda->reservarOnline($sid, $d['profesional'], $d['fecha'], $d['hora'], [$d['servicio']],
-                                          $d['nombre'], $d['telefono']);
+        if ($clienteSesion) {
+            $citaId = $agenda->reservarConCuenta($sid, (int) $clienteSesion['id'], $d['profesional'], $d['fecha'], $d['hora'], [$d['servicio']]);
+        } elseif ($d['modo'] === 'cuenta') {
+            // Crea la cuenta y reserva con ella (si la hora ya no está libre, la cuenta queda creada igual)
+            $nuevo = $cuentas->crear($sid, $d['nombre'], $d['telefono'], $d['email'], (string) ($_POST['clave'] ?? ''), $d['acepta_fotos']);
+            session_regenerate_id(true);
+            $_SESSION['cliente'][$sid] = $nuevo;
+            $clienteSesion = $cuentas->datos($sid, $nuevo);
+            $citaId = $agenda->reservarConCuenta($sid, $nuevo, $d['profesional'], $d['fecha'], $d['hora'], [$d['servicio']]);
+        } else {
+            $citaId = $agenda->reservarOnline($sid, $d['profesional'], $d['fecha'], $d['hora'], [$d['servicio']],
+                                              $d['nombre'], $d['telefono']);
+        }
         $reservas[] = time();
         $_SESSION['reservas_online'] = array_values($reservas);
         $_SESSION['ultima_reserva'] = $citaId;
@@ -74,5 +90,5 @@ $confirmada = null;
 if (isset($_GET['ok']) && !empty($_SESSION['ultima_reserva'])) {
     $confirmada = $agenda->cita($sid, (int) $_SESSION['ultima_reserva']);
 }
-vista_publica('reservar', compact('salon', 'profesionales', 'servicios', 'horario', 'd', 'error', 'confirmada'),
+vista_publica('reservar', compact('salon', 'profesionales', 'servicios', 'horario', 'd', 'error', 'confirmada', 'clienteSesion'),
               'Reserva tu cita · ' . $salon['nombre']);

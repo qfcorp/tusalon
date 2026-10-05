@@ -59,6 +59,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Invitado o crear cuenta: mostrar los campos de la cuenta solo si la eligió
+    const mostrarModo = () => {
+        const modo = form.querySelector('[name="modo"]:checked')?.value;
+        form.querySelectorAll('[data-modo]').forEach(b => {
+            const visible = b.dataset.modo === modo;
+            b.hidden = !visible;
+            b.querySelectorAll('input[type=email], input[type=password]').forEach(i => i.required = visible);
+        });
+    };
+    form.querySelectorAll('[name="modo"]').forEach(r => r.addEventListener('change', mostrarModo));
+    mostrarModo();
+
     form.addEventListener('change', ev => {
         if (ev.target.name === 'hora') { elegida = ev.target.value; return; }
         if (['profesional', 'servicio', 'fecha'].includes(ev.target.name)) { elegida = ''; cargar(); }

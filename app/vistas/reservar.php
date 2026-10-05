@@ -34,6 +34,7 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
         <div class="acciones">
             <?php if ($waSalon): ?><a class="boton boton-wa" href="<?= e($waSalon) ?>">Escribir al salón</a><?php endif; ?>
             <a class="boton boton-claro" href="/?r=reservar&amp;s=<?= e(rawurlencode($salon['slug'])) ?>">Reservar otra cita</a>
+            <?php if ($clienteSesion): ?><a class="boton boton-claro" href="/?r=mi_cuenta&amp;s=<?= e(rawurlencode($salon['slug'])) ?>">Ver mi cuenta</a><?php endif; ?>
         </div>
     </section>
 <?php else: ?>
@@ -94,11 +95,32 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
 
     <fieldset class="bloque paso">
         <legend><span class="paso-num">5</span> Tus datos</legend>
+        <?php if ($clienteSesion): ?>
+            <p>Reservas con tu cuenta: <strong><?= e($clienteSesion['nombre']) ?></strong> · <?= e($clienteSesion['telefono']) ?></p>
+            <p class="suave"><a href="/?r=mi_cuenta&amp;s=<?= e(rawurlencode($salon['slug'])) ?>">Ver mi historial</a> ·
+               <a href="/?r=cliente_salir&amp;s=<?= e(rawurlencode($salon['slug'])) ?>">No soy yo</a></p>
+        <?php else: ?>
+        <div class="modos" role="radiogroup" aria-label="Cómo quieres reservar">
+            <label class="modo"><input type="radio" name="modo" value="invitado" <?= $d['modo'] !== 'cuenta' ? 'checked' : '' ?>>
+                <span><strong>Como invitado</strong><small>Solo nombre y celular</small></span></label>
+            <label class="modo"><input type="radio" name="modo" value="cuenta" <?= $d['modo'] === 'cuenta' ? 'checked' : '' ?>>
+                <span><strong>Crear mi cuenta</strong><small>Guarda tu historial</small></span></label>
+        </div>
+        <p class="suave" style="margin:8px 0 14px">¿Ya tienes cuenta? <a href="/?r=cliente_entrar&amp;s=<?= e(rawurlencode($salon['slug'])) ?>">Entra aquí</a></p>
         <div class="campo"><label for="nombre">Tu nombre</label>
             <input type="text" id="nombre" name="nombre" value="<?= e($d['nombre']) ?>" autocomplete="name" required></div>
         <div class="campo"><label for="telefono">Tu celular</label>
             <input type="tel" id="telefono" name="telefono" value="<?= e($d['telefono']) ?>" placeholder="0991234567" autocomplete="tel" required>
             <small>Te escribiremos por WhatsApp para recordarte la cita.</small></div>
+        <div data-modo="cuenta">
+            <div class="campo"><label for="email">Tu correo</label>
+                <input type="email" id="email" name="email" value="<?= e($d['email']) ?>" autocomplete="email"></div>
+            <div class="campo"><label for="clave">Crea una contraseña <small>(mínimo 8 caracteres)</small></label>
+                <input type="password" id="clave" name="clave" autocomplete="new-password" minlength="8"></div>
+            <label class="opcion" style="margin-bottom:14px"><input type="checkbox" name="acepta_fotos" value="1" <?= $d['acepta_fotos'] ? 'checked' : '' ?>>
+                <span><strong>El salón puede guardar fotos de mis cortes</strong><small>Las verás solo tú y el salón, en tu historial. Puedes cambiarlo cuando quieras.</small></span></label>
+        </div>
+        <?php endif; ?>
         <div class="trampa" aria-hidden="true"><label for="sitio_web">No llenar</label><input type="text" id="sitio_web" name="sitio_web" tabindex="-1" autocomplete="off"></div>
         <button class="boton boton-ancho" type="submit" id="btn-reservar">Reservar cita</button>
     </fieldset>

@@ -233,6 +233,57 @@ contiene "Y que el local le debe \$6,00" "$TMP/pag.html" "El local te debe"
 r=$(post "r=cita_nueva" -d fecha=$MAN -d hora=12:00 -d profesional=$LUIS3 -d "servicios[]=$PREM")
 check "Luis no puede agendar desde el sistema del dueño" "1" "$(sql "SELECT count(*) FROM citas WHERE salon_id=$SID3")"
 
+echo "12. Cuenta del cliente, historial y fotos"
+JAR="$TMP/c_cuenta"
+MAILC="carla$RANDOM@correo.ec"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=15:00 -d modo=cuenta \
+     --data-urlencode "nombre=Carla Cuenta" -d telefono=0995554433 -d email=$MAILC -d clave=claveCarla1 -d acepta_fotos=1)
+check "Reservar creando cuenta" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
+check "La cuenta queda con permiso de fotos" "t" "$(sql "SELECT acepta_fotos FROM clientes WHERE email='$MAILC'")"
+get "r=reservar&s=$SLUG3" > /dev/null
+contiene "La próxima vez reserva sin escribir sus datos" "$TMP/pag.html" "Reservas con tu cuenta"
+get "r=mi_cuenta&s=$SLUG3" > /dev/null
+contiene "Mi cuenta muestra su cita por confirmar" "$TMP/pag.html" "Por confirmar"
+CITAC=$(sql "SELECT c.id FROM citas c JOIN clientes cl ON cl.id=c.cliente_id WHERE cl.email='$MAILC'")
+JAR=$JAR_DUENA
+post "r=solicitudes" -d cita=$CITAC -d accion=aceptar > /dev/null
+post "r=cobrar&cita=$CITAC" -d cita=$CITAC -d profesional_id=$LUIS3 -d "servicio[]=$PREM" -d "precio[$PREM]=15" -d metodo_pago=efectivo -d propina=0 -d cobrado_por=local > /dev/null
+check "La dueña acepta y cobra la cita de Carla" "atendida" "$(sql "SELECT estado FROM citas WHERE id=$CITAC")"
+JAR="$TMP/c_luis"
+get "r=mi_portal&p=mes" > /dev/null
+contiene "En el portal de Luis aparece el enlace Fotos" "$TMP/pag.html" "r=fotos&amp;cita=$CITAC"
+python3 -c "from PIL import Image; Image.new('RGB',(2400,1800),(30,90,76)).save('$TMP/corte.jpg', quality=85)"
+get "r=fotos&cita=$CITAC" > /dev/null
+T=$(csrf)
+code=$(curl -s -b "$JAR" -c "$JAR" -o /dev/null -w '%{http_code}' -F "csrf=$T" -F momento=despues -F "foto=@$TMP/corte.jpg;type=image/jpeg" "$BASE/?r=fotos&cita=$CITAC")
+FOTO=$(sql "SELECT max(id) FROM fotos WHERE cita_id=$CITAC")
+check "Luis sube una foto desde su celular" "302" "$code"
+check "La foto queda guardada" "1" "$(sql "SELECT count(*) FROM fotos WHERE cita_id=$CITAC")"
+JAR="$TMP/c_cuenta"
+code=$(curl -s -b "$JAR" -o "$TMP/f.jpg" -w '%{http_code} %{content_type}' "$BASE/?r=foto&id=$FOTO")
+check "Carla ve su foto" "200 image/jpeg" "$code"
+get "r=mi_cuenta&s=$SLUG3" > /dev/null
+contiene "Su historial muestra el servicio con la foto" "$TMP/pag.html" "r=foto&amp;id=$FOTO"
+code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/?r=foto&id=$FOTO")
+check "Sin sesión, la foto no se ve" "404" "$code"
+code=$(curl -s -b "$TMP/c_cliente2" -o /dev/null -w '%{http_code}' "$BASE/?r=foto&id=$FOTO")
+check "Otro cliente no ve la foto" "404" "$code"
+ARCH=$(sql "SELECT archivo FROM fotos WHERE id=$FOTO")
+tipo=$(curl -s -o /dev/null -w '%{content_type}' "$BASE/uploads/fotos/$ARCH")
+if [[ "$tipo" == image/* ]]; then FALLAS=$((FALLAS+1)); echo "  FALLA La foto se puede bajar por su dirección directa";
+else OK=$((OK+1)); echo "  OK    La foto no se puede bajar por su dirección directa"; fi
+JAR="$TMP/c_nuevo_navegador"
+r=$(post "r=cliente_entrar&s=$SLUG3" -d email=$MAILC -d clave=claveCarla1)
+check "Carla entra con su cuenta desde otro celular" "302 $BASE/?r=mi_cuenta&s=$SLUG3" "$r"
+
+echo "13. Telegram: solo acepta avisos con el texto secreto"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' "$BASE/?r=telegram")
+check "Sin el texto secreto, se rechaza" "403" "$code"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "X-Telegram-Bot-Api-Secret-Token: equivocado" -d '{}' "$BASE/?r=telegram")
+check "Con un texto secreto equivocado, se rechaza" "403" "$code"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "X-Telegram-Bot-Api-Secret-Token: ${TG_SECRET:-}" -d '{"update_id":1}' "$BASE/?r=telegram")
+check "Con el texto secreto correcto, se acepta" "200" "$code"
+
 echo
 echo "=================================================="
 echo "Resultado: $OK correctas, $FALLAS fallidas"

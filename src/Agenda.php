@@ -229,15 +229,19 @@ final class Agenda
     }
 
     /**
-     * Reserva desde el portal público: busca al cliente por celular (o lo crea) y agenda.
+     * Reserva desde el portal público. Invitado: se busca al cliente por celular (o se crea).
+     * Con cuenta: se usa directamente su ficha ($clienteConCuenta).
      */
     public function reservarOnline(int $salonId, int $profesionalId, string $fecha, string $hora, array $servicioIds,
-                                   string $nombre, string $telefono, ?\DateTimeImmutable $ahora = null): int
+                                   string $nombre, string $telefono, ?\DateTimeImmutable $ahora = null,
+                                   ?int $clienteConCuenta = null): int
     {
         $nombre = trim($nombre);
         $tel = WhatsApp::normalizarTelefono($telefono);
-        if (mb_strlen($nombre) < 2) throw new RuntimeException('Escribe tu nombre.');
-        if ($tel === null) throw new RuntimeException('Escribe un celular válido, por ejemplo 0991234567.');
+        if ($clienteConCuenta === null) {
+            if (mb_strlen($nombre) < 2) throw new RuntimeException('Escribe tu nombre.');
+            if ($tel === null) throw new RuntimeException('Escribe un celular válido, por ejemplo 0991234567.');
+        }
 
         // Solo horas que realmente están libres (horario, anticipación y citas)
         $minutos = $this->duracion($salonId, $servicioIds);
@@ -258,24 +262,43 @@ final class Agenda
 
         $this->db->beginTransaction();
         try {
-            $st = $this->db->prepare("SELECT id FROM clientes WHERE salon_id = ? AND profesional_privado_id IS NULL
-                                       AND regexp_replace(COALESCE(telefono,''), '\\D', '', 'g') IN (?, ?) LIMIT 1");
-            $st->execute([$salonId, $tel, '0' . substr($tel, 3)]);
-            $clienteId = $st->fetchColumn();
-            if (!$clienteId) {
-                $st = $this->db->prepare('INSERT INTO clientes (salon_id, nombre, telefono) VALUES (?,?,?) RETURNING id');
-                $st->execute([$salonId, $nombre, '0' . substr($tel, 3)]);
+            if ($clienteConCuenta !== null) {
+                $clienteId = $clienteConCuenta;
+            } else {
+                $st = $this->db->prepare("SELECT id FROM clientes WHERE salon_id = ? AND profesional_privado_id IS NULL
+                                           AND regexp_replace(COALESCE(telefono,''), '\\D', '', 'g') IN (?, ?) LIMIT 1");
+                $st->execute([$salonId, $tel, '0' . substr($tel, 3)]);
                 $clienteId = $st->fetchColumn();
+                if (!$clienteId) {
+                    $st = $this->db->prepare('INSERT INTO clientes (salon_id, nombre, telefono) VALUES (?,?,?) RETURNING id');
+                    $st->execute([$salonId, $nombre, '0' . substr($tel, 3)]);
+                    $clienteId = $st->fetchColumn();
+                }
             }
             $id = $this->crearCita($salonId, $profesionalId, (int) $clienteId, "$fecha $hora", $servicioIds,
                                    'Reservada en línea', [], 'online');
-            (new Notificaciones($this->db))->nuevaReserva($id);
+            $notif = new Notificaciones($this->db);
+            $notif->nuevaReserva($id);
             $this->db->commit();
-            return $id;
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
         }
+        // Telegram se envía después de guardar, para no hacer esperar a otros clientes
+        (new Telegram($this->db))->avisarReserva($id, $notif->ultimosDestinos);
+        return $id;
+    }
+
+    /** El cliente que entró con su cuenta reserva sin volver a escribir sus datos. */
+    public function reservarConCuenta(int $salonId, int $clienteId, int $profesionalId, string $fecha, string $hora,
+                                      array $servicioIds, ?\DateTimeImmutable $ahora = null): int
+    {
+        $st = $this->db->prepare('SELECT nombre, telefono FROM clientes WHERE id = ? AND salon_id = ? AND password_hash IS NOT NULL');
+        $st->execute([$clienteId, $salonId]);
+        $c = $st->fetch();
+        if (!$c) throw new RuntimeException('Tu sesión terminó. Vuelve a entrar con tu cuenta.');
+        return $this->reservarOnline($salonId, $profesionalId, $fecha, $hora, $servicioIds, $c['nombre'],
+                                     (string) $c['telefono'], $ahora, $clienteId);
     }
 
     /**

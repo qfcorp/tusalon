@@ -13,6 +13,9 @@ final class Notificaciones
 {
     public function __construct(private PDO $db) {}
 
+    /** Usuarios avisados en la última llamada a nuevaReserva (para enviarles Telegram después de guardar). */
+    public array $ultimosDestinos = [];
+
     /** Avisa de una reserva hecha en línea. Devuelve cuántos avisos creó. */
     public function nuevaReserva(int $citaId): int
     {
@@ -51,10 +54,11 @@ final class Notificaciones
             $destinos = $st->fetchAll(PDO::FETCH_COLUMN);
         }
         $ins = $this->db->prepare('INSERT INTO notificaciones (salon_id, usuario_id, cita_id, texto) VALUES (?,?,?,?)');
-        foreach (array_unique($destinos) as $uid) {
+        $this->ultimosDestinos = array_values(array_unique(array_map('intval', $destinos)));
+        foreach ($this->ultimosDestinos as $uid) {
             $ins->execute([$c['salon_id'], $uid, $citaId, $texto]);
         }
-        return count(array_unique($destinos));
+        return count($this->ultimosDestinos);
     }
 
     public function sinLeer(int $usuarioId): int
