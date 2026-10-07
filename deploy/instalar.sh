@@ -6,7 +6,7 @@
 set -u
 
 APP="${APP:-/var/www/tusalon}"
-DOMINIO="${DOMINIO:-tusalon.qfradioec.com}"
+DOMINIO="${DOMINIO:-tusalon.tukanec.com}"
 REPO="${REPO:-https://github.com/qfcorp/tusalon.git}"
 PHPV="${PHPV:-8.5}"
 YO="$(id -un)"

@@ -41,7 +41,7 @@
             <label class="opcion">
                 <input type="radio" name="plan" value="completa" <?= $d['plan'] === 'completa' ? 'checked' : '' ?>>
                 <span><strong>Completa · <?= precio_plan('completa') ?> al mes</strong>
-                    <small>Todo: reservas en línea, WhatsApp automático, comisiones, arriendo de sillas, gastos.</small></span>
+                    <small>Todo: reservas en línea, comisiones, arriendo de sillas, gastos.</small></span>
             </label>
             <label class="opcion">
                 <input type="radio" name="plan" value="basica" <?= $d['plan'] === 'basica' ? 'checked' : '' ?>>

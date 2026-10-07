@@ -44,5 +44,5 @@ $st = $db->prepare('INSERT INTO superadmins (nombre, email, password_hash) VALUE
                     RETURNING (xmax = 0) AS nuevo');
 $st->execute([$nombre, $email, password_hash($clave, PASSWORD_DEFAULT)]);
 echo $st->fetchColumn() ? "Listo: super usuario creado para $email.\n" : "Listo: contraseña cambiada para $email.\n";
-$url = getenv('TUSALON_URL') ?: 'https://tusalon.qfradioec.com';
+$url = getenv('TUSALON_URL') ?: 'https://tusalon.tukanec.com';
 echo "Entra en: $url/?r=admin_entrar\n";

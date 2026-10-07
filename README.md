@@ -1,7 +1,7 @@
 # TuSalón
 
 Software para peluquerías y barberías de Ecuador, de la marca Tukán Software.
-Dirección provisional: **tusalon.qfradioec.com** (servidor qfcorp).
+Dirección: **tusalon.tukanec.com** (servidor qfcorp). Web de la marca: tukansoftware.com.
 
 Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, empleado (sueldo y/o comisión), porcentaje (50/50, 60/40) y alquiler de puesto.
 
@@ -36,7 +36,7 @@ Una sola línea, como el usuario normal (no root). Se puede repetir para actuali
 curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar.sh -o ~/instalar_tusalon.sh && bash ~/instalar_tusalon.sh
 ```
 
-Después, en Cloudflare (Zero Trust → Networks → Tunnels → tu túnel → Public Hostname) agregar `tusalon.qfradioec.com` → `HTTP` → `localhost:80`.
+Después, en Cloudflare (Zero Trust → Networks → Tunnels → tu túnel → Public Hostname) agregar `tusalon.tukanec.com` → `HTTP` → `localhost:80`.
 
 ## Tareas automáticas y respaldo (en el servidor)
 El instalador ya las deja programadas. Son estas dos líneas de cron:

@@ -48,5 +48,5 @@ $st = db()->prepare('SELECT intervalo_reservas, anticipacion_minutos, acepta_res
 $st->execute([$sid]);
 $conf = $st->fetch();
 $esquema = (($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
-$enlace = $esquema . '://' . ($_SERVER['HTTP_HOST'] ?? 'tusalon.qfradioec.com') . '/?r=reservar&s=' . rawurlencode($u['slug']);
+$enlace = $esquema . '://' . ($_SERVER['HTTP_HOST'] ?? 'tusalon.tukanec.com') . '/?r=reservar&s=' . rawurlencode($u['slug']);
 vista('horario', compact('horario', 'conf', 'error', 'enlace'), 'Horario y reservas · TuSalón');

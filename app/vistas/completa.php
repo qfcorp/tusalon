@@ -5,7 +5,7 @@ $filas = ['mensual' => planes()->textoPeriodo('mensual'), 'semestral' => planes(
 $completa = [
     'Personas ilimitadas y varias sucursales',
     'Reservas en línea con enlace y código QR',
-    'Recordatorios automáticos por WhatsApp (confirmación, cumpleaños, gracias)',
+    'Recordatorios por WhatsApp con un toque y avisos automáticos por Telegram',
     'Anticipo en línea para que el cliente no falte',
     'Comisiones por servicio y producto, escalas por meta, propinas, anticipos',
     'Rol de pagos con IESS y décimos',

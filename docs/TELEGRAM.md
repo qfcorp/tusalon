@@ -22,7 +22,7 @@ TELEGRAM_WEBHOOK_SECRET=una_frase_secreta_larga_sin_espacios
 Ejecuta en el servidor (cambia TOKEN y SECRETO por los tuyos):
 
 ```bash
-curl "https://api.telegram.org/botTOKEN/setWebhook?url=https://tusalon.qfradioec.com/?r=telegram&secret_token=SECRETO"
+curl "https://api.telegram.org/botTOKEN/setWebhook?url=https://tusalon.tukanec.com/?r=telegram&secret_token=SECRETO"
 ```
 
 Debe responder `"ok":true`.

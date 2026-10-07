@@ -485,7 +485,7 @@ $ag->responderSolicitud($salon, $cK, $uPepe, true, [$keratina => '50.00']);
 $citaK = $ag->cita($salon, $cK);
 check('La cita queda reservada', 'reservada', $citaK['estado']);
 check('El valor quedó en $50', 50.0, (float) $citaK['lista_servicios'][0]['precio']);
-$msgK = $ag->mensajeConfirmacion($citaK, 'Barbería Don Pepe', 'https://tusalon.qfradioec.com');
+$msgK = $ag->mensajeConfirmacion($citaK, 'Barbería Don Pepe', 'https://tusalon.tukanec.com');
 check('El mensaje al cliente dice el valor a cancelar', true, str_contains($msgK, 'Valor a cancelar: $50,00'));
 check('…y trae su enlace para ver o cancelar', true, str_contains($msgK, '/?r=confirmar&t=' . $citaK['token']));
 $msg = '';

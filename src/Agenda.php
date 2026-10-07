@@ -27,7 +27,7 @@ final class Agenda
             $https = ($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
             return ($https ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
         }
-        return 'https://tusalon.qfradioec.com';
+        return 'https://tusalon.tukanec.com';
     }
 
     // ------------------------------------------------------------------

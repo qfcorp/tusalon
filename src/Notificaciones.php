@@ -7,7 +7,7 @@ use PDO;
 
 /**
  * Avisos dentro del sistema (campana). A quién se avisa lo programa el dueño:
- * 'dueno', 'peluquero' o 'ambos'. (El WhatsApp automático llega con el plan Completa + API oficial.)
+ * 'dueno', 'peluquero' o 'ambos'. (WhatsApp automático: pendiente, con la API oficial; hoy hay WhatsApp con un toque y Telegram.)
  */
 final class Notificaciones
 {

@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 5 de octubre de 2026, 00:20
+Última actualización: 6 de octubre de 2026, 20:00
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -30,7 +30,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 | 4 tipos de peluquero | Cálculo simple | Completo |
 | Ficha del cliente | Básica | Ficha técnica de color con fotos |
 | Caja diaria | Sí | Sí |
-| WhatsApp | Con un clic | Automático (API oficial) |
+| WhatsApp | Con un clic | Con un clic + avisos automáticos por Telegram (WhatsApp automático: pendiente) |
 | Reservas en línea, anticipos (Plux/Payphone) | No | Sí |
 | Comisiones avanzadas, anticipos, rol de pagos IESS | No | Sí |
 | Cobro automático de arriendo, reparto del porcentaje | No | Sí |
@@ -51,6 +51,10 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Prueba simulada "Barbería Don Pepe": 49 de 49 pruebas correctas. Se metió un error a propósito y las pruebas lo detectaron
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 - [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
+
+## Cambio de direcciones (6 oct 2026)
+- TuSalón ahora está en **tusalon.tukanec.com** (antes tusalon.qfradioec.com, que se apaga). Nombres oficiales: TuSalón y TuGuardería (ya no "Tukán Salón" ni "Tukán Pet")
+- Se quitó la promesa de "WhatsApp automático" del registro y de la página de planes (todavía no existe)
 
 ## Plan de trabajo
 1. [x] Repositorio qfcorp/tusalon en GitHub con este bloc de notas
