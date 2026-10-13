@@ -421,6 +421,7 @@ body.admin { background: var(--fondo); }
 .admin-menu a { color: rgba(255,255,255,.85); text-decoration: none; padding: 8px 12px; border-radius: 8px; font-weight: 500; font-size: .95rem; }
 .admin-menu a:hover { background: rgba(255,255,255,.1); }
 .admin-menu a.activo { background: var(--navaja); color: var(--verde-oscuro); }
+.admin-menu a.admin-central { border: 1px solid rgba(255,255,255,.35); font-weight: 600; } /* volver al Panel Tukán Central */
 .admin-principal { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
 .acceso-caja { max-width: 420px; }
 .rejilla-4 { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }

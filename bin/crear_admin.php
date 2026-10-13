@@ -46,3 +46,9 @@ $st->execute([$nombre, $email, password_hash($clave, PASSWORD_DEFAULT)]);
 echo $st->fetchColumn() ? "Listo: super usuario creado para $email.\n" : "Listo: contraseña cambiada para $email.\n";
 $url = getenv('TUSALON_URL') ?: 'https://tusalon.tukanec.com';
 echo "Entra en: $url/?r=admin_entrar\n";
+// Ingreso solo desde el Panel Tukan Central: este comando es la puerta de emergencia
+if (trim((string) getenv('TUKAN_SOLO_CENTRAL')) === '1' && strlen(trim((string) getenv('TUKAN_CENTRAL_SECRET'))) >= 32
+    && preg_match('/^[a-z0-9_-]{2,40}$/', trim((string) getenv('TUKAN_CENTRAL_ID')))) {
+    echo "AVISO: TUKAN_SOLO_CENTRAL=1, el ingreso local del super usuario esta apagado.\n";
+    echo "Para entrar con esta contrasena pon TUKAN_SOLO_CENTRAL=0 en " . RAIZ . "/config/.env\n";
+}

@@ -27,6 +27,7 @@ sudo chown -R "$YO":www-data "$APP"
 sudo mkdir -p "$APP/uploads/fotos" "$APP/config"
 sudo chown -R www-data:www-data "$APP/uploads" && sudo chmod 750 "$APP/uploads"
 sudo chown "$YO":www-data "$APP/config"
+chmod +x "$APP/deploy/respaldo.sh" "$APP/deploy/conectar_central.sh" 2>/dev/null || true
 
 echo "== 3. Base de datos"
 CLAVE="$(openssl rand -hex 16)"
@@ -56,8 +57,8 @@ done
 
 echo "== 4. Configuración"
 TG=""
-if [ -f "$APP/config/.env" ]; then   # conservar los datos de Telegram y Google Play si ya estaban
-  TG="$(grep -E '^(TELEGRAM_|GOOGLE_PLAY_|TWA_)' "$APP/config/.env" || true)"
+if [ -f "$APP/config/.env" ]; then   # conservar los datos de Telegram, Google Play y el Panel Tukan Central si ya estaban
+  TG="$(grep -E '^(TELEGRAM_|GOOGLE_PLAY_|TWA_|TUKAN_)' "$APP/config/.env" || true)"
 fi
 # Huella de la llave con que se firma la app de Android (es publica). Google Play agrega la suya despues.
 echo "$TG" | grep -q '^TWA_SHA256=' || TG="$(printf '%s\nTWA_SHA256=%s' "$TG" '39:0C:08:10:D4:40:C1:71:C4:30:C8:D0:F1:93:7B:8F:E4:37:03:25:27:2E:B2:F6:2E:4E:A6:5E:01:98:40:DC')"
@@ -89,6 +90,7 @@ esac
   [ -n "$TG" ] && echo "$TG"
 } > "$APP/config/.env"
 chmod 640 "$APP/config/.env" && sudo chgrp www-data "$APP/config/.env" && echo "   listo"
+echo "$TG" | grep -q '^TUKAN_CENTRAL_SECRET=' && echo "   Panel Tukan Central: se conservo la conexion" || echo "   Panel Tukan Central: sin conectar (sudo bash $APP/deploy/conectar_central.sh ID SECRETO URL)"
 
 echo "== 5. nginx"
 if command -v nginx > /dev/null; then
@@ -139,5 +141,7 @@ fi
 echo "5) Tareas: $(php "$APP/bin/tareas.php" < /dev/null)"
 echo "6) Respaldo: $(sudo APP="$APP" "$APP/deploy/respaldo.sh" < /dev/null 2>&1 | tail -1)"
 echo "7) Super usuarios del panel: $(PGPASSWORD="$CLAVE" psql -h 127.0.0.1 -U tusalon -d tusalon -tAc "SELECT count(*) FROM superadmins" < /dev/null)"
+grep -q '^TUKAN_CENTRAL_SECRET=' "$APP/config/.env" 2>/dev/null && echo "8) Panel Tukan Central: conectado" || echo "8) Panel Tukan Central: sin conectar"
 echo "================================="
 echo "Para crear o cambiar tu super usuario:  php $APP/bin/crear_admin.php"
+echo "Conectar con el Panel Tukan Central:  sudo bash $APP/deploy/conectar_central.sh ID SECRETO URL"

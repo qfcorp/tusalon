@@ -2,6 +2,13 @@
     <span class="marca-sello" aria-hidden="true">Tk</span>
     <div><h1>Panel Tukán</h1><p>Administración de TuSalón</p></div>
 </div>
+<?php if (!empty($soloCentral)): ?>
+<section class="bloque acceso-caja">
+    <h2>Entrar</h2>
+    <p class="aviso aviso-ok" role="status">El ingreso del super usuario es solo desde el Panel Tukán.</p>
+    <a class="boton boton-ancho" href="<?= e($soloCentral) ?>">Ir al Panel Tukán</a>
+</section>
+<?php else: ?>
 <form method="post" class="bloque acceso-caja">
     <?= campo_csrf() ?>
     <h2>Entrar</h2>
@@ -12,3 +19,4 @@
         <input type="password" id="clave" name="clave" autocomplete="current-password" required></div>
     <button class="boton boton-ancho" type="submit">Entrar al panel</button>
 </form>
+<?php endif; ?>

@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 12 de octubre de 2026, 22:30
+Última actualización: 13 de octubre de 2026
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -135,6 +135,13 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - [ ] TuPass: decidir "app solo para ver" (sin comisión) o "compra dentro con Google" y subir su código a GitHub
     - [ ] Cuando se decida: cuenta personal de Play Console exige prueba cerrada con 12 probadores durante 14 días antes de publicar
     - [ ] Después de la primera subida: agregar la huella SHA-256 de Google al servidor (pasos en las guías)
+3i. [x] **Conexión con el Panel Tukán Central (13 oct)** — protocolo Tukán Central v1 (el mismo de TuEvento y los demás)
+    - `tukan_central.php`: entrar con un clic desde el panel central (crea el super usuario la primera vez y después usa el mismo; queda en el historial del panel) y cifras para el panel central (salones por estado igual que el panel, nuevos en 30 días, cobrado del mes y del mes anterior, pruebas que vencen en 7 días, pagos vencidos, citas del mes, clientes, peluqueros, usuarios, ingreso mensual)
+    - Botón "← Panel Tukán" cuando se entró desde el central; `TUKAN_SOLO_CENTRAL=1` apaga el ingreso local del super usuario (emergencia: ponerlo en 0 y `bin/crear_admin.php`)
+    - Cada enlace dura 60 s y sirve una vez, 30 pedidos por minuto por IP, sin datos personales; sin configurar responde 404
+    - Comando: `sudo bash /var/www/tusalon/deploy/conectar_central.sh {ID} {SECRETO} {URL}` (guarda en config/.env y hace una prueba local)
+    - Migración 004 (también en `db/schema.sql`). Pruebas nuevas: `tests/prueba_central.php` (122) y `tests/prueba_web_central.sh` (158); corredores `tests/run_logica.sh` y `tests/run_web.sh` con Telegram y Payphone simulados (`tests/simulador.php`). Totales: lógica 424/424, pantallas 391/391, sin avisos de PHP
+    - [ ] DIMI: cuando el Panel Tukán Central esté listo, actualizar TuSalón (instalador) y correr el comando con los datos que da el panel
 3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje

@@ -3,6 +3,8 @@
 $rutaActual = (string) ($_GET['r'] ?? '');
 $menuAdmin = ['admin' => 'Resumen', 'admin_salones' => 'Salones', 'admin_nuevo' => 'Nuevo salón', 'admin_planes' => 'Planes y precios'];
 $avisos = tomar_avisos();
+// Si entró desde el Panel Tukán Central, botón para volver allá
+$volverCentral = (!empty($_SESSION['desde_central']) && \TuSalon\TukanCentral::config()) ? \TuSalon\TukanCentral::urlCentral() : null;
 ?>
 <!doctype html>
 <html lang="es">
@@ -15,7 +17,7 @@ $avisos = tomar_avisos();
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=12">
+<link rel="stylesheet" href="/assets/app.css?v=13">
 </head>
 <body class="admin">
 <?php if ($admin): ?>
@@ -23,6 +25,7 @@ $avisos = tomar_avisos();
     <a class="admin-marca" href="<?= e(url('admin')) ?>"><span class="marca-sello" aria-hidden="true">Tk</span>
         <span><strong>Panel Tukán</strong><small>TuSalón · super administrador</small></span></a>
     <nav class="admin-menu" aria-label="Menú del panel">
+        <?php if ($volverCentral): ?><a class="admin-central" href="<?= e($volverCentral) ?>">← Panel Tukán</a><?php endif; ?>
         <?php foreach ($menuAdmin as $r => $txt): ?>
             <a href="<?= e(url($r)) ?>" class="<?= $rutaActual === $r || ($r === 'admin_salones' && $rutaActual === 'admin_salon') ? 'activo' : '' ?>"
                <?= $rutaActual === $r ? 'aria-current="page"' : '' ?>><?= $txt ?></a>

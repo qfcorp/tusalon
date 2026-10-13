@@ -29,16 +29,18 @@ spl_autoload_register(function (string $clase): void {
     }
 });
 
-// 3) Sesión segura
-session_name('tusalon');
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'secure'   => (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
-session_start();
+// 3) Sesión segura (el estado para el Panel Tukán Central no la necesita: define TUKAN_SIN_SESION)
+if (!defined('TUKAN_SIN_SESION')) {
+    session_name('tusalon');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'secure'   => (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
 
 header('X-Frame-Options: SAMEORIGIN');
 header('X-Content-Type-Options: nosniff');
@@ -283,4 +285,10 @@ function marcar_app_play(): void
         setcookie('canal', 'play', ['expires' => time() + 400 * 86400, 'path' => '/', 'samesite' => 'Lax', 'httponly' => true,
                                     'secure' => (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')]);
     }
+}
+
+/** IP del visitante (detrás del túnel de Cloudflare). */
+function ip_visitante(): string
+{
+    return substr((string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
 }

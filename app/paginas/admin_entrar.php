@@ -3,6 +3,13 @@
 if (superadmin()) redirigir('admin');
 $error = null;
 $email = '';
+// TUKAN_SOLO_CENTRAL=1: el super usuario solo entra desde el Panel Tukán Central (emergencia: ponerlo en 0 y usar bin/crear_admin.php)
+$soloCentral = \TuSalon\TukanCentral::soloCentral() ? \TuSalon\TukanCentral::urlCentral() : null;
+if ($soloCentral) {
+    if (es_post()) http_response_code(403);   // no se revisa ninguna contraseña
+    vista_admin('admin_entrar', compact('error', 'email', 'soloCentral'), 'Entrar · Panel Tukán');
+    return;
+}
 if (es_post()) {
     verificar_csrf();
     $email = strtolower(trim((string) ($_POST['email'] ?? '')));
@@ -21,7 +28,7 @@ if (es_post()) {
         if ($a && password_verify($clave, $a['password_hash'])) {
             session_regenerate_id(true);
             $_SESSION['admin_id'] = (int) $a['id'];
-            unset($_SESSION['intentos_admin']);
+            unset($_SESSION['intentos_admin'], $_SESSION['desde_central']);
             db()->prepare('UPDATE superadmins SET ultimo_ingreso = now() WHERE id = ?')->execute([$a['id']]);
             redirigir('admin');
         }
@@ -32,4 +39,4 @@ if (es_post()) {
         $error = 'El correo o la contraseña no coinciden.';
     }
 }
-vista_admin('admin_entrar', compact('error', 'email'), 'Entrar · Panel Tukán');
+vista_admin('admin_entrar', compact('error', 'email', 'soloCentral'), 'Entrar · Panel Tukán');
