@@ -56,7 +56,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - TuSalón ahora está en **tusalon.tukanec.com** (antes tusalon.qfradioec.com, que se apaga). Nombres oficiales: TuSalón y TuGuardería (ya no "Tukán Salón" ni "Tukán Pet")
 - Se quitó la promesa de "WhatsApp automático" del registro y de la página de planes (todavía no existe)
 - TuGuardería (repo qfcorp/tuguarderia): direcciones cambiadas a tuguarderia.tukanec.com y dogssy.tukanec.com en README, LEEME e instalar.sh
-- PENDIENTE: web de Tukán (tukansoftware.com) — su repositorio no está en GitHub qfcorp; falta cambiar "Tukán Pet"→TuGuardería, "Tukán Salón"→TuSalón, tarjeta peluquerías "Disponible" y botón "Prueba gratis 7 días"
+- HECHO (12 oct 2026): web tukansoftware.com actualizada (TuGuardería, TuSalón como 4.º sistema disponible con botón "Prueba gratis 7 días" al registro). Código en GitHub qfcorp/tukan-web
 - PENDIENTE: Dimitry debe actualizar el servidor (comandos del 6 oct) y en Cloudflare cambiar el Host header de la ruta tusalon.tukanec.com (hoy dice tusalon.qfradioec.com) a tusalon.tukanec.com; si no, TuSalón deja de abrir despues de reinstalar
 - PENDIENTE (revisar con Dimitry): la página de planes aún menciona cosas no hechas: anticipo en línea, inventario, paquetes, tarjetas de regalo, puntos, ficha de color, app del peluquero
 
