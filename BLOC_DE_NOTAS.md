@@ -116,6 +116,8 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - **App del peluquero**: TuSalón se instala en el celular desde el navegador (ícono propio, pantalla completa, aviso si no hay internet). Botón "Instalar" en el portal del peluquero y en el inicio del dueño. Sin Play Store
     - Todo es del plan Completa; en Básica aparece con candado
     - Probado: **lógica 284/284, web 215/215** (con Payphone simulado), migración probada sobre la base vieja, capturas en celular y computadora
+    - **Manual en PDF** (48 páginas, capturas reales con números): `docs/Manual_TuSalon.pdf`; capturas nuevas en `docs/manual/21_…` a `33_…`
+    - **Presentación de ventas** (13 diapositivas, identidad Tukán, capturas reales): artifact "TuSalón — Presentación de ventas" en Claude (se descarga como PowerPoint o PDF)
     - PENDIENTE: probar Payphone con claves reales de un salón (la cajita de pagos y la confirmación están hechas según la documentación de Payphone)
 3b. [x] **TuSalón en línea: https://tusalon.qfradioec.com** (4 oct, 23:20). Instalación en qfcorp (4 oct, 23:08): **hecha** con el instalador de una línea (`deploy/instalar.sh`): base PostgreSQL 18 con 29 tablas, nginx, PHP 8.5, tareas cada hora y respaldo diario 3:15 funcionando (prueba local 200)
     - [x] Cloudflare: ruta `tusalon.qfradioec.com` → `http://localhost:80` agregada en el túnel **servidorqf** (Redes → Conectores → servidorqf → Rutas de aplicaciones publicadas). El config.yml del servidor es solo una plantilla; el túnel se maneja desde la web
