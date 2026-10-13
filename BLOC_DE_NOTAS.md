@@ -125,6 +125,16 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - [x] **Manual para clientes** terminado: documento "Manual de TuSalón" (en Claude, se puede exportar a PDF o Word) con 28 capturas marcadas con números en `docs/manual/`. Explica registro, pantalla, servicios, equipo, horarios, citas, solicitudes, cobro y caja, clientes, reservas del cliente, avisos, Telegram, portal del peluquero, cuentas, reporte, planes y preguntas frecuentes
     - [ ] Decidir si el repositorio de GitHub pasa a privado (hoy es público)
     - Para actualizar el servidor: la misma línea del instalador (no borra datos)
+3h. [x] **Apps de Android para Google Play (12 oct)** — listas para subir, TODAVÍA NO publicadas (Dimi está analizando precios)
+    - Apps en el repositorio privado **qfcorp/tukan-apps** (carpeta `salidas/`): TuSalón y TuGuardería, cada una con `.aab` (Google Play) y `.apk` (instalar directo). Guía completa en `LEEME.md` de ese repositorio
+    - Compilar desde el celular: GitHub → tukan-apps → Actions → "Compilar app" → Run workflow
+    - TuSalón cobra los planes con Google Play (migración 003, `src/GooglePlay.php`, `docs/GOOGLE_PLAY.md`). Precios sugeridos con el 15 % de Google: Básica $29,99/mes, Completa $41,99/mes (semestral $147,99 / $205,99, anual $294,99 / $411,99)
+    - **APAGADO en el servidor hasta decidir.** Cada vez que se corre el instalador pregunta "Activar la app de Google Play esta vez? si/no". Mientras se conteste "no", todo funciona como siempre. **Claude: en cada actualización, recordar a Dimi esa pregunta y preguntarle si esta vez se activa**
+    - Política de privacidad pública (la pide Google): `?r=privacidad` (TuSalón) y `privacidad.php` (TuGuardería)
+    - TuVocalía: su app ya está hecha en su propio repositorio (qfcorp/tuvocalia, rama v38-apps)
+    - [ ] TuPass: decidir "app solo para ver" (sin comisión) o "compra dentro con Google" y subir su código a GitHub
+    - [ ] Cuando se decida: cuenta personal de Play Console exige prueba cerrada con 12 probadores durante 14 días antes de publicar
+    - [ ] Después de la primera subida: agregar la huella SHA-256 de Google al servidor (pasos en las guías)
 3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
