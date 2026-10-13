@@ -20,7 +20,7 @@ final class Notificaciones
     public function nuevaReserva(int $citaId): int
     {
         $st = $this->db->prepare(
-            "SELECT c.salon_id, c.profesional_id, c.inicio, c.estado, s.avisar_a, s.acepta_reservas, s.minutos_para_aceptar,
+            "SELECT c.salon_id, c.profesional_id, c.inicio, c.estado, c.anticipo, c.anticipo_estado, s.avisar_a, s.acepta_reservas, s.minutos_para_aceptar,
                     cl.nombre AS cliente, p.nombre AS profesional,
                     (SELECT string_agg(sv.nombre, ' + ') FROM cita_servicios cs JOIN servicios sv ON sv.id = cs.servicio_id WHERE cs.cita_id = c.id) AS servicios
                FROM citas c JOIN salones s ON s.id = c.salon_id JOIN profesionales p ON p.id = c.profesional_id
@@ -35,6 +35,9 @@ final class Notificaciones
         $texto = $c['estado'] === 'pendiente'
             ? "Solicitud de cita: {$c['cliente']} quiere {$c['servicios']} con {$c['profesional']} el $cuando. Acéptala o recházala."
             : "Nueva cita en línea: {$c['cliente']}, {$c['servicios']} con {$c['profesional']} el $cuando.";
+        if ($c['anticipo_estado'] === 'pendiente') {
+            $texto .= ' Debe pagar un anticipo de $' . number_format((float) $c['anticipo'], 2, ',', '.') . '.';
+        }
 
         $destinos = $this->destinos((int) $c['salon_id'], (int) $c['profesional_id'], $c['avisar_a']);
         $ins = $this->db->prepare('INSERT INTO notificaciones (salon_id, usuario_id, cita_id, texto) VALUES (?,?,?,?)');

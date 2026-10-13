@@ -1,0 +1,17 @@
+{
+  "name": "TuSalón",
+  "short_name": "TuSalón",
+  "description": "Tu agenda, tus citas y tus comisiones en el celular.",
+  "lang": "es",
+  "start_url": "/?r=inicio&app=1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F8F7",
+  "theme_color": "#1E5A4C",
+  "icons": [
+    { "src": "/assets/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/assets/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

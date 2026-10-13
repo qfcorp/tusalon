@@ -17,7 +17,12 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
         'Hola, reservé una cita para el ' . $ini->format('d/m') . ' a las ' . $ini->format('H:i') . ' con ' . $confirmada['profesional'] . '.') : null;
 ?>
     <section class="bloque confirmacion" role="status">
-        <?php if ($confirmada['estado'] === 'pendiente'): ?>
+        <?php if ($confirmada['anticipo_estado'] === 'pendiente'): ?>
+            <h2>¡Ya casi! Paga el anticipo</h2>
+            <p>Para confirmar tu cita, paga un anticipo de <strong><?= dinero($confirmada['anticipo']) ?></strong>. Se descuenta del valor total.
+                La hora queda apartada para ti mientras tanto.</p>
+            <a class="boton boton-ancho" style="margin-bottom:12px" href="/?r=confirmar&amp;t=<?= e($confirmada['token']) ?>#anticipo">Pagar el anticipo</a>
+        <?php elseif ($confirmada['estado'] === 'pendiente'): ?>
             <h2>¡Solicitud enviada!</h2>
             <p>El salón la está confirmando y te avisará por WhatsApp. Mientras tanto, esta hora queda apartada para ti.</p>
         <?php else: ?>

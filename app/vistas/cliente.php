@@ -73,4 +73,40 @@
         <a class="boton boton-claro" href="<?= e(url('cita_nueva', ['cliente_id' => $id])) ?>">Agendar cita</a>
     </section>
     <?php endif; ?>
+
+    <?php if ($id && $fidelidad): ?>
+    <section class="bloque">
+        <h2>Ficha técnica de color</h2>
+        <p><?= $fidelidad['fichas'] ? $fidelidad['fichas'] . ($fidelidad['fichas'] === 1 ? ' ficha guardada' : ' fichas guardadas') . '.' : 'Todavía no tiene fichas.' ?>
+            Fórmulas, tiempos y fotos de antes y después.</p>
+        <a class="boton" href="<?= e(url('ficha', ['cliente' => $id])) ?>"><?= $fidelidad['fichas'] ? 'Ver ficha técnica' : 'Crear ficha técnica' ?></a>
+    </section>
+
+    <section class="bloque">
+        <h2>Paquetes y puntos</h2>
+        <?php if ($fidelidad['config']['activo']): ?>
+            <p style="font-size:1.1rem">Puntos: <strong><?= number_format($fidelidad['puntos'], 0, ',', '.') ?></strong>
+                <small>(= <?= dinero($fidelidad['puntos'] * $fidelidad['config']['valor']) ?>)</small></p>
+        <?php else: ?>
+            <p class="suave">Los puntos están apagados. Actívalos en <a href="<?= e(url('puntos')) ?>">Puntos</a>.</p>
+        <?php endif; ?>
+        <?php if ($fidelidad['paquetes']): ?>
+            <ul class="lista">
+            <?php foreach ($fidelidad['paquetes'] as $pq): ?>
+                <li style="<?= $pq['vigente'] ? '' : 'opacity:.55' ?>"><div><div class="principal-linea"><?= e($pq['nombre']) ?></div>
+                    <div class="linea-sub">Usó <?= (int) $pq['sesiones_usadas'] ?> de <?= (int) $pq['sesiones_total'] ?><?= $pq['vence_en'] ? ' · vence ' . (new DateTimeImmutable($pq['vence_en']))->format('d/m/Y') : '' ?><?= $pq['anulado'] ? ' · anulado' : '' ?></div></div>
+                    <span class="etq <?= $pq['vigente'] ? 'etq-confirmada' : 'etq-reservada' ?>"><?= $pq['vigente'] ? 'Le quedan ' . (int) $pq['quedan'] : 'Terminado' ?></span></li>
+            <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        <a class="boton boton-claro" href="<?= e(url('paquetes', ['cliente' => $id])) ?>">Venderle un paquete</a>
+        <?php if ($fidelidad['movs']): ?>
+            <h3 style="margin-top:14px">Últimos puntos</h3>
+            <ul class="lista"><?php foreach ($fidelidad['movs'] as $m): ?>
+                <li><span><?= e($m['motivo']) ?><br><small><?= (new DateTimeImmutable($m['fecha']))->format('d/m/Y') ?></small></span>
+                    <span class="monto <?= (int) $m['puntos'] < 0 ? 'monto-neg' : '' ?>"><?= (int) $m['puntos'] > 0 ? '+' : '' ?><?= (int) $m['puntos'] ?></span></li>
+            <?php endforeach; ?></ul>
+        <?php endif; ?>
+    </section>
+    <?php endif; ?>
 </div>

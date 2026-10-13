@@ -236,3 +236,34 @@ function registrar_admin(string $accion, ?int $salonId = null): void
     db()->prepare('INSERT INTO registro_admin (admin_id, salon_id, accion) VALUES (?,?,?)')
         ->execute([$a['id'] ?? null, $salonId, mb_substr($accion, 0, 300)]);
 }
+
+/**
+ * Funciones del plan Completa: si el salón está en Básica, muestra el candado y devuelve false.
+ */
+function requiere_completa(array $u, string $que, string $explicacion): bool
+{
+    if (es_completa($u)) return true;
+    vista('candado', ['que' => $que, 'explicacion' => $explicacion], "$que · TuSalón");
+    return false;
+}
+
+/** Número escrito con coma o punto -> float (o null si está vacío). */
+function numero(mixed $v): ?float
+{
+    $v = trim((string) $v);
+    return $v === '' ? null : (float) str_replace(',', '.', $v);
+}
+
+/** Clientes del salón para elegir en una lista (los privados de un arrendatario no). */
+function clientes_para_elegir(int $salonId): array
+{
+    $st = db()->prepare('SELECT id, nombre, telefono, puntos FROM clientes WHERE salon_id = ? AND profesional_privado_id IS NULL ORDER BY nombre LIMIT 2000');
+    $st->execute([$salonId]);
+    return $st->fetchAll();
+}
+
+/** Formas de pago que se muestran en las listas. */
+function metodos_pago(): array
+{
+    return ['efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'tarjeta' => 'Tarjeta', 'payphone' => 'Payphone', 'plux' => 'Plux'];
+}

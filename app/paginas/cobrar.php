@@ -1,9 +1,10 @@
 <?php
-use TuSalon\{Agenda, Liquidacion};
+use TuSalon\{Agenda, Anticipos, Cobro, Fidelidad, Inventario};
 
 $sid = (int) $u['salon_id'];
 $pdo = db();
 $error = null;
+$completa = es_completa($u);
 $citaId = (int) ($_REQUEST['cita'] ?? 0);
 $cita = $citaId ? (new Agenda($pdo))->cita($sid, $citaId) : null;
 if ($citaId && (!$cita || !in_array($cita['estado'], ['reservada', 'confirmada'], true))) {
@@ -31,60 +32,65 @@ $st->execute([$sid]);
 $servicios = $st->fetchAll();
 
 $seleccion = $cita ? array_column($cita['lista_servicios'], 'id') : [];
-// Precio acordado al agendar (el dueño pudo cambiarlo); si no hay cita, el precio normal
 $preciosCita = $cita ? array_column($cita['lista_servicios'], 'precio', 'id') : [];
 $profElegido = $cita ? (int) $cita['profesional_id'] : 0;
 
+// Cliente: el de la cita o el que se elige (para paquetes y puntos)
+$clienteId = $cita ? (int) $cita['cliente_id'] : (int) ($_REQUEST['cliente_id'] ?? 0);
+$fid = new Fidelidad($pdo);
+$cliente = null;
+$paquetes = [];
+if ($clienteId) {
+    $st = $pdo->prepare('SELECT id, nombre, puntos FROM clientes WHERE id = ? AND salon_id = ?');
+    $st->execute([$clienteId, $sid]);
+    $cliente = $st->fetch() ?: null;
+    if (!$cliente) $clienteId = 0;
+    elseif ($completa) $paquetes = $fid->paquetesDeCliente($sid, $clienteId);
+}
+$clientes = (!$cita && $completa) ? clientes_para_elegir($sid) : [];
+$productos = $completa ? (new Inventario($pdo))->paraVender($sid) : [];
+$puntos = $completa ? $fid->configPuntos($sid) : ['activo' => false];
+$anticipo = $cita ? (new Anticipos($pdo))->disponible($cita) : 0.0;
+
+$d = ['metodo_pago' => 'efectivo', 'propina' => '0', 'tarjeta_codigo' => '', 'tarjeta_monto' => '', 'puntos' => '', 'productos' => [], 'paquetes' => []];
 if (es_post()) {
     verificar_csrf();
     $profId = (int) ($_POST['profesional_id'] ?? 0);
     $marcados = array_map('intval', (array) ($_POST['servicio'] ?? []));
     $precios = (array) ($_POST['precio'] ?? []);
-    $metodo = (string) ($_POST['metodo_pago'] ?? 'efectivo');
-    $cobradoPor = ($_POST['cobrado_por'] ?? 'local') === 'profesional' ? 'profesional' : 'local';
-    $propina = max(0, (float) str_replace(',', '.', (string) ($_POST['propina'] ?? '0')));
-
-    $ids = array_column($profesionales, 'id');
-    $validos = array_column($servicios, null, 'id');
+    $d = array_merge($d, array_intersect_key($_POST, $d));
     try {
-        if (!in_array($profId, array_map('intval', $ids), true)) {
+        if (!in_array($profId, array_map('intval', array_column($profesionales, 'id')), true)) {
             throw new RuntimeException('Elige quién atendió.');
         }
-        $items = [];
+        $validos = array_column($servicios, null, 'id');
+        $serv = [];
         foreach ($marcados as $sId) {
-            if (!isset($validos[$sId])) continue;
-            $precio = round((float) str_replace(',', '.', (string) ($precios[$sId] ?? $validos[$sId]['precio'])), 2);
-            if ($precio < 0) throw new RuntimeException('Un precio no puede ser negativo.');
-            $items[] = ['tipo' => 'servicio', 'servicio_id' => $sId, 'profesional_id' => $profId, 'precio_unitario' => $precio];
+            if (isset($validos[$sId])) $serv[$sId] = $precios[$sId] ?? $validos[$sId]['precio'];
         }
-        if (!$items) {
-            throw new RuntimeException('Marca al menos un servicio.');
-        }
-        if (!in_array($metodo, ['efectivo', 'tarjeta', 'transferencia', 'payphone', 'plux', 'deuna'], true)) {
-            $metodo = 'efectivo';
-        }
-        $pdo->beginTransaction();
-        $ventaId = (new Liquidacion($pdo))->registrarVenta([
-            'salon_id'    => $sid,
-            'fecha'       => date('Y-m-d H:i:s'),
-            'cobrado_por' => $cobradoPor,
-            'cobrado_por_profesional_id' => $cobradoPor === 'profesional' ? $profId : null,
-            'metodo_pago' => $metodo,
-            'propina'     => $propina,
-            'cliente_id'  => $cita['cliente_id'] ?? null,
-        ], $items);
-        if ($cita) {
-            $pdo->prepare('UPDATE ventas SET cita_id = ? WHERE id = ?')->execute([$cita['id'], $ventaId]);
-            (new Agenda($pdo))->cambiarEstado($sid, (int) $cita['id'], 'atendida');
-        }
-        $pdo->commit();
-        aviso('Cobro registrado.');
+        $r = (new Cobro($pdo))->registrar([
+            'salon_id' => $sid, 'profesional_id' => $profId, 'cita' => $cita, 'cliente_id' => $clienteId ?: null,
+            'servicios' => $serv, 'productos' => (array) ($_POST['productos'] ?? []),
+            'metodo_pago' => (string) ($_POST['metodo_pago'] ?? 'efectivo'),
+            'cobrado_por' => (string) ($_POST['cobrado_por'] ?? 'local'),
+            'propina' => numero($_POST['propina'] ?? '') ?? 0,
+            'paquetes' => array_filter((array) ($_POST['paquetes'] ?? [])),
+            'tarjeta_codigo' => (string) ($_POST['tarjeta_codigo'] ?? ''), 'tarjeta_monto' => (string) ($_POST['tarjeta_monto'] ?? ''),
+            'puntos' => (int) ($_POST['puntos'] ?? 0),
+            'completa' => $completa,
+        ]);
+        $msg = 'Cobro registrado.';
+        if ($r['ya_pagado'] > 0) $msg .= ' Ya estaba pagado ' . dinero($r['ya_pagado']) . '; se cobró hoy ' . dinero($r['a_cobrar'] + $r['propina']) . '.';
+        if ($r['detalle']['tarjeta_saldo'] !== null) $msg .= ' A la tarjeta de regalo le quedan ' . dinero($r['detalle']['tarjeta_saldo']) . '.';
+        if ($r['puntos_ganados'] > 0) $msg .= " {$cliente['nombre']} ganó {$r['puntos_ganados']} puntos.";
+        aviso($msg);
         redirigir('caja');
     } catch (RuntimeException $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
         $error = $e->getMessage();
         $seleccion = $marcados;
         $profElegido = $profId;
+        $preciosCita = array_map('floatval', $precios);
     }
 }
-vista('cobrar', compact('cita', 'profesionales', 'servicios', 'seleccion', 'profElegido', 'error', 'preciosCita'), 'Cobrar · TuSalón');
+vista('cobrar', compact('cita', 'profesionales', 'servicios', 'seleccion', 'profElegido', 'error', 'preciosCita', 'completa',
+                        'cliente', 'clientes', 'paquetes', 'productos', 'puntos', 'anticipo', 'd'), 'Cobrar · TuSalón');

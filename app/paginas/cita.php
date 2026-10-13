@@ -5,6 +5,22 @@ $sid = (int) $u['salon_id'];
 $agenda = new Agenda(db());
 $id = (int) ($_GET['id'] ?? 0);
 
+if (es_post() && in_array($_POST['accion'] ?? '', ['anticipo_ok', 'anticipo_no'], true)) {
+    verificar_csrf();
+    try {
+        $ant = new TuSalon\Anticipos(db());
+        if ($_POST['accion'] === 'anticipo_ok') {
+            $ant->confirmarPago($sid, $id, (string) ($_POST['metodo'] ?? ''));
+            aviso('Anticipo confirmado. Entró a la caja de hoy y se descontará al cobrar.');
+        } else {
+            $ant->rechazarComprobante($sid, $id);
+            aviso('Comprobante rechazado. El cliente puede subir otro desde su enlace.');
+        }
+    } catch (RuntimeException $e) {
+        aviso($e->getMessage(), 'error');
+    }
+    redirigir('cita', ['id' => $id]);
+}
 if (es_post()) {
     verificar_csrf();
     $estado = (string) ($_POST['estado'] ?? '');

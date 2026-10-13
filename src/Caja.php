@@ -31,8 +31,13 @@ final class Caja
         $local = 0.0;
         $profesionales = 0.0;
         $efectivoLocal = 0.0;
-        foreach ($ventas as $v) {
-            $monto = (float) $v['total'] + (float) $v['propina'];
+        foreach ($ventas as &$v) {
+            // Lo que ya estaba pagado (paquete, tarjeta de regalo, anticipo o puntos) no entra hoy a la caja
+            $v['ya_pagado'] = round((float) ($v['pagado_paquete'] ?? 0) + (float) ($v['pagado_tarjeta'] ?? 0)
+                                    + (float) ($v['pagado_anticipo'] ?? 0) + (float) ($v['pagado_puntos'] ?? 0), 2);
+            $monto = (float) $v['total'] + (float) $v['propina'] - $v['ya_pagado'];
+            $v['cobrado_hoy'] = round($monto, 2);
+            if ($monto <= 0.004) continue;
             if ($v['cobrado_por'] === 'local') {
                 $local += $monto;
                 $porMetodo[$v['metodo_pago']] = ($porMetodo[$v['metodo_pago']] ?? 0) + $monto;
@@ -43,11 +48,25 @@ final class Caja
                 $profesionales += $monto;
             }
         }
+        unset($v);
+
+        // Paquetes, tarjetas de regalo y anticipos cobrados este día
+        $st = $this->db->prepare('SELECT i.*, cl.nombre AS cliente FROM ingresos i LEFT JOIN clientes cl ON cl.id = i.cliente_id
+                                   WHERE i.salon_id = ? AND i.fecha::date = ? AND NOT i.anulado ORDER BY i.fecha DESC');
+        $st->execute([$salonId, $fecha]);
+        $ingresos = $st->fetchAll();
+        foreach ($ingresos as $i) {
+            $local += (float) $i['monto'];
+            $porMetodo[$i['metodo_pago']] = ($porMetodo[$i['metodo_pago']] ?? 0) + (float) $i['monto'];
+            if ($i['metodo_pago'] === 'efectivo') $efectivoLocal += (float) $i['monto'];
+        }
+
         $st = $this->db->prepare('SELECT * FROM cierres_caja WHERE salon_id = ? AND fecha = ? AND sucursal_id IS NULL');
         $st->execute([$salonId, $fecha]);
 
         return [
             'ventas'                 => $ventas,
+            'ingresos'               => $ingresos,
             'cobrado_local'          => round($local, 2),
             'cobrado_profesionales'  => round($profesionales, 2),
             'por_metodo'             => array_map(fn($x) => round($x, 2), $porMetodo),

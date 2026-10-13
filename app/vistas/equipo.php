@@ -22,6 +22,10 @@ $resumenRegla = function (array $p) use ($num): string {
         <a class="boton boton-claro boton-chico" href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('reporte')) ?>">Reporte del mes</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('servicios')) ?>">Servicios</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('inventario')) ?>">Inventario</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('paquetes')) ?>">Paquetes</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('puntos')) ?>">Puntos</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('horario')) ?>">Horario y reservas</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>

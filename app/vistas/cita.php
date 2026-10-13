@@ -33,13 +33,37 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
             <li><strong>Total</strong><strong class="monto"><?= dinero($total) ?></strong></li>
         </ul>
         <?php if ($cita['notas']): ?><p class="suave">Notas: <?= e($cita['notas']) ?></p><?php endif; ?>
+        <?php if ($cita['anticipo_estado'] !== 'no'): $ae = $cita['anticipo_estado']; ?>
+            <div class="ya-pagado" style="margin-top:12px">
+                <h3>Anticipo: <?= dinero($cita['anticipo']) ?></h3>
+                <p style="margin-bottom:8px"><span class="etq <?= in_array($ae, ['pagado', 'usado'], true) ? 'etq-confirmada' : ($ae === 'por_revisar' ? 'etq-pendiente' : 'etq-reservada') ?>"><?= e(TuSalon\Anticipos::ESTADOS[$ae] ?? $ae) ?></span>
+                    <?php if ($cita['anticipo_metodo']): ?> · <?= e(metodos_pago()[$cita['anticipo_metodo']] ?? $cita['anticipo_metodo']) ?><?php endif; ?>
+                    <?php if ($cita['anticipo_referencia'] && !str_starts_with($cita['anticipo_referencia'], 'TS') && !str_starts_with($cita['anticipo_referencia'], 'Payphone')): ?> · <?= e($cita['anticipo_referencia']) ?><?php endif; ?></p>
+                <?php if ($cita['anticipo_comprobante'] && in_array($ae, ['por_revisar', 'rechazado', 'pagado', 'usado'], true)): ?>
+                    <a class="comprobante" href="<?= e(url('comprobante', ['cita' => $cita['id']])) ?>" target="_blank"><img src="<?= e(url('comprobante', ['cita' => $cita['id']])) ?>" alt="Comprobante del anticipo" style="max-height:320px"></a>
+                <?php endif; ?>
+                <?php if (in_array($ae, ['pendiente', 'por_revisar', 'rechazado'], true) && !es_peluquero($u)): ?>
+                    <div class="acciones" style="margin-top:10px">
+                        <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="anticipo_ok">
+                            <select name="metodo" aria-label="Cómo pagó el anticipo" style="width:auto;margin-bottom:6px">
+                                <?php foreach (['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'efectivo' => 'Efectivo', 'payphone' => 'Payphone'] as $k => $t): ?>
+                                    <option value="<?= $k ?>" <?= ($cita['anticipo_metodo'] ?: 'transferencia') === $k ? 'selected' : '' ?>><?= $t ?></option><?php endforeach; ?></select>
+                            <button class="boton boton-chico" type="submit">Recibí el anticipo</button></form>
+                        <?php if ($ae === 'por_revisar'): ?>
+                        <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="anticipo_no">
+                            <button class="boton boton-peligro boton-chico" type="submit" data-confirmar="¿El comprobante no es válido? El cliente podrá subir otro.">Comprobante no válido</button></form>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </section>
 
     <section class="bloque">
         <h2>Qué hacer</h2>
         <div class="acciones" style="flex-direction:column;align-items:stretch">
             <?php if ($cita['estado'] === 'pendiente'): ?>
-                <p>El cliente la pidió en línea<?= $cita['expira_en'] ? '. Si nadie responde, la hora se libera a las ' . (new DateTimeImmutable($cita['expira_en']))->format('H:i') : '' ?>.</p>
+                <p>El cliente la pidió en línea<?= in_array($cita['anticipo_estado'], ['pagado'], true) ? ' y ya pagó el anticipo' : '' ?><?= $cita['expira_en'] ? '. Si nadie responde, la hora se libera a las ' . (new DateTimeImmutable($cita['expira_en']))->format('H:i') : '' ?>.</p>
                 <form method="post" action="<?= e(url('solicitudes')) ?>" class="form-aceptar"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= (int) $cita['id'] ?>">
                     <?php foreach ($cita['lista_servicios'] as $sv): ?>
                         <label class="valor-aceptar"><span>Valor a cobrar<?= count($cita['lista_servicios']) > 1 ? ' · ' . e($sv['nombre']) : '' ?></span>

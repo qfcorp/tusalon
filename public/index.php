@@ -3,12 +3,13 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
-$publicas = ['login', 'registro', 'reservar', 'horas', 'cliente_entrar', 'cliente_salir', 'mi_cuenta', 'foto', 'telegram', 'confirmar'];
+$publicas = ['login', 'registro', 'reservar', 'horas', 'cliente_entrar', 'cliente_salir', 'mi_cuenta', 'foto', 'telegram', 'confirmar', 'payphone'];
 $privadas = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 'servicios', 'equipo',
              'caja', 'cobrar', 'cuentas', 'completa', 'salir', 'prueba_terminada', 'horario', 'solicitudes', 'mi_portal', 'fotos',
-             'horario_peluquero', 'avisos_clientes', 'reporte'];
+             'horario_peluquero', 'avisos_clientes', 'reporte',
+             'inventario', 'paquetes', 'tarjetas', 'puntos', 'ficha', 'ficha_foto', 'comprobante'];
 // Lo único que ve un peluquero con acceso propio
-$dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada'];
+$dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada', 'ficha', 'ficha_foto', 'comprobante'];
 
 // Panel del super administrador (Tukán): sesión aparte
 $deAdmin = ['admin', 'admin_salones', 'admin_salon', 'admin_nuevo', 'admin_planes', 'admin_ver', 'admin_volver', 'admin_salir'];

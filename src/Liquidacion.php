@@ -107,6 +107,9 @@ final class Liquidacion
                 if ($it['tipo'] === 'producto') {
                     $this->db->prepare('UPDATE productos SET stock = stock - ? WHERE id = ?')
                              ->execute([$it['cantidad'], $it['producto_id']]);
+                    $this->db->prepare("INSERT INTO movimientos_inventario (salon_id, producto_id, tipo, cantidad, venta_id, nota)
+                                        VALUES (?,?,'venta',?,?,'Vendido')")
+                             ->execute([$venta['salon_id'], $it['producto_id'], -$it['cantidad'], $ventaId]);
                 }
                 foreach ($calc['movimientos'] as [$tipo, $monto, $desc]) {
                     $this->insertarMovimiento((int) $venta['salon_id'], (int) $it['profesional_id'],
@@ -411,7 +414,9 @@ final class Liquidacion
         $produccionDueno = self::r((float) $st->fetchColumn());
 
         $st = $this->db->prepare(
-            "SELECT COALESCE(SUM(total + propina),0) FROM ventas
+            // Lo pagado con paquetes, tarjetas de regalo o anticipo cuenta el día del servicio;
+            // el descuento por puntos no es dinero que entra.
+            "SELECT COALESCE(SUM(total + propina - pagado_puntos),0) FROM ventas
               WHERE salon_id = ? AND cobrado_por = 'local' AND NOT anulada AND fecha::date BETWEEN ? AND ?"
         );
         $st->execute([$salonId, $desde, $hasta]);

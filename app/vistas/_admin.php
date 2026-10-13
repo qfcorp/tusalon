@@ -15,7 +15,7 @@ $avisos = tomar_avisos();
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=11">
+<link rel="stylesheet" href="/assets/app.css?v=12">
 </head>
 <body class="admin">
 <?php if ($admin): ?>
@@ -37,6 +37,6 @@ $avisos = tomar_avisos();
     <?php endforeach; ?>
     <?= $contenido ?>
 </main>
-<script src="/assets/app.js?v=10" defer></script>
+<script src="/assets/app.js?v=11" defer></script>
 </body>
 </html>

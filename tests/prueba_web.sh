@@ -507,6 +507,111 @@ JAR="$TMP/c_ataque2"
 r=$(post "r=admin_entrar" -d email=$ADM -d clave=claveAdminSegura1)
 contiene "Tras 5 intentos fallidos se frena (aunque cambie de navegador)" "$TMP/post.html" "Demasiados intentos"
 
+echo "21. Plan Completa: inventario, paquetes, tarjetas, puntos, ficha técnica, anticipo y app"
+JAR=$JAR_DUENA
+r=$(post "r=inventario" -d accion=crear --data-urlencode "nombre=Cera mate" -d marca=Gatsby -d para_venta=1 -d precio=9 -d costo=4 -d stock=5 -d stock_minimo=2)
+CERA=$(sql "SELECT id FROM productos WHERE salon_id=$SID3 AND nombre='Cera mate'")
+check "Agregar producto con stock inicial 5" "5" "$(sql "SELECT stock FROM productos WHERE id=$CERA")"
+r=$(post "r=inventario&id=$CERA" -d accion=entrada -d producto_id=$CERA -d cantidad=3 -d costo=4.5 --data-urlencode "nota=Factura 12")
+check "Llegó mercadería: 5 + 3 = 8" "8" "$(sql "SELECT stock FROM productos WHERE id=$CERA")"
+r=$(post "r=inventario&id=$CERA" -d accion=ajuste -d producto_id=$CERA -d real=7 --data-urlencode "nota=Se perdió una")
+check "Corregir conteo a 7" "7" "$(sql "SELECT stock FROM productos WHERE id=$CERA")"
+get "r=inventario&id=$CERA" > /dev/null
+contiene "El historial muestra la factura" "$TMP/pag.html" "Factura 12"
+r=$(post "r=paquetes" -d accion=crear -d servicio_id=$PREM -d sesiones=4 -d precio=50 -d vigencia_dias=60)
+PAQ=$(sql "SELECT id FROM paquetes WHERE salon_id=$SID3")
+check "Crear paquete de 4 cortes premium por \$50" "4 × Corte premium|50.00" "$(sql "SELECT nombre||'|'||precio FROM paquetes WHERE id=$PAQ")"
+CARLA=$(sql "SELECT id FROM clientes WHERE salon_id=$SID3 AND nombre='Carla Cliente'")
+r=$(post "r=paquetes" -d accion=vender -d paquete_id=$PAQ -d cliente_id=$CARLA -d metodo_pago=transferencia)
+PC=$(sql "SELECT id FROM paquetes_cliente WHERE cliente_id=$CARLA")
+check "Vender el paquete a Carla (\$12,50 cada sesión)" "12.50" "$(sql "SELECT valor_sesion FROM paquetes_cliente WHERE id=$PC")"
+r=$(post "r=tarjetas" -d accion=vender -d monto=20 -d metodo_pago=efectivo --data-urlencode "para_nombre=Lucía" -d para_telefono=0991231234 --data-urlencode "mensaje=Feliz día")
+COD=$(sql "SELECT codigo FROM tarjetas_regalo WHERE salon_id=$SID3")
+get "r=tarjetas&codigo=$COD" > /dev/null
+contiene "La tarjeta se busca por su código y muestra el saldo" "$TMP/pag.html" "Saldo: <strong>\$20,00"
+contiene "Botón para enviarla por WhatsApp" "$TMP/pag.html" "wa.me/593991231234"
+r=$(post "r=puntos" -d accion=config -d activo=1 -d por_dolar=1 -d valor_100=5 -d minimo=50)
+check "Activar puntos" "t" "$(sql "SELECT puntos_activo FROM salones WHERE id=$SID3")"
+get "r=cobrar&cliente_id=$CARLA" > /dev/null
+contiene "En el cobro aparece el paquete de Carla" "$TMP/pag.html" "Usar sesión del paquete"
+contiene "…y la cera para vender" "$TMP/pag.html" "Cera mate"
+r=$(post "r=cobrar&cliente_id=$CARLA" -d cliente_id=$CARLA -d profesional_id=$LUIS3 -d "servicio[]=$PREM" -d "precio[$PREM]=15" -d "paquetes[$PREM]=$PC" \
+     -d "productos[$CERA]=1" -d tarjeta_codigo=$COD -d metodo_pago=efectivo -d propina=0 -d cobrado_por=local)
+check "Cobro: sesión del paquete + cera pagada con la tarjeta" "302 $BASE/?r=caja" "$r"
+VENTA=$(sql "SELECT max(id) FROM ventas WHERE salon_id=$SID3")
+check "Venta de \$21,50: \$12,50 del paquete y \$9 de la tarjeta" "21.50|12.50|9.00" "$(sql "SELECT total||'|'||pagado_paquete||'|'||pagado_tarjeta FROM ventas WHERE id=$VENTA")"
+check "A la tarjeta le quedan \$11 y a Carla 3 sesiones" "11.00|1" "$(sql "SELECT saldo FROM tarjetas_regalo WHERE codigo='$COD'")|$(sql "SELECT sesiones_usadas FROM paquetes_cliente WHERE id=$PC")"
+check "Se vendió una cera (quedan 6)" "6" "$(sql "SELECT stock FROM productos WHERE id=$CERA")"
+get "r=caja" > /dev/null
+contiene "La caja lista paquete y tarjeta vendidos hoy" "$TMP/pag.html" "Paquetes, tarjetas y anticipos"
+contiene "…y muestra lo pagado con paquete" "$TMP/pag.html" "con paquete"
+# Ficha técnica con foto
+python3 -c "from PIL import Image; Image.new('RGB',(60,80),(180,120,90)).save('$TMP/antes.jpg')"
+get "r=ficha&cliente=$CARLA" > /dev/null
+T=$(csrf)
+r=$(curl -s -b "$JAR" -c "$JAR" -o "$TMP/post.html" -w "%{http_code} %{redirect_url}" -F "csrf=$T" -F "servicio=Tinte" -F "marca_tinte=Igora" \
+     -F "tono=7.1" -F "oxidante=20 vol" -F "formula=30 g 7.1 + 30 ml 20 vol" -F "tiempo_minutos=35" -F "autoriza_fotos=1" -F "foto_antes=@$TMP/antes.jpg" "$BASE/?r=ficha&cliente=$CARLA")
+check "Guardar ficha técnica con foto de antes" "302 $BASE/?r=ficha&cliente=$CARLA" "$r"
+FICHA=$(sql "SELECT id FROM fichas_tecnicas WHERE cliente_id=$CARLA")
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{content_type}' "$BASE/?r=ficha_foto&id=$FICHA&m=antes")
+check "La foto se ve para el salón" "200 image/jpeg" "$code"
+code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/?r=ficha_foto&id=$FICHA&m=antes")
+check "Sin sesión, la foto no se ve" "302" "$code"
+JAR="$TMP/c_luis"
+get "r=ficha&cliente=$CARLA" > /dev/null
+contiene "Luis (que atendió a Carla) ve su fórmula" "$TMP/pag.html" "30 g 7.1"
+JAR=$JAR_ORIG
+get "r=inventario" > /dev/null
+contiene "Un salón Básica ve el candado en Inventario" "$TMP/pag.html" "es del plan Completa"
+# Anticipo por transferencia
+JAR=$JAR_DUENA
+r=$(post "r=horario" -d accion=anticipo -d anticipo_modo=todos -d anticipo_tipo=porcentaje -d anticipo_valor=40 \
+     --data-urlencode "anticipo_banco=Banco Pichincha - Ahorros 2201234567 - Rosa Dueña" -d anticipo_deuna=0990001111)
+check "Guardar anticipo del 40 %" "todos|40.00" "$(sql "SELECT anticipo_modo||'|'||anticipo_valor FROM salones WHERE id=$SID3")"
+JAR="$TMP/c_cliente_ant"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=13:00 --data-urlencode "nombre=Paula Anticipo" -d telefono=0981234567)
+CITAA=$(sql "SELECT max(id) FROM citas WHERE salon_id=$SID3")
+check "Reserva con anticipo del 40 % de \$15 = \$6" "pendiente|pendiente|6.00" "$(sql "SELECT estado||'|'||anticipo_estado||'|'||anticipo FROM citas WHERE id=$CITAA")"
+get "r=reservar&s=$SLUG3&ok=1" > /dev/null
+contiene "Al reservar le pide pagar el anticipo" "$TMP/pag.html" "Paga el anticipo"
+TOKA=$(sql "SELECT token FROM citas WHERE id=$CITAA")
+get "r=confirmar&t=$TOKA" > /dev/null
+contiene "En su enlace ve los datos de la cuenta" "$TMP/pag.html" "Ahorros 2201234567"
+T=$(csrf)
+r=$(curl -s -b "$JAR" -c "$JAR" -o /dev/null -w "%{http_code}" -F "csrf=$T" -F accion=comprobante -F metodo=deuna -F "referencia=DU-998" -F "comprobante=@$TMP/antes.jpg" "$BASE/?r=confirmar&t=$TOKA")
+check "Sube la foto del comprobante" "por_revisar|deuna" "$(sql "SELECT anticipo_estado||'|'||anticipo_metodo FROM citas WHERE id=$CITAA")"
+JAR=$JAR_DUENA
+get "r=inicio" > /dev/null
+contiene "La dueña ve el aviso de comprobante por revisar" "$TMP/pag.html" "comprobante de anticipo"
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{content_type}' "$BASE/?r=comprobante&cita=$CITAA")
+check "La dueña ve la foto del comprobante" "200 image/jpeg" "$code"
+r=$(post "r=cita&id=$CITAA" -d accion=anticipo_ok -d metodo=deuna)
+check "Confirma el anticipo: entra a la caja" "pagado|6.00" "$(sql "SELECT anticipo_estado FROM citas WHERE id=$CITAA")|$(sql "SELECT monto FROM ingresos WHERE concepto='anticipo' AND referencia_id=$CITAA")"
+# Anticipo con tarjeta (Payphone simulado)
+sql "UPDATE salones SET payphone_token='tok_web', payphone_store_id='store-web' WHERE id=$SID3" > /dev/null
+JAR="$TMP/c_cliente_pp"
+r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=18:00 --data-urlencode "nombre=Pedro Tarjeta" -d telefono=0981239999)
+CITAP=$(sql "SELECT max(id) FROM citas WHERE salon_id=$SID3")
+TOKP=$(sql "SELECT token FROM citas WHERE id=$CITAP")
+get "r=confirmar&t=$TOKP&pagar=tarjeta" > /dev/null
+contiene "Muestra la cajita de Payphone con 600 centavos" "$TMP/pag.html" '"amount":600'
+TX=$(sql "SELECT anticipo_referencia FROM citas WHERE id=$CITAP")
+echo "{\"transactionStatus\":\"Approved\",\"amount\":600,\"clientTransactionId\":\"$TX\",\"transactionId\":4455}" > "${PP_MOCK_DIR}/respuesta.json"
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=payphone&id=4455&clientTransactionId=$TX")
+check "Payphone aprueba y vuelve a su cita" "302 $BASE/?r=confirmar&t=$TOKP#anticipo" "$code"
+check "El anticipo queda pagado con Payphone" "pagado|payphone" "$(sql "SELECT anticipo_estado||'|'||anticipo_metodo FROM citas WHERE id=$CITAP")"
+check "Con anticipo pagado, la hora ya no se libera sola (espera a la dueña)" "pendiente|si" "$(sql "SELECT estado||'|'||CASE WHEN expira_en IS NULL THEN 'si' ELSE 'no' END FROM citas WHERE id=$CITAP")"
+contiene "Payphone recibió el token del salón" "${PP_MOCK_DIR}/llamadas.log" "Bearer tok_web"
+# App instalable
+code=$(curl -s -o "$TMP/man.json" -w '%{http_code}' "$BASE/manifest.json")
+check "manifest.json disponible" "200" "$code"
+contiene "La app se llama TuSalón" "$TMP/man.json" '"short_name": "TuSalón"'
+check "Service worker disponible" "200" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/sw.js")"
+JAR="$TMP/c_luis"
+get "r=mi_portal" > /dev/null
+contiene "El portal del peluquero ofrece instalar la app" "$TMP/pag.html" "Instala TuSalón en tu celular"
+contiene "El diseño enlaza el manifest" "$TMP/pag.html" 'rel="manifest"'
+
 echo "13. Telegram: solo acepta avisos con el texto secreto"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' "$BASE/?r=telegram")
 check "Sin el texto secreto, se rechaza" "403" "$code"

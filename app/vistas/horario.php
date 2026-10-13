@@ -110,3 +110,51 @@
         <button class="boton boton-ancho" type="submit">Guardar</button>
     </form>
 </div>
+
+<form method="post" class="bloque" id="anticipo" style="max-width:820px">
+    <?= campo_csrf() ?><input type="hidden" name="accion" value="anticipo">
+    <h2>Anticipo en línea <small>(para que el cliente no falte)</small></h2>
+    <?php if (!es_completa($u)): ?>
+        <p class="candado">El anticipo en línea es del plan Completa.</p>
+    <?php else: ?>
+    <p class="suave">Al reservar, el cliente paga una parte. Mientras no pague, la reserva queda como solicitud.
+        Cuando confirmas el pago, entra a tu caja y al cobrar la cita se descuenta solo.</p>
+    <div class="fila-campos">
+        <div class="campo"><label for="anticipo_modo">¿A quién pedir anticipo?</label>
+            <select id="anticipo_modo" name="anticipo_modo">
+                <?php foreach (TuSalon\Anticipos::MODOS as $k => $t): ?><option value="<?= $k ?>" <?= $anticipo['anticipo_modo'] === $k ? 'selected' : '' ?>><?= $t ?></option><?php endforeach; ?>
+            </select></div>
+        <div class="campo"><label for="anticipo_valor">¿Cuánto?</label>
+            <div style="display:flex;gap:8px">
+                <input type="number" id="anticipo_valor" name="anticipo_valor" value="<?= e((float) $anticipo['anticipo_valor'] ?: 30) ?>" min="0" step="0.01" style="flex:1">
+                <select name="anticipo_tipo" aria-label="Tipo de anticipo" style="width:auto">
+                    <option value="porcentaje" <?= $anticipo['anticipo_tipo'] === 'porcentaje' ? 'selected' : '' ?>>% del servicio</option>
+                    <option value="fijo" <?= $anticipo['anticipo_tipo'] === 'fijo' ? 'selected' : '' ?>>dólares fijos</option>
+                </select></div></div>
+    </div>
+    <h3>Transferencia o DeUna <small>(el cliente sube la foto del comprobante)</small></h3>
+    <div class="fila-campos">
+        <div class="campo"><label for="anticipo_banco">Datos para transferencia</label>
+            <textarea id="anticipo_banco" name="anticipo_banco" rows="4" maxlength="500" placeholder="Banco Pichincha&#10;Cuenta de ahorros 2201234567&#10;A nombre de: María Pérez&#10;Cédula: 1712345678"><?= e($anticipo['anticipo_banco'] ?? '') ?></textarea></div>
+        <div class="campo"><label for="anticipo_deuna">Celular de DeUna <small>(opcional)</small></label>
+            <input type="tel" id="anticipo_deuna" name="anticipo_deuna" value="<?= e($anticipo['anticipo_deuna'] ?? '') ?>" placeholder="0991234567">
+            <small>Te llega un aviso cuando el cliente sube el comprobante. Lo revisas y lo confirmas en la cita.</small></div>
+    </div>
+    <h3>Tarjeta con Payphone <small>(opcional, se confirma solo)</small></h3>
+    <details <?= !empty($anticipo['payphone_token']) ? 'open' : '' ?>>
+        <summary style="cursor:pointer;margin-bottom:10px">Cómo activarlo</summary>
+        <ol style="margin-top:0;padding-left:20px" class="suave">
+            <li>Entra a <strong>appdeveloper.payphonetodoesposible.com</strong> con tu cuenta de Payphone Business.</li>
+            <li>Crea una aplicación tipo <strong>Web</strong> y en "URL de respuesta" pega: <code><?= e($urlPayphone) ?></code></li>
+            <li>Copia el <strong>Token</strong> y el <strong>Store ID</strong> y pégalos aquí.</li>
+        </ol>
+    </details>
+    <div class="fila-campos">
+        <div class="campo"><label for="payphone_token">Token de Payphone</label>
+            <input type="password" id="payphone_token" name="payphone_token" value="<?= e($anticipo['payphone_token'] ?? '') ?>" autocomplete="off"></div>
+        <div class="campo"><label for="payphone_store_id">Store ID</label>
+            <input type="text" id="payphone_store_id" name="payphone_store_id" value="<?= e($anticipo['payphone_store_id'] ?? '') ?>" autocomplete="off"></div>
+    </div>
+    <button class="boton boton-ancho" type="submit">Guardar anticipo</button>
+    <?php endif; ?>
+</form>

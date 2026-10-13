@@ -5,7 +5,18 @@ $sid = (int) $u['salon_id'];
 $agenda = new Agenda(db());
 $error = null;
 
-if (es_post()) {
+if (es_post() && ($_POST['accion'] ?? '') === 'anticipo') {
+    verificar_csrf();
+    try {
+        if (!es_completa($u)) throw new RuntimeException('El anticipo en línea es del plan Completa.');
+        (new TuSalon\Anticipos(db()))->guardarConfig($sid, $_POST);
+        aviso('Anticipo guardado.');
+        header('Location: ' . url('horario') . '#anticipo');
+        exit;
+    } catch (RuntimeException $e) {
+        $error = $e->getMessage();
+    }
+} elseif (es_post()) {
     verificar_csrf();
     $dias = [];
     for ($d = 0; $d <= 6; $d++) {
@@ -49,4 +60,7 @@ $st->execute([$sid]);
 $conf = $st->fetch();
 $esquema = (($_SERVER['HTTPS'] ?? '') === 'on' || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
 $enlace = $esquema . '://' . ($_SERVER['HTTP_HOST'] ?? 'tusalon.tukanec.com') . '/?r=reservar&s=' . rawurlencode($u['slug']);
-vista('horario', compact('horario', 'conf', 'error', 'enlace'), 'Horario y reservas · TuSalón');
+$anticipo = (new TuSalon\Anticipos(db()))->config($sid);
+if (es_post() && ($_POST['accion'] ?? '') === 'anticipo') $anticipo = array_merge($anticipo, array_intersect_key($_POST, $anticipo));
+$urlPayphone = TuSalon\Agenda::urlBase() . '/?r=payphone';
+vista('horario', compact('horario', 'conf', 'error', 'enlace', 'anticipo', 'urlPayphone'), 'Horario y reservas · TuSalón');

@@ -15,15 +15,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const formCobro = document.querySelector('#form-cobro');
     if (formCobro) {
         const total = formCobro.querySelector('#total-cobro');
+        const totalServ = formCobro.querySelector('#total-servicios');
+        const filaPre = formCobro.querySelector('#fila-prepago');
+        const totalPre = formCobro.querySelector('#total-prepago');
+        const notaTarjeta = formCobro.querySelector('#nota-tarjeta');
+        const valorPunto = parseFloat(formCobro.dataset.valorPunto || '0');
+        const anticipo = parseFloat(formCobro.dataset.anticipo || '0');
+        const plata = n => '$' + n.toFixed(2).replace('.', ',');
         const recalcular = () => {
-            let suma = 0;
+            let suma = 0, prepago = 0;
             formCobro.querySelectorAll('[data-servicio]').forEach(fila => {
-                const marcado = fila.querySelector('input[type=checkbox]').checked;
-                const precio = parseFloat(fila.querySelector('input[type=number]').value || '0');
+                const marcado = fila.querySelector('input[name="servicio[]"]').checked;
+                let precio = parseFloat(fila.querySelector('input[name^=precio]').value || '0');
+                const paq = fila.querySelector('input[name^=paquetes]:checked');
+                if (marcado && paq) { precio = parseFloat(paq.dataset.valorSesion || '0'); prepago += precio; }
                 if (marcado) suma += precio;
             });
+            formCobro.querySelectorAll('[data-producto]').forEach(fila => {
+                suma += parseFloat(fila.dataset.precio || '0') * parseInt(fila.querySelector('input').value || '0', 10);
+            });
+            let falta = Math.max(0, suma - prepago);
+            const usarAnt = Math.min(anticipo, falta); prepago += usarAnt; falta -= usarAnt;
+            const pts = formCobro.querySelector('[name=puntos]');
+            if (pts && !pts.disabled && valorPunto > 0) {
+                const desc = Math.min(parseInt(pts.value || '0', 10) * valorPunto, falta);
+                prepago += desc; falta -= desc;
+            }
+            const cod = formCobro.querySelector('[name=tarjeta_codigo]');
+            if (notaTarjeta) notaTarjeta.hidden = !(cod && cod.value.trim());
             const propina = parseFloat(formCobro.querySelector('[name=propina]').value || '0');
-            total.textContent = '$' + (suma + propina).toFixed(2).replace('.', ',');
+            if (totalServ) totalServ.textContent = plata(suma);
+            if (filaPre) { filaPre.hidden = totalPre.hidden = prepago <= 0; totalPre.textContent = '−' + plata(prepago); }
+            total.textContent = plata(falta + propina);
         };
         formCobro.addEventListener('input', recalcular);
         formCobro.addEventListener('change', recalcular);
@@ -89,3 +112,37 @@ document.addEventListener('DOMContentLoaded', () => {
         actualizar();
     }
 });
+
+// ---------------------------------------------------------------
+// App en el celular (se instala desde el navegador, sin tiendas)
+// ---------------------------------------------------------------
+if ('serviceWorker' in navigator && document.body.classList.contains('con-sesion')) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+(() => {
+    const caja = document.querySelector('[data-instalar-app]');
+    if (!caja) return;
+    const enApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (enApp) { caja.hidden = true; return; }
+    const boton = caja.querySelector('[data-instalar]');
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const ayudaIos = caja.querySelector('[data-ayuda-ios]');
+    const ayudaOtro = caja.querySelector('[data-ayuda-otro]');
+    let pedido = null;
+    window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        pedido = e;
+        caja.hidden = false;
+        if (boton) boton.hidden = false;
+        if (ayudaOtro) ayudaOtro.hidden = true;
+    });
+    if (ios && ayudaIos) { ayudaIos.hidden = false; if (ayudaOtro) ayudaOtro.hidden = true; }
+    boton?.addEventListener('click', async () => {
+        if (!pedido) return;
+        pedido.prompt();
+        const r = await pedido.userChoice;
+        if (r.outcome === 'accepted') caja.hidden = true;
+        pedido = null;
+    });
+    window.addEventListener('appinstalled', () => { caja.hidden = true; });
+})();

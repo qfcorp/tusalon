@@ -49,7 +49,7 @@ $saldo = (new Liquidacion($pdo))->saldo($pid);
 
 // Próximas citas (desde hoy, 7 días)
 $st = $pdo->prepare(
-    "SELECT c.id, c.inicio, c.fin, c.estado, cl.nombre AS cliente, cl.telefono,
+    "SELECT c.id, c.inicio, c.fin, c.estado, c.cliente_id, cl.nombre AS cliente, cl.telefono,
             (SELECT string_agg(s.nombre, ' + ') FROM cita_servicios cs JOIN servicios s ON s.id = cs.servicio_id WHERE cs.cita_id = c.id) AS servicios
        FROM citas c LEFT JOIN clientes cl ON cl.id = c.cliente_id
       WHERE c.profesional_id = ? AND c.salon_id = ? AND c.fin >= now() AND c.inicio < (CURRENT_DATE + 7)

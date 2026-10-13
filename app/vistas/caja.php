@@ -47,14 +47,33 @@ $f = new DateTimeImmutable($fecha);
                                 <?= e($v['profesionales']) ?> · <?= $metodos[$v['metodo_pago']] ?? e($v['metodo_pago']) ?>
                                 <?= $v['cobrado_por'] === 'profesional' ? ' · lo cobró el peluquero' : '' ?>
                                 <?= (float) $v['propina'] > 0 ? ' · propina ' . dinero($v['propina']) : '' ?>
+                                <?php
+                                $pre = array_filter(['paquete' => $v['pagado_paquete'], 'tarjeta de regalo' => $v['pagado_tarjeta'],
+                                                     'anticipo' => $v['pagado_anticipo'], 'puntos' => $v['pagado_puntos']], fn($x) => (float) $x > 0);
+                                foreach ($pre as $k => $x) echo ' · ' . dinero($x) . ' con ' . $k;
+                                ?>
                             </div>
                         </div>
-                        <span class="monto"><?= dinero((float) $v['total'] + (float) $v['propina']) ?></span>
+                        <span class="monto"><?= dinero($v['cobrado_hoy']) ?><?php if ($v['ya_pagado'] > 0): ?><br><small>de <?= dinero((float) $v['total'] + (float) $v['propina']) ?></small><?php endif; ?></span>
                     </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
     </section>
+
+    <?php if ($resumen['ingresos']): ?>
+    <section class="bloque">
+        <h2>Paquetes, tarjetas y anticipos</h2>
+        <ul class="lista">
+            <?php foreach ($resumen['ingresos'] as $i): ?>
+                <li><span class="hora"><?= (new DateTimeImmutable($i['fecha']))->format('H:i') ?></span>
+                    <div style="flex:1"><div class="principal-linea"><?= e($i['descripcion']) ?></div>
+                        <div class="linea-sub"><?= $metodos[$i['metodo_pago']] ?? e($i['metodo_pago']) ?></div></div>
+                    <span class="monto"><?= dinero($i['monto']) ?></span></li>
+            <?php endforeach; ?>
+        </ul>
+    </section>
+    <?php endif; ?>
 
     <section class="bloque">
         <h2>Por forma de pago</h2>

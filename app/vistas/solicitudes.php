@@ -32,6 +32,11 @@ use TuSalon\Agenda;
                             <?= Agenda::DIAS[(int) $ini->format('w')] ?> <?= $ini->format('j/n') ?> a las <?= $ini->format('H:i') ?>
                             · con <?= e($c['profesional']) ?> · <?= dinero($c['precio']) ?>
                         </div>
+                        <?php if ($c['anticipo_estado'] !== 'no'): ?>
+                            <div class="linea-sub"><span class="etq <?= $c['anticipo_estado'] === 'pagado' ? 'etq-confirmada' : 'etq-pendiente' ?>">
+                                <?= e(TuSalon\Anticipos::ESTADOS[$c['anticipo_estado']] ?? '') ?> · <?= dinero($c['anticipo']) ?></span>
+                                <?php if ($c['anticipo_estado'] === 'por_revisar'): ?><a href="<?= e(url('cita', ['id' => $c['id']])) ?>">Revisar comprobante</a><?php endif; ?></div>
+                        <?php endif; ?>
                         <?php if ($vence): ?>
                             <div class="linea-sub"><?= $vence < new DateTimeImmutable()
                                 ? 'Venció: la hora ya se muestra libre a otros clientes.'

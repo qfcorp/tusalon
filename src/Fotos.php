@@ -23,6 +23,59 @@ final class Fotos
         return rtrim((string) (getenv('TUSALON_UPLOADS') ?: dirname(__DIR__) . '/uploads'), '/') . '/fotos';
     }
 
+    /**
+     * Revisa que sea una foto, la gira según la cámara, la achica y la guarda como JPG nuevo
+     * (así se borran los datos ocultos como la ubicación). Devuelve el nombre del archivo.
+     * @param array $archivo un elemento de $_FILES
+     */
+    public static function guardarImagen(array $archivo, string $carpeta, int $maximo = 1600): string
+    {
+        if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('No llegó la foto. Intenta de nuevo.');
+        }
+        if (($archivo['size'] ?? 0) > self::MAX_BYTES) {
+            throw new RuntimeException('La foto pesa más de 10 MB.');
+        }
+        $tipo = (new \finfo(FILEINFO_MIME_TYPE))->file($archivo['tmp_name']);
+        $img = match ($tipo) {
+            'image/jpeg' => @imagecreatefromjpeg($archivo['tmp_name']),
+            'image/png'  => @imagecreatefrompng($archivo['tmp_name']),
+            'image/webp' => @imagecreatefromwebp($archivo['tmp_name']),
+            default      => false,
+        };
+        if (!$img) throw new RuntimeException('El archivo debe ser una foto (JPG, PNG o WebP).');
+
+        if ($tipo === 'image/jpeg' && function_exists('exif_read_data')) {
+            $exif = @exif_read_data($archivo['tmp_name']);
+            $giro = [3 => 180, 6 => -90, 8 => 90][(int) ($exif['Orientation'] ?? 1)] ?? 0;
+            if ($giro) $img = imagerotate($img, $giro, 0);
+        }
+        $w = imagesx($img); $h = imagesy($img);
+        $escala = min(1, $maximo / max($w, $h));
+        if ($escala < 1) {
+            $nueva = imagescale($img, (int) round($w * $escala), (int) round($h * $escala));
+            imagedestroy($img);
+            $img = $nueva;
+        }
+        if (!is_dir($carpeta) && !mkdir($carpeta, 0750, true) && !is_dir($carpeta)) {
+            imagedestroy($img);
+            throw new RuntimeException('No se pudo guardar la foto en el servidor.');
+        }
+        $nombre = bin2hex(random_bytes(16)) . '.jpg';
+        if (!imagejpeg($img, rtrim($carpeta, '/') . '/' . $nombre, 82)) {
+            imagedestroy($img);
+            throw new RuntimeException('No se pudo guardar la foto en el servidor.');
+        }
+        imagedestroy($img);
+        return $nombre;
+    }
+
+    /** Carpeta hermana de las fotos (ej. "fichas", "comprobantes"). */
+    public static function carpeta(string $nombre): string
+    {
+        return dirname(self::carpetaPorDefecto()) . '/' . $nombre;
+    }
+
     /** ¿Puede este usuario subir fotos a esta cita? Devuelve la cita o lanza el motivo. */
     public function verificarPermiso(int $salonId, int $citaId, array $usuario): array
     {
@@ -52,51 +105,12 @@ final class Fotos
     {
         $c = $this->verificarPermiso($salonId, $citaId, $usuario);
         if (!in_array($momento, ['antes', 'despues'], true)) $momento = 'despues';
-        if (($archivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('No llegó la foto. Intenta de nuevo.');
-        }
-        if ($archivo['size'] > self::MAX_BYTES) {
-            throw new RuntimeException('La foto pesa más de 10 MB.');
-        }
-        $tipo = (new \finfo(FILEINFO_MIME_TYPE))->file($archivo['tmp_name']);
-        $img = match ($tipo) {
-            'image/jpeg' => @imagecreatefromjpeg($archivo['tmp_name']),
-            'image/png'  => @imagecreatefrompng($archivo['tmp_name']),
-            'image/webp' => @imagecreatefromwebp($archivo['tmp_name']),
-            default      => false,
-        };
-        if (!$img) throw new RuntimeException('El archivo debe ser una foto (JPG, PNG o WebP).');
-
         $st = $this->db->prepare('SELECT count(*) FROM fotos WHERE cita_id = ?');
         $st->execute([$citaId]);
         if ((int) $st->fetchColumn() >= self::MAX_POR_CITA) {
-            imagedestroy($img);
             throw new RuntimeException('Esta cita ya tiene ' . self::MAX_POR_CITA . ' fotos.');
         }
-
-        // Girar según la cámara del celular y achicar a máximo 1600 px
-        if ($tipo === 'image/jpeg' && function_exists('exif_read_data')) {
-            $exif = @exif_read_data($archivo['tmp_name']);
-            $giro = [3 => 180, 6 => -90, 8 => 90][(int) ($exif['Orientation'] ?? 1)] ?? 0;
-            if ($giro) $img = imagerotate($img, $giro, 0);
-        }
-        $w = imagesx($img); $h = imagesy($img);
-        $escala = min(1, 1600 / max($w, $h));
-        if ($escala < 1) {
-            $nueva = imagescale($img, (int) round($w * $escala), (int) round($h * $escala));
-            imagedestroy($img);
-            $img = $nueva;
-        }
-        if (!is_dir($this->carpeta) && !mkdir($this->carpeta, 0750, true) && !is_dir($this->carpeta)) {
-            throw new RuntimeException('No se pudo guardar la foto en el servidor.');
-        }
-        $nombre = bin2hex(random_bytes(16)) . '.jpg';
-        // Volver a crear el JPG borra los datos ocultos (ubicación GPS, modelo de celular)
-        if (!imagejpeg($img, $this->carpeta . '/' . $nombre, 82)) {
-            imagedestroy($img);
-            throw new RuntimeException('No se pudo guardar la foto en el servidor.');
-        }
-        imagedestroy($img);
+        $nombre = self::guardarImagen($archivo, $this->carpeta);
 
         $st = $this->db->prepare('INSERT INTO fotos (salon_id, cliente_id, cita_id, profesional_id, momento, archivo)
                                   VALUES (?,?,?,?,?,?) RETURNING id');

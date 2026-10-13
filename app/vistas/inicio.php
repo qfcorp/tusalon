@@ -21,6 +21,24 @@ $nombre = explode(' ', trim($u['nombre']))[0];
     </a>
 <?php endif; ?>
 
+<?php if ($comprobantes > 0): ?>
+    <a class="aviso franja-solicitudes" href="<?= e(url('solicitudes')) ?>">
+        💳 <?= $comprobantes ?> <?= $comprobantes === 1 ? 'comprobante de anticipo' : 'comprobantes de anticipo' ?> por revisar. Ver ahora
+    </a>
+<?php endif; ?>
+<?php if ($stockBajo): ?>
+    <a class="aviso franja-avisos" href="<?= e(url('inventario')) ?>">
+        📦 Se está acabando: <?= e(implode(', ', array_slice(array_map(fn($b) => "{$b['nombre']} ({$b['stock']})", $stockBajo), 0, 3))) ?><?= count($stockBajo) > 3 ? ' y ' . (count($stockBajo) - 3) . ' más' : '' ?> · Ver
+    </a>
+<?php endif; ?>
+
+<div class="instalar-app" data-instalar-app hidden>
+    <img src="/assets/icono-192.png" alt="" width="48" height="48">
+    <div style="flex:1"><p><strong>Instala TuSalón en tu celular</strong></p>
+        <p class="suave" style="font-size:.9rem">Ábrelo como una app, con su ícono en la pantalla.</p></div>
+    <button class="boton boton-chico" type="button" data-instalar hidden>Instalar</button>
+</div>
+
 <?php if ($porRecordar > 0 || $cumpleHoy > 0): ?>
     <a class="aviso franja-avisos" href="<?= e(url('avisos_clientes')) ?>">
         <?= $porRecordar > 0 ? "⏰ $porRecordar " . ($porRecordar === 1 ? 'cita de mañana por recordar' : 'citas de mañana por recordar') : '' ?>

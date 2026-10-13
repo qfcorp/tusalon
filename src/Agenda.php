@@ -528,6 +528,8 @@ final class Agenda
             }
             $id = $this->crearCita($salonId, $profesionalId, (int) $clienteId, "$fecha $hora", $servicioIds,
                                    'Reservada en línea', [], 'online');
+            // Anticipo: si al cliente le toca, la cita queda como solicitud hasta que pague
+            (new Anticipos($this->db))->aplicarAlReservar($salonId, $id, (int) $clienteId);
             $notif = new Notificaciones($this->db);
             $notif->nuevaReserva($id);
             $this->db->commit();

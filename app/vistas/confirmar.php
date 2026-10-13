@@ -24,6 +24,9 @@ $waSalon = $salon['telefono'] ? WhatsApp::enlace($salon['telefono'], 'Hola, te e
         <li><span>Con</span><strong><?= e($cita['profesional']) ?></strong></li>
         <li><span>Servicio</span><strong><?= e(implode(' + ', array_column($cita['lista_servicios'], 'nombre'))) ?></strong></li>
         <li><span>Valor a cancelar</span><strong><?= dinero($valor) ?></strong></li>
+        <?php if (in_array($cita['anticipo_estado'], ['pagado', 'usado'], true)): ?>
+            <li><span>Anticipo pagado</span><strong>✅ <?= dinero($cita['anticipo']) ?> (pagas <?= dinero(max(0, $valor - (float) $cita['anticipo'])) ?> en el salón)</strong></li>
+        <?php endif; ?>
         <li><span>Estado</span><strong><span class="etq etq-<?= e($cita['estado']) ?>"><?= $estados[$cita['estado']] ?></span>
             <?= $cita['confirmada_cliente_en'] && $activa ? ' · ya confirmaste' : '' ?></strong></li>
     </ul>
@@ -48,6 +51,51 @@ $waSalon = $salon['telefono'] ? WhatsApp::enlace($salon['telefono'], 'Hola, te e
         </div>
     <?php endif; ?>
 </section>
+
+<?php if ($anticipoConf): $ae = $cita['anticipo_estado']; ?>
+<section class="bloque" id="anticipo">
+    <h2>Anticipo para asegurar tu cita: <?= dinero($cita['anticipo']) ?></h2>
+    <?php if ($ae === 'por_revisar'): ?>
+        <p class="aviso aviso-ok">✅ Recibimos tu comprobante. El salón lo está revisando.</p>
+        <p class="suave">¿Te equivocaste de foto? Puedes subir otra abajo.</p>
+    <?php elseif ($ae === 'rechazado'): ?>
+        <p class="aviso aviso-error">El salón no pudo validar tu comprobante. Revisa los datos y sube otro, o escríbeles.</p>
+    <?php else: ?>
+        <p>Paga el anticipo para que el salón confirme tu cita. Se descuenta del valor total el día de tu cita.</p>
+    <?php endif; ?>
+
+    <?php if ($payphone): ?>
+        <link rel="stylesheet" href="https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.css">
+        <script type="module" src="https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.js"></script>
+        <div id="pp-button" style="margin:12px 0"></div>
+        <script>
+            window.addEventListener('load', function () {
+                if (typeof PPaymentButtonBox === 'undefined') { document.getElementById('pp-button').textContent = 'No se pudo cargar Payphone. Recarga la página.'; return; }
+                new PPaymentButtonBox(<?= json_encode($payphone, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>).render('pp-button');
+            });
+        </script>
+        <a class="boton boton-claro boton-ancho" href="/?r=confirmar&amp;t=<?= e($token) ?>#anticipo">Prefiero transferencia o DeUna</a>
+    <?php else: ?>
+        <?php if ($anticipoConf['payphone_listo'] && $ae !== 'por_revisar'): ?>
+            <a class="boton boton-ancho" href="/?r=confirmar&amp;t=<?= e($token) ?>&amp;pagar=tarjeta#anticipo">💳 Pagar con tarjeta</a>
+        <?php endif; ?>
+        <?php if ($anticipoConf['transferencia_lista']): ?>
+            <h3 style="margin-top:14px">Transferencia o DeUna</h3>
+            <?php if ($anticipoConf['anticipo_banco']): ?><p style="white-space:pre-line;background:#F6F8F7;border-radius:8px;padding:10px"><?= e($anticipoConf['anticipo_banco']) ?></p><?php endif; ?>
+            <?php if ($anticipoConf['anticipo_deuna']): ?><p>DeUna: <strong><?= e($anticipoConf['anticipo_deuna']) ?></strong></p><?php endif; ?>
+            <form method="post" enctype="multipart/form-data"><?= campo_csrf() ?><input type="hidden" name="accion" value="comprobante">
+                <div class="campo"><label for="metodo">¿Cómo pagaste?</label>
+                    <select id="metodo" name="metodo"><option value="transferencia">Transferencia</option><?php if ($anticipoConf['anticipo_deuna']): ?><option value="deuna">DeUna</option><?php endif; ?></select></div>
+                <div class="campo"><label for="comprobante">Foto o captura del comprobante</label>
+                    <input type="file" id="comprobante" name="comprobante" accept="image/*" required></div>
+                <div class="campo"><label for="referencia">Número de comprobante <small>(opcional)</small></label>
+                    <input type="text" id="referencia" name="referencia" maxlength="100"></div>
+                <button class="boton boton-ancho" type="submit">Enviar comprobante</button>
+            </form>
+        <?php endif; ?>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 
 <?php if ($cita['estado'] === 'atendida'): ?>
     <section class="bloque">

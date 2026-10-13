@@ -8,7 +8,7 @@ $menu = [
     'clientes' => ['Clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'],
     'equipo'   => ['Equipo',   'M6 20v-8M6 8V4M12 20v-4M12 12V4M18 20v-10M18 6V4M4 12h4M10 16h4M16 10h4'],
 ];
-$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario'], true);
+$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes'], true);
 $pendientesCampana = 0;
 if ($u) {
     $pendientesCampana = (new \TuSalon\Notificaciones(db()))->sinLeer((int) $u['id']);
@@ -36,11 +36,16 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1E5A4C">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TuSalón">
 <title><?= e($titulo) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=11">
+<link rel="stylesheet" href="/assets/app.css?v=12">
 </head>
 <body class="<?= $u ? 'con-sesion' : 'sin-sesion' ?>">
 <?php if ($u): ?>
@@ -68,6 +73,10 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
         <a href="<?= e(url('reporte')) ?>">Reporte del mes</a>
         <a href="<?= e(url('servicios')) ?>">Servicios y precios</a>
+        <a href="<?= e(url('inventario')) ?>">Inventario</a>
+        <a href="<?= e(url('paquetes')) ?>">Paquetes</a>
+        <a href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a>
+        <a href="<?= e(url('puntos')) ?>">Puntos</a>
         <a href="<?= e(url('horario')) ?>">Horario y reservas en línea</a>
         <a href="<?= e(url('cuentas')) ?>">Cuentas del equipo</a>
         <a href="<?= e(url('completa')) ?>">Mi plan</a>
@@ -100,6 +109,6 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
     <?php endforeach; ?>
     <?= $contenido ?>
 </main>
-<script src="/assets/app.js?v=10" defer></script>
+<script src="/assets/app.js?v=11" defer></script>
 </body>
 </html>

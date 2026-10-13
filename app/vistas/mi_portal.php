@@ -27,6 +27,16 @@ $diaAnterior = '';
     </nav>
 </div>
 
+<div class="instalar-app" data-instalar-app>
+    <img src="/assets/icono-192.png" alt="" width="48" height="48">
+    <div style="flex:1">
+        <p><strong>Instala TuSalón en tu celular</strong></p>
+        <p class="suave" data-ayuda-otro style="font-size:.9rem">En Chrome: menú <strong>⋮</strong> → <strong>Agregar a la pantalla principal</strong>.</p>
+        <p class="suave" data-ayuda-ios hidden style="font-size:.9rem">En el iPhone (Safari): toca <strong>Compartir</strong> <span aria-hidden="true">⬆️</span> → <strong>Agregar a inicio</strong>.</p>
+    </div>
+    <button class="boton boton-chico" type="button" data-instalar hidden>Instalar</button>
+</div>
+
 <div class="rejilla rejilla-3">
     <div class="bloque">
         <div class="cifra"><?= dinero($ganado) ?></div>
@@ -60,6 +70,7 @@ $diaAnterior = '';
                         <div style="flex:1">
                             <div class="principal-linea"><?= e($c['cliente'] ?: 'Sin cliente') ?></div>
                             <div class="linea-sub"><?= e($c['servicios']) ?></div>
+                            <?php if ($c['cliente_id'] && es_completa($u)): ?><a class="linea-sub" href="<?= e(url('ficha', ['cliente' => $c['cliente_id']])) ?>">Ficha técnica</a><?php endif; ?>
                         </div>
                         <?php if ($c['estado'] === 'pendiente'): ?>
                             <a class="etq etq-pendiente" href="<?= e(url('solicitudes')) ?>">Por aceptar</a>

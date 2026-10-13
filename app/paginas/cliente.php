@@ -69,4 +69,17 @@ $faltas = $id ? $agenda->faltas($sid, $id) : 0;
 $st = $pdo->prepare('SELECT max_faltas FROM salones WHERE id = ?');
 $st->execute([$sid]);
 $maxFaltas = (int) $st->fetchColumn();
-vista('cliente', compact('cliente', 'id', 'error', 'historial', 'faltas', 'maxFaltas'), 'Cliente · TuSalón');
+$fidelidad = null;
+if ($id && es_completa($u)) {
+    $fidObj = new TuSalon\Fidelidad($pdo);
+    $st = $pdo->prepare('SELECT count(*) FROM fichas_tecnicas WHERE salon_id = ? AND cliente_id = ?');
+    $st->execute([$sid, $id]);
+    $fidelidad = [
+        'paquetes' => $fidObj->paquetesDeCliente($sid, $id, false),
+        'puntos'   => (int) $cliente['puntos'],
+        'config'   => $fidObj->configPuntos($sid),
+        'movs'     => $fidObj->movimientosPuntos($sid, $id, 8),
+        'fichas'   => (int) $st->fetchColumn(),
+    ];
+}
+vista('cliente', compact('cliente', 'id', 'error', 'historial', 'faltas', 'maxFaltas', 'fidelidad'), 'Cliente · TuSalón');

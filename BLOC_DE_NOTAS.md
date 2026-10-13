@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 6 de octubre de 2026, 20:00
+Última actualización: 12 de octubre de 2026, 22:30
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -31,7 +31,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 | Ficha del cliente | Básica | Ficha técnica de color con fotos |
 | Caja diaria | Sí | Sí |
 | WhatsApp | Con un clic | Con un clic + avisos automáticos por Telegram (WhatsApp automático: pendiente) |
-| Reservas en línea, anticipos (Plux/Payphone) | No | Sí |
+| Reservas en línea, anticipo en línea (transferencia/DeUna con comprobante o tarjeta con Payphone) | No | Sí |
 | Comisiones avanzadas, anticipos, rol de pagos IESS | No | Sí |
 | Cobro automático de arriendo, reparto del porcentaje | No | Sí |
 | Clientes privados del arrendatario, vista doble del dueño | No | Sí |
@@ -57,8 +57,8 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - Se quitó la promesa de "WhatsApp automático" del registro y de la página de planes (todavía no existe)
 - TuGuardería (repo qfcorp/tuguarderia): direcciones cambiadas a tuguarderia.tukanec.com y dogssy.tukanec.com en README, LEEME e instalar.sh
 - HECHO (12 oct 2026): web tukansoftware.com actualizada (TuGuardería, TuSalón como 4.º sistema disponible con botón "Prueba gratis 7 días" al registro). Código en GitHub qfcorp/tukan-web
-- PENDIENTE: Dimitry debe actualizar el servidor (comandos del 6 oct) y en Cloudflare cambiar el Host header de la ruta tusalon.tukanec.com (hoy dice tusalon.qfradioec.com) a tusalon.tukanec.com; si no, TuSalón deja de abrir despues de reinstalar
-- PENDIENTE (revisar con Dimitry): la página de planes aún menciona cosas no hechas: anticipo en línea, inventario, paquetes, tarjetas de regalo, puntos, ficha de color, app del peluquero
+- HECHO (12 oct 2026): servidor actualizado y rutas del túnel con su propio Host header; rutas viejas .qfradioec.com de los 3 programas quitadas
+- HECHO (12 oct 2026): se construyeron las funciones que la página de planes prometía y faltaban (ver 3g)
 
 ## Plan de trabajo
 1. [x] Repositorio qfcorp/tusalon en GitHub con este bloc de notas
@@ -105,6 +105,18 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - Super usuario: se crea en el servidor con `php /var/www/tusalon/bin/crear_admin.php` (la contraseña solo la escribe Dimitry)
     - Migraciones: `db/migraciones/` (el instalador las aplica sin borrar datos)
     - Probado: lógica 227/227, web 175/175, capturas en celular y computadora
+3g. [x] **Pedido del 12 de octubre: lo que faltaba del plan Completa** (migración `db/migraciones/002_completa_extras.sql`)
+    - **Inventario** (Más → Inventario): productos para vender y de uso del salón (tintes), stock inicial, "llegó mercadería" (con costo y factura), "se usó en el salón", corregir conteo, historial, aviso de stock bajo en el inicio, valor del estante. Al cobrar se venden productos y se descuenta el stock (comisión de producto del peluquero)
+    - **Paquetes** (ej. 4 cortes por $50, con vencimiento): se venden a un cliente (entra a la caja ese día) y al cobrar se marca "Usar sesión del paquete" (el peluquero gana su comisión sobre lo que vale cada sesión)
+    - **Tarjetas de regalo**: código único tipo AB12-CD34, saldo, para quién, mensaje, vencimiento; se envía por WhatsApp o se imprime; al cobrar se escribe el código y se descuenta (en una o varias visitas); anular si no se usó
+    - **Puntos**: el dueño decide cuántos puntos por $1, cuánto valen 100 puntos y desde cuántos se canjean; se ganan solos al cobrar (sobre lo que paga ese día, sin propina) y se canjean como descuento; regalar o quitar puntos con motivo
+    - **Ficha técnica de color** (en la ficha del cliente y en el portal del peluquero): trabajo, marca, tono, oxidante, fórmula, tiempo, resultado, notas y fotos de antes y después (solo si el cliente autorizó; solo las ve el personal del salón; se borran datos ocultos). El peluquero ve la ficha de los clientes que atendió o tiene agendados
+    - **Anticipo en línea** (Horario y reservas → Anticipo): a todos, solo a clientes nuevos o solo a quienes faltaron; % o valor fijo. El cliente paga por **transferencia/DeUna subiendo la foto del comprobante** (el dueño la revisa y confirma en la cita) o **con tarjeta por Payphone** (se confirma solo; cada salón pone su Token y Store ID). Mientras no paga, la reserva queda como solicitud; pagado, la hora ya no se libera. Entra a la caja el día que se confirma y se descuenta solo al cobrar
+    - **Caja**: muestra lo cobrado hoy (sin lo que ya estaba pagado con paquete, tarjeta, anticipo o puntos) y una lista aparte de paquetes, tarjetas y anticipos vendidos ese día
+    - **App del peluquero**: TuSalón se instala en el celular desde el navegador (ícono propio, pantalla completa, aviso si no hay internet). Botón "Instalar" en el portal del peluquero y en el inicio del dueño. Sin Play Store
+    - Todo es del plan Completa; en Básica aparece con candado
+    - Probado: **lógica 284/284, web 215/215** (con Payphone simulado), migración probada sobre la base vieja, capturas en celular y computadora
+    - PENDIENTE: probar Payphone con claves reales de un salón (la cajita de pagos y la confirmación están hechas según la documentación de Payphone)
 3b. [x] **TuSalón en línea: https://tusalon.qfradioec.com** (4 oct, 23:20). Instalación en qfcorp (4 oct, 23:08): **hecha** con el instalador de una línea (`deploy/instalar.sh`): base PostgreSQL 18 con 29 tablas, nginx, PHP 8.5, tareas cada hora y respaldo diario 3:15 funcionando (prueba local 200)
     - [x] Cloudflare: ruta `tusalon.qfradioec.com` → `http://localhost:80` agregada en el túnel **servidorqf** (Redes → Conectores → servidorqf → Rutas de aplicaciones publicadas). El config.yml del servidor es solo una plantilla; el túnel se maneja desde la web
     - [ ] Falta: crear el bot de Telegram (docs/TELEGRAM.md)
@@ -114,7 +126,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
-6. [ ] Completa 3: ficha técnica, inventario, fidelidad, importar facturas recibidas del SRI, app del peluquero
+6. [~] Completa 3: ficha técnica, inventario, fidelidad (paquetes, tarjetas, puntos) y app del peluquero HECHOS (3g); falta importar facturas recibidas del SRI
 7. [ ] Cobro de la suscripción (mensual, semestral, anual) y bloqueo de funciones según el plan
 8. [ ] Prueba real en una peluquería, ajustes y lanzamiento en tukansoftware.com
 9. [ ] **Después del programa base:** versión con logo para **Daniel Mendoza Asesores de Imagen** (Quito). Datos y lo que falta conseguir en `docs/CLIENTE_DANIEL_MENDOZA.md`. Falta: logo, colores y fotos (Dimitry los baja de su Facebook/Instagram)
@@ -127,7 +139,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - La Básica de $25 sirve para que la Completa se vea barata (solo $10 más)
 
 ## Mejoras propuestas — ya hechas (ver 3e), salvo el anticipo en línea
-- [ ] Anticipo en línea para clientes nuevos o que faltaron (Payphone/Plux): queda para el paso 4
+- [x] Anticipo en línea para clientes nuevos o que faltaron: hecho (3g), con transferencia/DeUna y Payphone
 
 ### Lista original
 1. Recordatorio automático al cliente el día anterior (WhatsApp o Telegram del cliente) y confirmación con un toque

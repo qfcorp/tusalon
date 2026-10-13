@@ -25,8 +25,14 @@ require __DIR__ . '/../src/Calificaciones.php';
 require __DIR__ . '/../src/Automaticas.php';
 require __DIR__ . '/../src/Altas.php';
 require __DIR__ . '/../src/PanelTukan.php';
+require __DIR__ . '/../src/Inventario.php';
+require __DIR__ . '/../src/Fidelidad.php';
+require __DIR__ . '/../src/Anticipos.php';
+require __DIR__ . '/../src/Cobro.php';
+require __DIR__ . '/../src/FichaTecnica.php';
+require __DIR__ . '/../src/Caja.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas, Altas, PanelTukan};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas, Altas, PanelTukan, Inventario, Fidelidad, Anticipos, Cobro, FichaTecnica, Caja};
 
 $ok = 0;
 $fallos = [];
@@ -734,6 +740,213 @@ $nueva = $panel->nuevaClaveDueno($sp);
 $hash = $db->query("SELECT password_hash FROM usuarios WHERE id = {$alta['usuario_id']}")->fetchColumn();
 check('Nueva contraseña del dueño: funciona y la anterior no', [true, false],
     [password_verify($nueva['clave'], $hash), password_verify('claveMario1', $hash)]);
+
+// ------------------------------------------------------------------
+echo "\n25. Plan Completa: inventario, paquetes, tarjetas de regalo, puntos, anticipo y ficha técnica\n";
+$hoyX = date('Y-m-d');
+$sx = $planes->crearSalon('Spa Las Flores', 'lasflores', 'completa', new DateTimeImmutable($hoyX));
+$duenaX = $prof->agregar($sx, 'Flor (dueña)', 'dueno', [], '2026-01-01');
+$empX = $prof->agregar($sx, 'Vale', 'empleado', ['comision_servicio_pct' => 40, 'comision_producto_pct' => 10], '2026-01-01');
+$db->exec("INSERT INTO servicios (salon_id, nombre, precio) VALUES ($sx, 'Corte dama', 12), ($sx, 'Tinte completo', 45)");
+$corteX = (int) $db->query("SELECT id FROM servicios WHERE salon_id = $sx AND nombre = 'Corte dama'")->fetchColumn();
+$tinteX = (int) $db->query("SELECT id FROM servicios WHERE salon_id = $sx AND nombre = 'Tinte completo'")->fetchColumn();
+$cliX = (int) $db->query("INSERT INTO clientes (salon_id, nombre, telefono) VALUES ($sx, 'Carla Mena', '0991112233') RETURNING id")->fetchColumn();
+$cli2X = (int) $db->query("INSERT INTO clientes (salon_id, nombre, telefono) VALUES ($sx, 'Diana Ruiz', '0994445566') RETURNING id")->fetchColumn();
+$usrDuena = ['rol' => 'dueno', 'salon_id' => $sx, 'profesional_id' => $duenaX, 'id' => null];
+$db->exec("INSERT INTO usuarios (salon_id, nombre, email, password_hash, rol, profesional_id) VALUES ($sx, 'Flor', 'flor@lasflores.ec', 'x', 'dueno', $duenaX)");
+$inv = new Inventario($db);
+$fid = new Fidelidad($db);
+$cobro = new Cobro($db);
+$caja = new Caja($db);
+$cajaHoy = fn() => $caja->resumenDia($sx, $hoyX);
+
+// Inventario
+$shampoo = $inv->guardar($sx, null, ['nombre' => 'Shampoo Keratina', 'marca' => 'Loreal', 'precio' => 18, 'costo' => 9, 'stock' => 5, 'stock_minimo' => 2, 'para_venta' => 1]);
+$tinteP = $inv->guardar($sx, null, ['nombre' => 'Tinte 7.1', 'precio' => 0, 'costo' => 6, 'stock' => 10, 'stock_minimo' => 3, 'para_venta' => 0]);
+check('Inventario: stock inicial anotado', [5, 1], [(int) $inv->producto($sx, $shampoo)['stock'], (int) $db->query("SELECT count(*) FROM movimientos_inventario WHERE producto_id = $shampoo AND tipo = 'inicial'")->fetchColumn()]);
+$inv->entrada($sx, $shampoo, 7, 8.5, 'Factura 001');
+check('Llegó mercadería: suma stock y actualiza costo', [12, '8.50'], [(int) $inv->producto($sx, $shampoo)['stock'], $inv->producto($sx, $shampoo)['costo']]);
+$inv->uso($sx, $tinteP, 8, 'Tintes de la semana');
+check('Uso interno descuenta y avisa stock bajo', [2, true], [(int) $inv->producto($sx, $tinteP)['stock'], in_array($tinteP, array_map('intval', array_column($inv->bajos($sx), 'id')), true)]);
+$err = '';
+try { $inv->uso($sx, $tinteP, 5); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('No deja usar más de lo que hay', true, str_contains($err, 'Solo hay 2'));
+check('Conteo físico: corrige la diferencia', -1, $inv->ajustar($sx, $tinteP, 1, 'Se derramó uno'));
+check('El tinte de uso interno no aparece para vender', [$shampoo], array_map('intval', array_column($inv->paraVender($sx), 'id')));
+check('Valor del inventario (al costo): 12 × 8,50 + 1 × 6', 108.0, $inv->valor($sx)['costo']);
+
+// Cobro con producto
+$r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cliente_id' => $cli2X, 'servicios' => [$corteX => 12],
+                        'productos' => [$shampoo => 2], 'metodo_pago' => 'efectivo', 'completa' => true]);
+check('Cobro con servicio + 2 shampoos = $48', [48.0, 48.0], [$r['total'], $r['a_cobrar']]);
+check('La venta descuenta el stock y lo anota', [10, -2], [(int) $inv->producto($sx, $shampoo)['stock'],
+    (int) $db->query("SELECT cantidad FROM movimientos_inventario WHERE producto_id = $shampoo AND tipo = 'venta'")->fetchColumn()]);
+check('Vale gana 40 % del corte + 10 % de los shampoos', 8.4, (float) $db->query("SELECT sum(ganancia_profesional) FROM venta_items WHERE venta_id = {$r['venta_id']}")->fetchColumn());
+$err = '';
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'servicios' => [], 'productos' => [$shampoo => 50], 'completa' => true]); }
+catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('No deja vender más shampoos de los que hay', true, str_contains($err, 'Solo quedan 10'));
+$err = '';
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'servicios' => [$corteX => 12], 'productos' => [$shampoo => 1], 'completa' => false]); }
+catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('En Básica no se venden productos', true, str_contains($err, 'plan Completa'));
+
+// Paquetes
+$paq = $fid->guardarPaquete($sx, null, ['nombre' => '', 'servicio_id' => $corteX, 'sesiones' => 5, 'precio' => 50, 'vigencia_dias' => 90]);
+$pc = $fid->venderPaquete($sx, $paq, $cliX, 'transferencia');
+$vig = $fid->paquetesDeCliente($sx, $cliX);
+check('Paquete vendido: 5 sesiones a $10 cada una, vence en 90 días', [1, '10.00', 5, (new DateTimeImmutable($hoyX))->modify('+90 days')->format('Y-m-d')],
+    [count($vig), $vig[0]['valor_sesion'], (int) $vig[0]['quedan'], $vig[0]['vence_en']]);
+check('La venta del paquete entra hoy a la caja (transferencia)', 50.0, (float) ($cajaHoy()['por_metodo']['transferencia'] ?? 0));
+$r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12],
+                        'paquetes' => [$corteX => $pc], 'metodo_pago' => 'efectivo', 'completa' => true]);
+check('Usar una sesión: el corte vale $10 del paquete y no cobra nada hoy', [10.0, 10.0, 0.0], [$r['total'], $r['ya_pagado'], $r['a_cobrar']]);
+check('Le quedan 4 sesiones', 4, (int) $fid->paquetesDeCliente($sx, $cliX)[0]['quedan']);
+check('Vale gana su 40 % sobre el valor de la sesión ($4)', 4.0, (float) $db->query("SELECT ganancia_profesional FROM venta_items WHERE venta_id = {$r['venta_id']}")->fetchColumn());
+$err = '';
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cliente_id' => $cliX, 'servicios' => [$tinteX => 45], 'paquetes' => [$tinteX => $pc], 'completa' => true]); }
+catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('El paquete de cortes no sirve para un tinte', true, str_contains($err, 'no incluye ese servicio'));
+$err = '';
+try { $fid->anularPaqueteVendido($sx, $pc); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('No se anula un paquete ya usado', true, str_contains($err, 'todavía no se ha usado'));
+
+// Tarjetas de regalo
+$t = $fid->venderTarjeta($sx, 30, ['de_nombre' => 'Pedro', 'para_nombre' => 'Lucía', 'mensaje' => 'Feliz cumpleaños'], 'efectivo');
+check('Código de tarjeta tipo ABCD-EF23', 1, preg_match('/^[A-Z2-9]{4}-[A-Z2-9]{4}$/', $t['codigo']));
+check('Se encuentra escrita en minúsculas y sin guion', $t['id'], (int) $fid->tarjeta($sx, strtolower(str_replace('-', '', $t['codigo'])))['id']);
+$r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cli2X, 'servicios' => [$tinteX => 45],
+                        'tarjeta_codigo' => $t['codigo'], 'metodo_pago' => 'deuna', 'completa' => true]);
+check('Tinte de $45 con tarjeta de $30: paga $15 hoy y la tarjeta queda en $0', [30.0, 15.0, 0.0],
+    [$r['detalle']['tarjeta'], $r['a_cobrar'], (float) $fid->tarjeta($sx, $t['codigo'])['saldo']]);
+$err = '';
+try { $fid->usarTarjeta($sx, $t['codigo'], 1); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Tarjeta sin saldo no se puede usar', true, str_contains($err, 'solo le quedan'));
+$t2 = $fid->venderTarjeta($sx, 20, [], 'efectivo');
+$r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'servicios' => [$corteX => 12],
+                        'tarjeta_codigo' => $t2['codigo'], 'tarjeta_monto' => '', 'completa' => true]);
+check('Tarjeta de $20 en un corte de $12: le quedan $8', 8.0, (float) $fid->tarjeta($sx, $t2['codigo'])['saldo']);
+$t3 = $fid->venderTarjeta($sx, 25, [], 'efectivo');
+$fid->anularTarjeta($sx, $t3['id']);
+check('Anular tarjeta sin usar: sale de la caja', 0, (int) $db->query("SELECT count(*) FROM ingresos WHERE concepto = 'tarjeta_regalo' AND referencia_id = {$t3['id']} AND NOT anulado")->fetchColumn());
+
+// Puntos
+$fid->guardarConfigPuntos($sx, true, 1, 0.05, 100);
+$r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$tinteX => 45],
+                        'metodo_pago' => 'efectivo', 'propina' => 5, 'completa' => true]);
+check('Gana 1 punto por dólar pagado (sin contar la propina): 45', [45, 45], [$r['puntos_ganados'], (int) $db->query("SELECT puntos FROM clientes WHERE id = $cliX")->fetchColumn()]);
+$fid->ajustarPuntos($sx, $cliX, 100, 'Regalo de bienvenida');
+$err = '';
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12], 'puntos' => 50, 'completa' => true]); }
+catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Menos del mínimo (100) no se canjea', true, str_contains($err, 'desde 100'));
+check('…y si falla, no se cobra nada (todo se deshace)', 145, (int) $db->query("SELECT puntos FROM clientes WHERE id = $cliX")->fetchColumn());
+$r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12],
+                        'puntos' => 145, 'completa' => true]);
+check('Canje: sus 145 puntos valen $7,25; paga $4,75 del corte', [145, 7.25, 4.75],
+    [$r['puntos_usados'], $r['detalle']['puntos'], $r['a_cobrar']]);
+check('Por los $4,75 pagados gana 4 puntos (se redondea hacia abajo)', 4, (int) $db->query("SELECT puntos FROM clientes WHERE id = $cliX")->fetchColumn());
+$err = '';
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12],
+                         'puntos' => 100, 'cobrado_por' => 'profesional', 'completa' => true]); }
+catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Con puntos o prepagos, el cobro va por la caja del local', true, str_contains($err, 'caja del local'));
+
+// Caja del día: solo lo que entró hoy
+$c = $cajaHoy();
+$esperadoEfectivo = 48 + 30 + 20 + 50 + 4.75;    // venta con shampoo + tarjeta $30 + tarjeta $20 + tinte (45 + propina 5) + resto del corte pagado con puntos
+check('Caja: efectivo de hoy suma ventas y tarjetas vendidas, sin lo prepagado', (float) $esperadoEfectivo, $c['efectivo_esperado']);
+check('Caja: lista los ingresos de paquetes y tarjetas', 3, count($c['ingresos']));
+
+// Anticipo
+$ant = new Anticipos($db, sys_get_temp_dir() . '/tusalon_comprobantes_' . getmypid());
+$db->exec("UPDATE salones SET acepta_reservas = 'automatico' WHERE id = $sx");
+$errA = '';
+try { $ant->guardarConfig($sx, ['anticipo_modo' => 'todos', 'anticipo_tipo' => 'porcentaje', 'anticipo_valor' => 30]); }
+catch (RuntimeException $e) { $errA = $e->getMessage(); }
+check('Sin datos de pago no se puede pedir anticipo', true, str_contains($errA, 'datos de transferencia'));
+$ant->guardarConfig($sx, ['anticipo_modo' => 'nuevos', 'anticipo_tipo' => 'porcentaje', 'anticipo_valor' => 30,
+                          'anticipo_banco' => "Banco Pichincha\nAhorros 2200112233\nFlor Mena", 'anticipo_deuna' => '0991234567']);
+check('Cliente con citas atendidas no paga anticipo (solo nuevos)', 0.0, $ant->montoRequerido($sx, $cliX, 45));
+check('Cliente nuevo: 30 % de $45 = $13,50', 13.5, $ant->montoRequerido($sx, $cli2X + 1000, 45));
+$cli3X = (int) $db->query("INSERT INTO clientes (salon_id, nombre, telefono) VALUES ($sx, 'Nueva Clienta', '0997778899') RETURNING id")->fetchColumn();
+$agX = new Agenda($db);
+$manana = (new DateTimeImmutable('tomorrow'))->format('Y-m-d');
+$citaA = $agX->crearCita($sx, $empX, $cli3X, "$manana 10:00", [$tinteX], 'Reservada en línea', [], 'online');
+check('Reserva automática: se reservó sola', 'reservada', $db->query("SELECT estado FROM citas WHERE id = $citaA")->fetchColumn());
+check('Con anticipo: pasa a solicitud hasta que pague', [13.5, 'pendiente', 'pendiente', true],
+    [$ant->aplicarAlReservar($sx, $citaA, $cli3X), $db->query("SELECT estado FROM citas WHERE id = $citaA")->fetchColumn(),
+     $db->query("SELECT anticipo_estado FROM citas WHERE id = $citaA")->fetchColumn(),
+     (bool) $db->query("SELECT expira_en IS NOT NULL FROM citas WHERE id = $citaA")->fetchColumn()]);
+$img = imagecreatetruecolor(40, 30); $tmp = tempnam(sys_get_temp_dir(), 'cmp'); imagejpeg($img, $tmp);
+$ant->subirComprobante($citaA, ['error' => UPLOAD_ERR_OK, 'size' => filesize($tmp), 'tmp_name' => $tmp], 'deuna', 'Ref 5566');
+check('Comprobante subido: queda por revisar y se avisa al salón', ['por_revisar', true],
+    [$db->query("SELECT anticipo_estado FROM citas WHERE id = $citaA")->fetchColumn(),
+     (bool) $db->query("SELECT count(*) FROM notificaciones WHERE cita_id = $citaA AND texto LIKE '%comprobante%'")->fetchColumn()]);
+check('El salón puede ver la foto del comprobante', true, $ant->rutaComprobante($sx, $citaA) !== null);
+check('Otro salón no la puede ver', null, $ant->rutaComprobante($salon, $citaA));
+$ant->rechazarComprobante($sx, $citaA);
+check('Comprobante rechazado: el cliente puede subir otro', 'rechazado', $db->query("SELECT anticipo_estado FROM citas WHERE id = $citaA")->fetchColumn());
+$ant->confirmarPago($sx, $citaA, 'deuna');
+check('Pago confirmado: con reservas automáticas la cita queda reservada y entra a la caja', ['pagado', 'reservada', 13.5],
+    [$db->query("SELECT anticipo_estado FROM citas WHERE id = $citaA")->fetchColumn(), $db->query("SELECT estado FROM citas WHERE id = $citaA")->fetchColumn(),
+     (float) $db->query("SELECT monto FROM ingresos WHERE concepto = 'anticipo' AND referencia_id = $citaA")->fetchColumn()]);
+$ant->confirmarPago($sx, $citaA, 'deuna');
+check('Confirmar dos veces no lo suma dos veces', 1, (int) $db->query("SELECT count(*) FROM ingresos WHERE concepto = 'anticipo' AND referencia_id = $citaA")->fetchColumn());
+$r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cita' => $agX->cita($sx, $citaA), 'servicios' => [$tinteX => 45],
+                        'metodo_pago' => 'efectivo', 'completa' => true]);
+check('Al cobrar se descuenta el anticipo: paga $31,50', [13.5, 31.5, 'usado', 'atendida'],
+    [$r['detalle']['anticipo'], $r['a_cobrar'], $db->query("SELECT anticipo_estado FROM citas WHERE id = $citaA")->fetchColumn(),
+     $db->query("SELECT estado FROM citas WHERE id = $citaA")->fetchColumn()]);
+
+// Payphone (con respuesta simulada)
+$db->exec("UPDATE salones SET payphone_token = 'tok_prueba', payphone_store_id = 'store-1' WHERE id = $sx");
+$cli4X = (int) $db->query("INSERT INTO clientes (salon_id, nombre, telefono) VALUES ($sx, 'Paga Con Tarjeta', '0990001122') RETURNING id")->fetchColumn();
+$citaP = $agX->crearCita($sx, $empX, $cli4X, "$manana 15:00", [$corteX], 'Reservada en línea', [], 'online');
+$ant->aplicarAlReservar($sx, $citaP, $cli4X);
+$pp = $ant->prepararPayphone($citaP);
+check('Payphone: 30 % de $12 = 360 centavos', [360, 'store-1'], [$pp['amount'], $pp['storeId']]);
+[$est] = $ant->confirmarPayphone(999, $pp['clientTransactionId'], fn() => ['transactionStatus' => 'Approved', 'amount' => 100, 'clientTransactionId' => $pp['clientTransactionId']]);
+check('Payphone con monto distinto: no se acepta', ['no_aprobado', 'pendiente'], [$est, $db->query("SELECT anticipo_estado FROM citas WHERE id = $citaP")->fetchColumn()]);
+$llamada = [];
+[$est, $tok] = $ant->confirmarPayphone(999, $pp['clientTransactionId'], function ($url, $cuerpo, $token) use (&$llamada, $pp) {
+    $llamada = [$url, $cuerpo['clientTxId'], $token];
+    return ['transactionStatus' => 'Approved', 'amount' => 360, 'clientTransactionId' => $pp['clientTransactionId'], 'transactionId' => 777];
+});
+check('Payphone aprobado: confirma con el token del salón y queda pagado', ['aprobado', 'https://pay.payphonetodoesposible.com/api/button/V2/Confirm', 'tok_prueba', 'pagado', 'payphone'],
+    [$est, $llamada[0], $llamada[2], $db->query("SELECT anticipo_estado FROM citas WHERE id = $citaP")->fetchColumn(), $db->query("SELECT anticipo_metodo FROM citas WHERE id = $citaP")->fetchColumn()]);
+$err = '';
+try { $ant->confirmarPayphone(1, 'TS' . $citaP . '-deadbeef', fn() => ['transactionStatus' => 'Approved', 'amount' => 360]); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Un código de pago inventado no se acepta', 'Pago no reconocido.', $err);
+
+// Ficha técnica
+$ft = new FichaTecnica($db, sys_get_temp_dir() . '/tusalon_fichas_' . getmypid());
+$usrVale = ['rol' => 'profesional', 'salon_id' => $sx, 'profesional_id' => $empX, 'id' => null];
+$usrDiana = $cli2X;
+$err = '';
+try { $ft->guardar($sx, $cliX, $usrVale, ['servicio' => 'Tinte', 'tono' => '7.1']); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Ficha: Vale atendió a Carla, puede escribir su ficha', '', $err);
+$err = '';
+try { $ft->guardar($sx, $cli4X, ['rol' => 'profesional', 'salon_id' => $sx, 'profesional_id' => $duenaX], ['tono' => '5']); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Un peluquero que nunca atendió al cliente no ve su ficha', true, str_contains($err, 'No puedes'));
+$img2 = imagecreatetruecolor(50, 50); $tmp2 = tempnam(sys_get_temp_dir(), 'fa'); imagejpeg($img2, $tmp2);
+$foto = ['error' => UPLOAD_ERR_OK, 'size' => filesize($tmp2), 'tmp_name' => $tmp2];
+$err = '';
+try { $ft->guardar($sx, $cliX, $usrDuena, ['servicio' => 'Balayage', 'formula' => '30 g 8.1 + 30 ml 20 vol'], ['antes' => $foto]); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Sin autorización del cliente no se guardan fotos', true, str_contains($err, 'autorizó'));
+$fId = $ft->guardar($sx, $cliX, $usrDuena, ['servicio' => 'Balayage', 'marca_tinte' => 'Igora', 'tono' => '8.1', 'oxidante' => '20 vol',
+    'formula' => '30 g 8.1 + 30 ml 20 vol', 'tiempo_minutos' => 35, 'profesional_id' => $empX, 'autoriza_fotos' => 1],
+    ['antes' => $foto, 'despues' => ['error' => UPLOAD_ERR_NO_FILE]]);
+$fichas = $ft->deCliente($sx, $cliX);
+check('Ficha con fórmula y foto de antes', [2, 'Igora', 35, true, null],
+    [count($fichas), $fichas[0]['marca_tinte'], (int) $fichas[0]['tiempo_minutos'], $fichas[0]['foto_antes'] !== null, $fichas[0]['foto_despues']]);
+check('La foto la ve el personal del salón', true, $ft->rutaFoto($fId, 'antes', $usrDuena) !== null);
+check('Alguien de otro salón no la ve', null, $ft->rutaFoto($fId, 'antes', ['rol' => 'dueno', 'salon_id' => $salon, 'profesional_id' => null]));
+$err = '';
+try { $ft->borrar($sx, $fId, ['rol' => 'profesional', 'salon_id' => $sx, 'profesional_id' => $duenaX]); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Solo quien la hizo o el dueño la borra', true, str_contains($err, 'Solo quien'));
+$ft->borrar($sx, $fId, $usrDuena);
+check('El dueño la borra (y su foto)', 1, count($ft->deCliente($sx, $cliX)));
 
 // ------------------------------------------------------------------
 echo "\n" . str_repeat('=', 50) . "\n";
