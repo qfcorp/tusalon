@@ -642,6 +642,11 @@ check "Una compra sin verificar con Google se rechaza" "422" "$code"
 check "Y el plan no cambia" "0" "$(sql "SELECT count(*) FROM google_play_compras")"
 code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"csrf":"malo"}' "$BASE/?r=play_compra")
 check "Sin el código de seguridad se rechaza" "400" "$code"
+JAR="$TMP/c_privacidad"
+check "Política de privacidad abre sin cuenta" "200" "$(get "r=privacidad")"
+contiene "La política explica cómo borrar la cuenta" "$TMP/pag.html" "Borrar mi cuenta de TuSalón"
+get "r=login" > /dev/null
+contiene "El login enlaza la política de privacidad" "$TMP/pag.html" "r=privacidad"
 
 echo
 echo "=================================================="

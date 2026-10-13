@@ -15,7 +15,7 @@ if (($_GET['app'] ?? '') === 'play') {
     marcar_app_play();
 }
 
-$publicas = ['login', 'registro', 'reservar', 'horas', 'cliente_entrar', 'cliente_salir', 'mi_cuenta', 'foto', 'telegram', 'confirmar', 'payphone'];
+$publicas = ['login', 'registro', 'reservar', 'horas', 'cliente_entrar', 'cliente_salir', 'mi_cuenta', 'foto', 'telegram', 'confirmar', 'payphone', 'privacidad'];
 $privadas = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 'servicios', 'equipo',
              'caja', 'cobrar', 'cuentas', 'completa', 'salir', 'prueba_terminada', 'horario', 'solicitudes', 'mi_portal', 'fotos',
              'horario_peluquero', 'avisos_clientes', 'reporte',
