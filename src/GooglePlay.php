@@ -41,6 +41,15 @@ final class GooglePlay
         return (string) (getenv('GOOGLE_PLAY_PAQUETE') ?: 'com.tukansoftware.tusalon');
     }
 
+    /**
+     * Interruptor general. La app de Google Play queda APAGADA hasta que el instalador
+     * la active (pregunta "Activar la app de Google Play?" y guarda GOOGLE_PLAY_ACTIVO=1 en config/.env).
+     */
+    public static function activo(): bool
+    {
+        return getenv('GOOGLE_PLAY_ACTIVO') === '1';
+    }
+
     public static function configurado(): bool
     {
         $f = (string) getenv('GOOGLE_PLAY_CUENTA');

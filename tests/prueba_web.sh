@@ -2,7 +2,8 @@
 # Prueba de punta a punta de las pantallas de TuSalón, como lo haría un dueño.
 # Requiere: el sitio corriendo en $BASE y acceso psql a la base de prueba.
 # Uso: BASE=http://127.0.0.1:8099 DB=tusalon_web_prueba bash tests/prueba_web.sh
-# Servidor de prueba: php -S 127.0.0.1:8099 -t public tests/router.php
+# Servidor de prueba: GOOGLE_PLAY_ACTIVO=1 php -S 127.0.0.1:8099 -t public tests/router.php
+# Opcional, Google Play apagado: php -S 127.0.0.1:8100 -t public tests/router.php y BASE_APAGADA=http://127.0.0.1:8100
 set -u
 BASE=${BASE:-http://127.0.0.1:8099}
 DB=${DB:-tusalon_web_prueba}
@@ -647,6 +648,16 @@ check "Política de privacidad abre sin cuenta" "200" "$(get "r=privacidad")"
 contiene "La política explica cómo borrar la cuenta" "$TMP/pag.html" "Borrar mi cuenta de TuSalón"
 get "r=login" > /dev/null
 contiene "El login enlaza la política de privacidad" "$TMP/pag.html" "r=privacidad"
+
+if [ -n "${BASE_APAGADA:-}" ]; then
+echo "24. Google Play APAGADO (como queda hasta decidir publicar)"
+check "Sin assetlinks" "404" "$(curl -s -o /dev/null -w '%{http_code}' "$BASE_APAGADA/.well-known/assetlinks.json")"
+JAR=$JAR_DUENA
+curl -s -b "$JAR" -o "$TMP/pag.html" "$BASE_APAGADA/?r=completa&app=play"
+contiene "Aunque abra como app, se paga como siempre (WhatsApp)" "$TMP/pag.html" "wa.me/"
+if grep -q 'id="pago-play"' "$TMP/pag.html"; then check "No aparece el pago con Google" "no" "si"; else check "No aparece el pago con Google" "no" "no"; fi
+check "El aviso de compra de Google no funciona" "404" "$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' -X POST -d '{}' "$BASE_APAGADA/?r=play_compra")"
+fi
 
 echo
 echo "=================================================="

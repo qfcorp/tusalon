@@ -9,6 +9,20 @@ Cuando el dueño abre TuSalón **desde la app de Google Play**, el sistema:
 
 En la web normal (navegador) todo sigue igual: precio web y pago por WhatsApp/transferencia.
 
+## 0. Está APAGADA hasta que decidas publicar
+
+Todo lo de Google Play está en el código y se sigue actualizando con cada cambio, pero queda **apagado**.
+Cada vez que corres el instalador, al llegar a la configuración pregunta:
+
+```
+Activar la app de Google Play esta vez? escribe si o no [no]:
+```
+
+- **no** (o Enter, o no contestas en 2 minutos): queda apagada. TuSalón funciona igual que siempre.
+- **si**: se enciende (aparece `/.well-known/assetlinks.json` y el pago con Google dentro de la app). Una vez encendida, el instalador la mantiene encendida si solo das Enter.
+
+Para ver cómo está: **Panel Tukán → Planes → Google Play** ("activada" o "apagada").
+
 ---
 
 ## 1. Productos (suscripciones) que hay que crear en Play Console

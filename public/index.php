@@ -5,13 +5,14 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 
 // Enlace de la app de Android con este sitio (Digital Asset Links)
 if (parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) === '/.well-known/assetlinks.json') {
+    if (!\TuSalon\GooglePlay::activo()) { http_response_code(404); exit; }
     header('Content-Type: application/json');
     header('Access-Control-Allow-Origin: *');
     echo json_encode(\TuSalon\GooglePlay::assetlinks(), JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     exit;
 }
 // La app de Google Play abre el sistema con ?app=play: se recuerda para mostrar el cobro de Google
-if (($_GET['app'] ?? '') === 'play') {
+if (($_GET['app'] ?? '') === 'play' && \TuSalon\GooglePlay::activo()) {
     marcar_app_play();
 }
 

@@ -271,6 +271,7 @@ function metodos_pago(): array
 /** ¿Se está usando desde la app de Google Play? (ahí los planes se pagan con Google y no se muestran los precios de la web) */
 function en_app_play(): bool
 {
+    if (!\TuSalon\GooglePlay::activo()) return false;   // apagada hasta que se decida publicar
     return ($_COOKIE['canal'] ?? '') === 'play' || !empty($_SESSION['app_play']);
 }
 

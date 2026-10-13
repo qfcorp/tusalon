@@ -35,6 +35,6 @@ $ahora = new DateTimeImmutable($argv[1] ?? 'now');
 $db = TuSalon\Db::conectar();
 $r = (new TuSalon\Automaticas($db))->correr($ahora);
 // Planes pagados en la app de Google Play: renovaciones y cancelaciones
-$gp = (new TuSalon\GooglePlay($db))->revisarRenovaciones($ahora);
+$gp = TuSalon\GooglePlay::activo() ? (new TuSalon\GooglePlay($db))->revisarRenovaciones($ahora) : ['renovadas' => 0, 'revisadas' => 0];
 echo $ahora->format('Y-m-d H:i') . " · salones {$r['salones']} · recordatorios {$r['recordatorios']} · cumpleaños {$r['cumpleanos']}"
    . " · calificaciones {$r['calificaciones']} · reportes {$r['reportes']} · google play {$gp['renovadas']}/{$gp['revisadas']}\n";

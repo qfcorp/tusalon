@@ -61,6 +61,25 @@ if [ -f "$APP/config/.env" ]; then   # conservar los datos de Telegram y Google 
 fi
 # Huella de la llave con que se firma la app de Android (es publica). Google Play agrega la suya despues.
 echo "$TG" | grep -q '^TWA_SHA256=' || TG="$(printf '%s\nTWA_SHA256=%s' "$TG" '39:0C:08:10:D4:40:C1:71:C4:30:C8:D0:F1:93:7B:8F:E4:37:03:25:27:2E:B2:F6:2E:4E:A6:5E:01:98:40:DC')"
+# App de Google Play: queda apagada hasta que se decida publicarla. Se pregunta en cada instalacion.
+GP_ANTES=no
+echo "$TG" | grep -q '^GOOGLE_PLAY_ACTIVO=1' && GP_ANTES=si
+TG="$(echo "$TG" | grep -v '^GOOGLE_PLAY_ACTIVO=' || true)"
+GP="${GOOGLE_PLAY:-}"
+if [ -z "$GP" ]; then
+  echo
+  echo "   App de Google Play (Android). Ahora esta: $GP_ANTES"
+  echo "   Si contestas no, todo funciona igual que siempre (sin la app de Google Play)."
+  if [ -r /dev/tty ]; then
+    printf '   Activar la app de Google Play esta vez? escribe si o no [%s]: ' "$GP_ANTES"
+    read -r -t 120 GP < /dev/tty 2>/dev/null || GP=""
+  fi
+  [ -z "$GP" ] && GP="$GP_ANTES"
+fi
+case "$(echo "$GP" | tr 'A-Z' 'a-z')" in
+  si|s|yes|y) GP=si; TG="$(printf '%s\nGOOGLE_PLAY_ACTIVO=1' "$TG")"; echo "   Google Play: ACTIVADA" ;;
+  *) GP=no; echo "   Google Play: apagada (todavia no se publica)" ;;
+esac
 {
   echo "TUSALON_DB_HOST=127.0.0.1"
   echo "TUSALON_DB_NAME=tusalon"

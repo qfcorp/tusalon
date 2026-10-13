@@ -75,6 +75,7 @@ $gpConf = TuSalon\GooglePlay::configurado();
         <?php endforeach; endforeach; ?>
         </tbody>
     </table></div>
+    <p>App de Google Play en este servidor: <?= TuSalon\GooglePlay::activo() ? '<span class="etq etq-confirmada">activada</span>' : '<span class="etq etq-reservada">apagada (se activa con el instalador)</span>' ?></p>
     <p>Paquete de la app: <code><?= e(TuSalon\GooglePlay::paquete()) ?></code> ·
         Cuenta de servicio de Google: <?= $gpConf ? '<span class="etq etq-confirmada">configurada</span>' : '<span class="etq etq-reservada">falta (ver docs/GOOGLE_PLAY.md)</span>' ?></p>
 </section>

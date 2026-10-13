@@ -6,6 +6,7 @@ use TuSalon\GooglePlay;
  * Recibe JSON {producto, token, csrf} y responde JSON. Se verifica con Google antes de activar nada.
  */
 header('Content-Type: application/json; charset=utf-8');
+if (!GooglePlay::activo()) { http_response_code(404); echo json_encode(['ok' => false, 'error' => 'El pago con Google Play no está activo.']); return; }
 if (!es_post()) { http_response_code(405); echo json_encode(['ok' => false]); return; }
 $d = json_decode((string) file_get_contents('php://input'), true) ?: [];
 if (!hash_equals(token_csrf(), (string) ($d['csrf'] ?? ''))) { http_response_code(400); echo json_encode(['ok' => false, 'error' => 'La página caducó. Recárgala.']); return; }
