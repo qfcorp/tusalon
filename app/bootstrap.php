@@ -267,3 +267,19 @@ function metodos_pago(): array
 {
     return ['efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'tarjeta' => 'Tarjeta', 'payphone' => 'Payphone', 'plux' => 'Plux'];
 }
+
+/** ¿Se está usando desde la app de Google Play? (ahí los planes se pagan con Google y no se muestran los precios de la web) */
+function en_app_play(): bool
+{
+    return ($_COOKIE['canal'] ?? '') === 'play' || !empty($_SESSION['app_play']);
+}
+
+function marcar_app_play(): void
+{
+    $_SESSION['app_play'] = true;
+    $_COOKIE['canal'] = 'play';
+    if (!headers_sent()) {
+        setcookie('canal', 'play', ['expires' => time() + 400 * 86400, 'path' => '/', 'samesite' => 'Lax', 'httponly' => true,
+                                    'secure' => (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')]);
+    }
+}

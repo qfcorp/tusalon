@@ -12,7 +12,7 @@ $titulos = [
     <p><?= e($texto) ?></p>
     <div class="acciones">
         <a class="boton" href="<?= e(url('completa')) ?>">Ver planes</a>
-        <a class="boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode("Hola, $motivo de TuSalón (" . $u['salon'] . ') y quiero contratar un plan.') ?>" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+        <?php if (!en_app_play()): ?><a class="boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode("Hola, $motivo de TuSalón (" . $u['salon'] . ') y quiero contratar un plan.') ?>" target="_blank" rel="noopener">Escribir por WhatsApp</a><?php endif; ?>
         <a class="boton boton-claro" href="<?= e(url('salir')) ?>">Cerrar sesión</a>
     </div>
 </section>

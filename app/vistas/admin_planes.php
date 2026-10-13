@@ -57,3 +57,24 @@
     </div>
     <button class="boton" type="submit">Guardar ajustes</button>
 </form>
+
+<?php
+$gpConf = TuSalon\GooglePlay::configurado();
+?>
+<section class="bloque">
+    <h2>Precios para Google Play (app de Android)</h2>
+    <p class="suave">En la app de Google Play los planes se pagan con Google, que cobra el 15 % en Ecuador. Estos son los precios sugeridos para que te quede lo mismo que en la web.
+        Los precios reales se ponen en <strong>Play Console → Monetizar → Suscripciones</strong>, con estos códigos de producto.</p>
+    <div class="desliza"><table class="tabla">
+        <thead><tr><th>Código del producto en Google Play</th><th class="der">Precio web</th><th class="der">Precio sugerido en Google Play</th></tr></thead>
+        <tbody>
+        <?php foreach ($lista as $p): foreach (['mensual', 'semestral', 'anual'] as $pe):
+            $web = (float) $tabla[$p['codigo']][$pe]['monto']; ?>
+            <tr><td><code><?= e(TuSalon\GooglePlay::producto($p['codigo'], $pe)) ?></code><br><small><?= e($p['nombre']) ?> · <?= $pe === 'mensual' ? 'cada mes' : ($pe === 'semestral' ? 'cada 6 meses' : 'cada año') ?></small></td>
+                <td class="der"><?= dinero($web) ?></td><td class="der"><strong><?= dinero(TuSalon\GooglePlay::precioSugerido($web)) ?></strong></td></tr>
+        <?php endforeach; endforeach; ?>
+        </tbody>
+    </table></div>
+    <p>Paquete de la app: <code><?= e(TuSalon\GooglePlay::paquete()) ?></code> ·
+        Cuenta de servicio de Google: <?= $gpConf ? '<span class="etq etq-confirmada">configurada</span>' : '<span class="etq etq-reservada">falta (ver docs/GOOGLE_PLAY.md)</span>' ?></p>
+</section>

@@ -56,9 +56,11 @@ done
 
 echo "== 4. Configuración"
 TG=""
-if [ -f "$APP/config/.env" ]; then   # conservar los datos de Telegram si ya estaban
-  TG="$(grep -E '^TELEGRAM_' "$APP/config/.env" || true)"
+if [ -f "$APP/config/.env" ]; then   # conservar los datos de Telegram y Google Play si ya estaban
+  TG="$(grep -E '^(TELEGRAM_|GOOGLE_PLAY_|TWA_)' "$APP/config/.env" || true)"
 fi
+# Huella de la llave con que se firma la app de Android (es publica). Google Play agrega la suya despues.
+echo "$TG" | grep -q '^TWA_SHA256=' || TG="$(printf '%s\nTWA_SHA256=%s' "$TG" '39:0C:08:10:D4:40:C1:71:C4:30:C8:D0:F1:93:7B:8F:E4:37:03:25:27:2E:B2:F6:2E:4E:A6:5E:01:98:40:DC')"
 {
   echo "TUSALON_DB_HOST=127.0.0.1"
   echo "TUSALON_DB_NAME=tusalon"
@@ -85,6 +87,9 @@ server {
     location /assets/ {
         expires 7d;
         try_files \$uri =404;
+    }
+    location ^~ /.well-known/ {
+        try_files \$uri /index.php\$is_args\$args;
     }
     location ~ /\. { deny all; }
     location ~ \.php\$ {

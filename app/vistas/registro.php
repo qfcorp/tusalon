@@ -40,12 +40,12 @@
         <div class="opciones">
             <label class="opcion">
                 <input type="radio" name="plan" value="completa" <?= $d['plan'] === 'completa' ? 'checked' : '' ?>>
-                <span><strong>Completa · <?= precio_plan('completa') ?> al mes</strong>
+                <span><strong>Completa<?= en_app_play() ? '' : ' · ' . precio_plan('completa') . ' al mes' ?></strong>
                     <small>Todo: reservas en línea, comisiones, arriendo de sillas, gastos.</small></span>
             </label>
             <label class="opcion">
                 <input type="radio" name="plan" value="basica" <?= $d['plan'] === 'basica' ? 'checked' : '' ?>>
-                <span><strong>Básica · <?= precio_plan('basica') ?> al mes</strong>
+                <span><strong>Básica<?= en_app_play() ? '' : ' · ' . precio_plan('basica') . ' al mes' ?></strong>
                     <small>Agenda, clientes y caja, hasta 3 personas.</small></span>
             </label>
         </div>

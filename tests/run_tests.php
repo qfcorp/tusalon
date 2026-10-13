@@ -31,8 +31,9 @@ require __DIR__ . '/../src/Anticipos.php';
 require __DIR__ . '/../src/Cobro.php';
 require __DIR__ . '/../src/FichaTecnica.php';
 require __DIR__ . '/../src/Caja.php';
+require __DIR__ . '/../src/GooglePlay.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas, Altas, PanelTukan, Inventario, Fidelidad, Anticipos, Cobro, FichaTecnica, Caja};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas, Altas, PanelTukan, Inventario, Fidelidad, Anticipos, Cobro, FichaTecnica, Caja, GooglePlay};
 
 $ok = 0;
 $fallos = [];
@@ -947,6 +948,91 @@ try { $ft->borrar($sx, $fId, ['rol' => 'profesional', 'salon_id' => $sx, 'profes
 check('Solo quien la hizo o el dueño la borra', true, str_contains($err, 'Solo quien'));
 $ft->borrar($sx, $fId, $usrDuena);
 check('El dueño la borra (y su foto)', 1, count($ft->deCliente($sx, $cliX)));
+
+// ------------------------------------------------------------------
+echo "\n26. Planes pagados con Google Play (app de Android)\n";
+check('Código del producto', 'tusalon_completa_mensual', GooglePlay::producto('completa', 'mensual'));
+check('Leer el código', ['basica', 'anual'], GooglePlay::leerProducto('tusalon_basica_anual'));
+check('Un código ajeno no se acepta', null, GooglePlay::leerProducto('otra_app_plan'));
+check('Precio sugerido: $35 en la web -> $41,99 en Google Play', 41.99, GooglePlay::precioSugerido(35));
+check('Precio sugerido: $25 -> $29,99', 29.99, GooglePlay::precioSugerido(25));
+check('Semestral Completa $175 -> $205,99', 205.99, GooglePlay::precioSugerido(175));
+// Cuenta de servicio de prueba (llave RSA nueva) y Google simulado
+$llave = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+openssl_pkey_export($llave, $pem);
+$pub = openssl_pkey_get_details($llave)['key'];
+$cuentaArchivo = sys_get_temp_dir() . '/gp_cuenta_' . getmypid() . '.json';
+file_put_contents($cuentaArchivo, json_encode(['client_email' => 'tusalon@proyecto.iam.gserviceaccount.com', 'private_key' => $pem, 'token_uri' => 'https://oauth2.googleapis.com/token']));
+putenv("GOOGLE_PLAY_CUENTA=$cuentaArchivo");
+putenv('GOOGLE_PLAY_PAQUETE=com.tukansoftware.tusalon');
+$expiraG = (new DateTimeImmutable('+1 month'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z');
+$gEstado = ['subscriptionState' => 'SUBSCRIPTION_STATE_ACTIVE', 'latestOrderId' => 'GPA.1234-5678', 'acknowledgementState' => 'ACKNOWLEDGEMENT_STATE_PENDING',
+            'lineItems' => [['productId' => 'tusalon_completa_mensual', 'expiryTime' => $expiraG,
+                             'autoRenewingPlan' => ['autoRenewEnabled' => true, 'recurringPrice' => ['currencyCode' => 'USD', 'units' => '41', 'nanos' => 990000000]]]]];
+$llamadas = [];
+$fake = function (string $metodo, string $url, ?array $cuerpo, array $cab) use (&$llamadas, &$gEstado, $pub) {
+    $llamadas[] = [$metodo, $url];
+    if (str_contains($url, 'oauth2')) {
+        [$h, $d, $f] = explode('.', $cuerpo['assertion']);
+        $ok = openssl_verify("$h.$d", base64_decode(strtr($f, '-_', '+/')), $pub, OPENSSL_ALGO_SHA256) === 1;
+        $datos = json_decode(base64_decode(strtr($d, '-_', '+/')), true);
+        return $ok && $datos['scope'] === 'https://www.googleapis.com/auth/androidpublisher' ? [200, ['access_token' => 'tok-ok']] : [401, []];
+    }
+    if (!in_array('Authorization: Bearer tok-ok', $cab, true)) return [401, []];
+    if (str_contains($url, ':acknowledge')) return [200, []];
+    if (str_contains($url, 'tokens/token-falso')) return [404, []];
+    return [200, $gEstado];
+};
+$sGp = $planes->crearSalon('Barbería Play', 'barberia-play', 'basica', new DateTimeImmutable('today'));
+$gp = new GooglePlay($db, $fake);
+$r = $gp->registrarCompra($sGp, 'tusalon_completa_mensual', 'token-bueno');
+$fila = $db->query("SELECT estado, plan_codigo, activo_hasta FROM salones WHERE id = $sGp")->fetch();
+check('Compra verificada con Google: el salón pasa a Completa, activo hasta la fecha de Google',
+    ['activo', 'completa', substr((new DateTimeImmutable($expiraG))->setTimezone(new DateTimeZone('America/Guayaquil'))->format('Y-m-d'), 0, 10)],
+    [$fila['estado'], $fila['plan_codigo'], $fila['activo_hasta']]);
+check('Se firmó la llave y se pidió permiso a Google (JWT RS256)', true, str_contains($llamadas[0][1], 'oauth2'));
+check('Se confirmó el recibo a Google (si no, Google devuelve el dinero)', true, (bool) array_filter($llamadas, fn($l) => str_contains($l[1], ':acknowledge')));
+check('El pago queda registrado con el precio de Google ($41,99)', ['google_play', '41.99'],
+    array_values($db->query("SELECT metodo_pago, monto FROM suscripciones WHERE salon_id = $sGp")->fetch(PDO::FETCH_NUM)));
+$gp->registrarCompra($sGp, 'tusalon_completa_mensual', 'token-bueno');
+check('Registrar la misma compra otra vez no duplica el pago', 1, (int) $db->query("SELECT count(*) FROM suscripciones WHERE salon_id = $sGp")->fetchColumn());
+$sOtro = $planes->crearSalon('Otro Salón', 'otro-salon-gp', 'basica', new DateTimeImmutable('today'));
+$err = '';
+try { $gp->registrarCompra($sOtro, 'tusalon_completa_mensual', 'token-bueno'); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Una compra no se puede usar en otro salón', 'Esa compra pertenece a otro salón.', $err);
+$err = '';
+try { $gp->registrarCompra($sOtro, 'tusalon_basica_mensual', 'token-otro'); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Si el código no coincide con lo que dice Google, se rechaza', 'La compra no corresponde a ese plan.', $err);
+$err = '';
+try { $gp->registrarCompra($sOtro, 'tusalon_completa_mensual', 'token-falso'); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Un código inventado: Google no lo reconoce', 'Google no reconoce esa compra.', $err);
+$gEstado['subscriptionState'] = 'SUBSCRIPTION_STATE_EXPIRED';
+$err = '';
+try { $gp->registrarCompra($sOtro, 'tusalon_completa_mensual', 'token-vencido'); } catch (RuntimeException $e) { $err = $e->getMessage(); }
+check('Una suscripción vencida no activa nada', true, str_contains($err, 'no está activa'));
+// Renovación: Google renovó un mes más
+$gEstado['subscriptionState'] = 'SUBSCRIPTION_STATE_ACTIVE';
+$nuevaExp = (new DateTimeImmutable('+2 months'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s.000\Z');
+$gEstado['lineItems'][0]['expiryTime'] = $nuevaExp;
+$db->exec("UPDATE google_play_compras SET expira = now() + interval '2 hours', revisado_en = now() - interval '2 hours' WHERE salon_id = $sGp");
+$rev = (new GooglePlay($db, $fake))->revisarRenovaciones();
+check('Tarea automática: Google renovó, el plan se extiende otro mes', [1, 2, (new DateTimeImmutable($nuevaExp))->setTimezone(new DateTimeZone('America/Guayaquil'))->format('Y-m-d')],
+    [$rev['renovadas'], (int) $db->query("SELECT count(*) FROM suscripciones WHERE salon_id = $sGp")->fetchColumn(),
+     $db->query("SELECT activo_hasta FROM salones WHERE id = $sGp")->fetchColumn()]);
+// Cancelada: se anota y no se extiende
+$gEstado['subscriptionState'] = 'SUBSCRIPTION_STATE_CANCELED';
+$gEstado['lineItems'][0]['autoRenewingPlan']['autoRenewEnabled'] = false;
+$db->exec("UPDATE google_play_compras SET expira = now() + interval '2 hours', revisado_en = now() - interval '2 hours' WHERE salon_id = $sGp");
+(new GooglePlay($db, $fake))->revisarRenovaciones();
+check('Si el dueño cancela, se anota y no se suma otro pago', ['SUBSCRIPTION_STATE_CANCELED', 2],
+    [$db->query("SELECT estado FROM google_play_compras WHERE salon_id = $sGp")->fetchColumn(), (int) $db->query("SELECT count(*) FROM suscripciones WHERE salon_id = $sGp")->fetchColumn()]);
+// Enlace de la app con el sitio
+putenv('TWA_SHA256=AA:BB:CC, DD:EE:FF');
+$al = GooglePlay::assetlinks();
+check('assetlinks.json con el paquete y las 2 huellas', ['com.tukansoftware.tusalon', ['AA:BB:CC', 'DD:EE:FF']],
+    [$al[0]['target']['package_name'], $al[0]['target']['sha256_cert_fingerprints']]);
+putenv('TWA_SHA256'); putenv('GOOGLE_PLAY_CUENTA'); putenv('GOOGLE_PLAY_PAQUETE');
+@unlink($cuentaArchivo);
 
 // ------------------------------------------------------------------
 echo "\n" . str_repeat('=', 50) . "\n";

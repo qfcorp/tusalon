@@ -2,6 +2,7 @@
 # Prueba de punta a punta de las pantallas de TuSalón, como lo haría un dueño.
 # Requiere: el sitio corriendo en $BASE y acceso psql a la base de prueba.
 # Uso: BASE=http://127.0.0.1:8099 DB=tusalon_web_prueba bash tests/prueba_web.sh
+# Servidor de prueba: php -S 127.0.0.1:8099 -t public tests/router.php
 set -u
 BASE=${BASE:-http://127.0.0.1:8099}
 DB=${DB:-tusalon_web_prueba}
@@ -612,13 +613,35 @@ get "r=mi_portal" > /dev/null
 contiene "El portal del peluquero ofrece instalar la app" "$TMP/pag.html" "Instala TuSalón en tu celular"
 contiene "El diseño enlaza el manifest" "$TMP/pag.html" 'rel="manifest"'
 
-echo "13. Telegram: solo acepta avisos con el texto secreto"
+echo "22. Telegram: solo acepta avisos con el texto secreto"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' "$BASE/?r=telegram")
 check "Sin el texto secreto, se rechaza" "403" "$code"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "X-Telegram-Bot-Api-Secret-Token: equivocado" -d '{}' "$BASE/?r=telegram")
 check "Con un texto secreto equivocado, se rechaza" "403" "$code"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "X-Telegram-Bot-Api-Secret-Token: ${TG_SECRET:-}" -d '{"update_id":1}' "$BASE/?r=telegram")
 check "Con el texto secreto correcto, se acepta" "200" "$code"
+
+echo "23. App de Google Play"
+code=$(curl -s -o "$TMP/al.json" -w '%{http_code}' "$BASE/.well-known/assetlinks.json")
+check "assetlinks.json disponible" "200" "$code"
+contiene "assetlinks nombra la app" "$TMP/al.json" '"package_name": "com.tukansoftware.tusalon"'
+contiene "assetlinks lleva la huella de la llave" "$TMP/al.json" '39:0C:08:10'
+JAR=$JAR_DUENA
+get "r=completa" > /dev/null
+contiene "En la web el plan se paga por WhatsApp" "$TMP/pag.html" "wa.me/"
+get "r=completa&app=play" > /dev/null
+contiene "En la app se muestra el pago con Google Play" "$TMP/pag.html" 'id="pago-play"'
+contiene "La app ofrece el código de producto de Google" "$TMP/pag.html" 'data-producto="tusalon_completa_mensual"'
+if grep -q "wa.me/" "$TMP/pag.html"; then check "En la app NO se manda a pagar por fuera" "sin" "con"; else check "En la app NO se manda a pagar por fuera" "sin" "sin"; fi
+get "r=completa" > /dev/null
+contiene "La app se recuerda en las siguientes páginas" "$TMP/pag.html" 'id="pago-play"'
+CSRF=$(grep -o 'data-csrf="[^"]*"' "$TMP/pag.html" | head -1 | cut -d'"' -f2)
+code=$(curl -s -b "$JAR" -o "$TMP/pc.json" -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+  -d "{\"producto\":\"tusalon_completa_mensual\",\"token\":\"falso\",\"csrf\":\"$CSRF\"}" "$BASE/?r=play_compra")
+check "Una compra sin verificar con Google se rechaza" "422" "$code"
+check "Y el plan no cambia" "0" "$(sql "SELECT count(*) FROM google_play_compras")"
+code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"csrf":"malo"}' "$BASE/?r=play_compra")
+check "Sin el código de seguridad se rechaza" "400" "$code"
 
 echo
 echo "=================================================="

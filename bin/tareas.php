@@ -32,6 +32,9 @@ $candado = fopen(sys_get_temp_dir() . '/tusalon-tareas.lock', 'c');
 if (!$candado || !flock($candado, LOCK_EX | LOCK_NB)) { echo "Ya hay una tarea corriendo.\n"; exit(0); }
 
 $ahora = new DateTimeImmutable($argv[1] ?? 'now');
-$r = (new TuSalon\Automaticas(TuSalon\Db::conectar()))->correr($ahora);
+$db = TuSalon\Db::conectar();
+$r = (new TuSalon\Automaticas($db))->correr($ahora);
+// Planes pagados en la app de Google Play: renovaciones y cancelaciones
+$gp = (new TuSalon\GooglePlay($db))->revisarRenovaciones($ahora);
 echo $ahora->format('Y-m-d H:i') . " · salones {$r['salones']} · recordatorios {$r['recordatorios']} · cumpleaños {$r['cumpleanos']}"
-   . " · calificaciones {$r['calificaciones']} · reportes {$r['reportes']}\n";
+   . " · calificaciones {$r['calificaciones']} · reportes {$r['reportes']} · google play {$gp['renovadas']}/{$gp['revisadas']}\n";

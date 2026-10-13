@@ -1,0 +1,118 @@
+# TuSalón en Google Play — cobro de planes dentro de la app
+
+La app de Android de TuSalón es el mismo sistema web metido en una app (la app se arma en el repositorio privado **qfcorp/tukan-apps**).
+Cuando el dueño abre TuSalón **desde la app de Google Play**, el sistema:
+
+- Muestra el pago del plan **con Google Play** (Google exige esto para cobrar dentro de la app).
+- **No** muestra precios web ni WhatsApp para pagar por fuera (Google puede bajar la app si los ve).
+- Verifica cada compra directamente con Google antes de activar el plan, y revisa las renovaciones cada hora.
+
+En la web normal (navegador) todo sigue igual: precio web y pago por WhatsApp/transferencia.
+
+---
+
+## 1. Productos (suscripciones) que hay que crear en Play Console
+
+Ruta: Play Console → TuSalón → **Monetizar → Productos → Suscripciones → Crear suscripción**.
+
+Usa **exactamente** estos códigos (el sistema los reconoce por el nombre):
+
+| ID del producto (copiar tal cual) | Plan | Plan base / período | Precio web | Precio sugerido Google |
+|---|---|---|---|---|
+| `tusalon_basica_mensual` | Básica | 1 mes | $25 | **$29,99** |
+| `tusalon_basica_semestral` | Básica | 6 meses | $125 | **$147,99** |
+| `tusalon_basica_anual` | Básica | 1 año | $250 | **$294,99** |
+| `tusalon_completa_mensual` | Completa | 1 mes | $35 | **$41,99** |
+| `tusalon_completa_semestral` | Completa | 6 meses | $175 | **$205,99** |
+| `tusalon_completa_anual` | Completa | 1 año | $350 | **$411,99** |
+
+- El precio sugerido cubre el **15 %** que Google cobra en las suscripciones: precio web ÷ 0,85, redondeado a ,99.
+- Si cambias los precios web en el Panel Tukán, la tabla con los nuevos precios sugeridos aparece en **Panel Tukán → Planes → Google Play**.
+- En cada suscripción crea **un plan base** con renovación automática y el período de la tabla. **No** pongas prueba gratis en Google (la prueba de 7 días ya la da TuSalón).
+- Activa cada plan base (botón **Activar**).
+
+---
+
+## 2. Cuenta de servicio (para que el servidor pueda preguntarle a Google)
+
+### 2.1 Crearla en Google Cloud
+1. Entra a https://console.cloud.google.com/ con la misma cuenta de Play Console.
+2. Arriba, crea un proyecto llamado `tukan-play`.
+3. Menú → **APIs y servicios → Biblioteca** → busca **Google Play Android Developer API** → **Habilitar**.
+4. Menú → **IAM y administración → Cuentas de servicio → Crear cuenta de servicio**.
+   - Nombre: `tusalon-servidor` → **Crear y continuar** → **Listo** (sin roles).
+5. Entra a la cuenta creada → pestaña **Claves → Agregar clave → Crear clave nueva → JSON**.
+   Se descarga un archivo `.json`. **Es como una contraseña: no lo subas a GitHub ni lo mandes por WhatsApp.**
+
+### 2.2 Darle permiso en Play Console
+1. Play Console → **Usuarios y permisos → Invitar usuarios nuevos**.
+2. Correo: el de la cuenta de servicio (termina en `@tukan-play.iam.gserviceaccount.com`).
+3. Permisos de la app TuSalón: marca **Ver información financiera** y **Administrar pedidos y suscripciones**.
+4. **Invitar usuario**.
+
+(Google puede tardar hasta 24 horas en dejar que la cuenta nueva consulte compras.)
+
+### 2.3 Poner el archivo en el servidor
+Desde tu computadora, sube el archivo JSON al servidor (cambia el nombre del archivo si es distinto):
+
+```bash
+scp tukan-play-xxxx.json usuario@IP_DEL_SERVIDOR:/tmp/google-play.json
+```
+
+Luego, **en el servidor**, copia y pega (sin cambiar nada):
+
+```bash
+sudo mv /tmp/google-play.json /var/www/tusalon/config/google-play.json
+sudo chown root:www-data /var/www/tusalon/config/google-play.json
+sudo chmod 640 /var/www/tusalon/config/google-play.json
+grep -q '^GOOGLE_PLAY_CUENTA=' /var/www/tusalon/config/.env || echo 'GOOGLE_PLAY_CUENTA=/var/www/tusalon/config/google-play.json' | sudo tee -a /var/www/tusalon/config/.env
+grep -q '^GOOGLE_PLAY_PAQUETE=' /var/www/tusalon/config/.env || echo 'GOOGLE_PLAY_PAQUETE=com.tukansoftware.tusalon' | sudo tee -a /var/www/tusalon/config/.env
+```
+
+El cambio funciona al instante (no hay que reiniciar nada). Para revisar: **Panel Tukán → Planes → Google Play** debe decir "Cuenta de servicio: configurada".
+
+---
+
+## 3. Enlace entre la app y la página (assetlinks)
+
+Para que la app se abra **sin barra de navegador**, la página publica:
+
+```
+https://tusalon.tukanec.com/.well-known/assetlinks.json
+```
+
+con las huellas de las llaves que firman la app (variable `TWA_SHA256` del `config/.env`).
+El instalador ya pone la huella de **nuestra llave de subida**. Después de subir la app por primera vez,
+Google firma la app con **su propia llave**, y hay que agregar también esa huella:
+
+1. Play Console → TuSalón → **Prueba y lanzamiento → Configuración → Integridad de la app → Firma de apps**.
+2. Copia el **Certificado SHA-256** de la "Clave de firma de apps".
+3. En el servidor, copia y pega esto **cambiando solo** `HUELLA_DE_GOOGLE` por lo que copiaste:
+
+```bash
+sudo sed -i 's|^TWA_SHA256=\(.*\)$|TWA_SHA256=\1,HUELLA_DE_GOOGLE|' /var/www/tusalon/config/.env
+curl -s https://tusalon.tukanec.com/.well-known/assetlinks.json
+```
+
+El último comando debe mostrar las **dos** huellas.
+
+---
+
+## 4. Actualizar el servidor
+Igual que siempre (el instalador conserva Telegram y Google Play):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar.sh -o ~/instalar_tusalon.sh && bash ~/instalar_tusalon.sh
+```
+
+---
+
+## 5. Cómo se prueba sin cobrar de verdad
+- Play Console → **Configuración → Pruebas de licencia** → agrega tu correo de Gmail y el de los probadores.
+- Esas cuentas pagan con "tarjeta de prueba" y Google **no cobra**. Las suscripciones de prueba se renuevan cada pocos minutos, sirve para ver que el plan se alarga solo.
+
+## 6. Qué pasa cuando alguien paga
+1. El dueño toca el plan en la app → Google cobra.
+2. La app avisa al servidor (`?r=play_compra`) con el código de la compra.
+3. El servidor le pregunta a Google si esa compra es real y está activa. Si sí: activa el plan, anota el pago en **Suscripciones** con método `google_play` y confirma la compra a Google (si no se confirma en 3 días, Google la devuelve).
+4. Cada hora, `bin/tareas.php` revisa las compras: si Google renovó, alarga el plan; si se canceló, deja que termine en su fecha.
