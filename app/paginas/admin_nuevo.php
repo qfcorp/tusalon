@@ -7,7 +7,7 @@ if (es_post()) {
     foreach ($d as $k => $_) $d[$k] = trim((string) ($_POST[$k] ?? ''));
     $clave = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(12))), 0, 10);
     try {
-        $alta = (new TuSalon\Altas(db()))->crearSalonConDueno($d['salon'], $d['nombre'], $d['telefono'], $d['email'], $clave, $d['plan']);
+        $alta = (new TuSalon\Altas(db()))->crearSalonConDueno($d['salon'], $d['nombre'], $d['telefono'], $d['email'], $clave, $d['plan'], 'super');
         registrar_admin('Salón creado desde el panel', $alta['salon_id']);
         $_SESSION['clave_nueva_' . $alta['salon_id']] = ['email' => strtolower($d['email']), 'clave' => $clave, 'nombre' => $d['nombre']];
         aviso('Salón creado con prueba gratis. Si ya pagó, registra el pago abajo.');

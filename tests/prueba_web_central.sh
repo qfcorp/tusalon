@@ -124,7 +124,7 @@ check "protocolo = 1" "1" "$(c95_json protocolo)"
 check "producto = tusalon" "tusalon" "$(c95_json producto)"
 check "nombre = TuSalón" "TuSalón" "$(c95_json nombre)"
 check "version = commit de git" "$(git rev-parse --short=7 HEAD)" "$(c95_json version)"
-check "Claves del protocolo" '["ok","protocolo","producto","nombre","version","generado","negocios","nuevos_30d","ingresos_mes","ingresos_mes_anterior","pruebas_vencen_7d","pagos_vencidos","extra"]' \
+check "Claves del protocolo (+ las 3 del v2)" '["ok","protocolo","producto","nombre","version","generado","negocios","nuevos_30d","ingresos_mes","ingresos_mes_anterior","pruebas_vencen_7d","pagos_vencidos","extra","protocolo_max","solicitudes_abiertas","solicitudes_huella"]' \
       "$(php -r 'echo json_encode(array_keys(json_decode(file_get_contents($argv[1]), true)));' "$TMP/central.out")"
 check "Claves de negocios" '["total","prueba","activos","por_vencer","vencidos","suspendidos"]' \
       "$(php -r 'echo json_encode(array_keys(json_decode(file_get_contents($argv[1]), true)["negocios"]));' "$TMP/central.out")"
@@ -164,9 +164,11 @@ pn() { grep -o "<strong>[0-9]*</strong> $1</a>" "$TMP/pag.html" | head -1 | sed 
 get "r=admin" > /dev/null
 contiene "Total = panel (Salones registrados)" "$TMP/pag.html" "<div class=\"cifra\">$(c95_json negocios.total)</div><p class=\"cifra-nombre\">Salones registrados"
 check "En prueba = panel" "$(pn 'En prueba')" "$(c95_json negocios.prueba)"
-check "Activos = panel (Al día)" "$(pn 'Al día')" "$(c95_json negocios.activos)"
-check "Por vencer = panel (en gracia)" "$(pn 'Venció (en gracia)')" "$(c95_json negocios.por_vencer)"
-check "Vencidos = panel (Vencido + Prueba terminada)" "$(( $(pn 'Vencido') + $(pn 'Prueba terminada') ))" "$(c95_json negocios.vencidos)"
+# Regla única del protocolo v2 (§4.2): por vencer = al día que vence en 0 a 7 días; los que están en gracia ya cuentan como vencidos
+PV=$(sql "SELECT count(*) FROM salones WHERE estado='activo' AND activo_hasta BETWEEN CURRENT_DATE AND CURRENT_DATE + 7")
+check "Por vencer = al día que vence en 7 días" "$PV" "$(c95_json negocios.por_vencer)"
+check "Activos = panel (Al día) − por vencer" "$(( $(pn 'Al día') - PV ))" "$(c95_json negocios.activos)"
+check "Vencidos = panel (Vencido + Prueba terminada + en gracia)" "$(( $(pn 'Vencido') + $(pn 'Prueba terminada') + $(pn 'Venció (en gracia)') ))" "$(c95_json negocios.vencidos)"
 check "Suspendidos = panel (Suspendido + Cancelado)" "$(( $(pn 'Suspendido') + $(pn 'Cancelado') ))" "$(c95_json negocios.suspendidos)"
 COBRADO=$(php -r 'echo "$" . number_format((float) $argv[1], 2, ",", ".");' "$(c95_json ingresos_mes)")
 contiene "Ingresos del mes = Cobrado este mes del panel ($COBRADO)" "$TMP/pag.html" "<div class=\"cifra\">$COBRADO</div><p class=\"cifra-nombre\">Cobrado este mes"

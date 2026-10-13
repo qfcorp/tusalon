@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Corre las pruebas de lógica de TuSalón (tests/run_tests.php y tests/prueba_central.php) con Telegram simulado.
+# Corre las pruebas de lógica de TuSalón (tests/run_tests.php, tests/prueba_central.php y tests/prueba_central_v2.php) con Telegram simulado.
 # Uso: bash tests/run_logica.sh
 # Variables opcionales: TUSALON_DB_NAME (debe contener "prueba"; se borra), TUSALON_DB_USER, TUSALON_DB_PASS.
 # Telegram simulado en el puerto 8098 (el que usan las pruebas de run_tests.php).
@@ -19,5 +19,8 @@ php tests/run_tests.php || FALLO=1
 echo
 echo "==================== prueba_central ===================="
 php tests/prueba_central.php || FALLO=1
+echo
+echo "==================== prueba_central_v2 ===================="
+php tests/prueba_central_v2.php || FALLO=1
 [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
 [ "$FALLO" -eq 0 ]

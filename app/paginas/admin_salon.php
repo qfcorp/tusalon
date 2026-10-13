@@ -18,22 +18,14 @@ if (es_post()) {
     try {
         switch ($accion) {
             case 'pago':
-                $plan = (string) ($_POST['plan'] ?? '');
-                $periodo = (string) ($_POST['periodo'] ?? '');
-                $inicio = (string) ($_POST['inicio'] ?? '');
-                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $inicio)) throw new RuntimeException('Elige la fecha de inicio.');
-                $metodo = (string) ($_POST['metodo'] ?? '');
-                if (!in_array($metodo, ['transferencia', 'deuna', 'payphone', 'plux', 'efectivo', 'tarjeta', 'cortesia'], true)) throw new RuntimeException('Elige cómo pagó.');
-                $montoTxt = trim((string) ($_POST['monto'] ?? ''));
-                $monto = $montoTxt === '' ? null : (float) str_replace(',', '.', $montoTxt);
-                $dominio = trim((string) ($_POST['dominio'] ?? '')) ?: null;
-                if ($dominio !== null && !preg_match('/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i', $dominio)) throw new RuntimeException('El dominio no es válido (ej. barberiaelcorte.com).');
-                $planes->suscribir($id, $plan, $periodo, new DateTimeImmutable($inicio), $metodo, $dominio, $monto);
-                $c = $planes->cotizar($plan, $periodo);
-                registrar_admin("Pago registrado: $plan $periodo " . dinero($monto ?? $c['monto']) . " ($metodo)", $id);
+                $r = $panel->registrarPago($id, $_POST);   // la misma lógica que usa el Panel Tukán Central
+                registrar_admin("Pago registrado: {$r['plan']} {$r['periodo']} " . dinero($r['monto']) . " ({$r['metodo']})", $id);
                 aviso('Pago registrado. El salón quedó activo.');
                 break;
             case 'anular_pago':
+                $st = db()->prepare('SELECT 1 FROM suscripciones WHERE id = ? AND salon_id = ?');
+                $st->execute([(int) ($_POST['pago'] ?? 0), $id]);
+                if (!$st->fetchColumn()) throw new RuntimeException('Ese pago no es de este salón.');
                 $planes->anularPago((int) ($_POST['pago'] ?? 0));
                 registrar_admin('Pago anulado #' . (int) $_POST['pago'], $id);
                 aviso('Pago anulado.');

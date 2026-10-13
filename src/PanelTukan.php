@@ -16,6 +16,9 @@ final class PanelTukan
         'prueba' => 'En prueba', 'prueba_vencida' => 'Prueba terminada', 'activo' => 'Al día',
         'por_vencer' => 'Venció (en gracia)', 'vencido' => 'Vencido', 'suspendido' => 'Suspendido', 'cancelado' => 'Cancelado',
     ];
+    /** Formas de pago que registra el súper usuario (Google Play entra solo, con GooglePlay::aplicar()). */
+    public const METODOS = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' => 'Payphone', 'plux' => 'Plux',
+                            'efectivo' => 'Efectivo', 'tarjeta' => 'Tarjeta', 'cortesia' => 'Cortesía (gratis)'];
 
     private Planes $planes;
 
@@ -147,7 +150,9 @@ final class PanelTukan
     public function cambiarEstado(int $salonId, string $estado): void
     {
         if (!in_array($estado, ['prueba', 'activo', 'suspendido', 'cancelado'], true)) throw new RuntimeException('Estado no válido.');
-        $this->db->prepare('UPDATE salones SET estado = ? WHERE id = ?')->execute([$estado, $salonId]);
+        $st = $this->db->prepare('UPDATE salones SET estado = ? WHERE id = ?');
+        $st->execute([$estado, $salonId]);
+        if ($st->rowCount() !== 1) throw new RuntimeException('Salón no encontrado.');
     }
 
     /** Alarga la prueba gratis N días desde hoy (o desde su fin si aún no termina). */
@@ -159,7 +164,9 @@ final class PanelTukan
                                          prueba_hasta = GREATEST(COALESCE(prueba_hasta, ?::date), ?::date) + ?::int
                                    WHERE id = ? RETURNING prueba_hasta");
         $st->execute([$hoy, $hoy, $dias, $salonId]);
-        return (string) $st->fetchColumn();
+        $r = $st->fetchColumn();
+        if ($r === false) throw new RuntimeException('Salón no encontrado.');
+        return (string) $r;
     }
 
     public function guardarNotas(int $salonId, string $notas): void
@@ -178,5 +185,35 @@ final class PanelTukan
         $this->db->prepare('UPDATE usuarios SET password_hash = ?, activo = true WHERE id = ?')
                  ->execute([password_hash($clave, PASSWORD_DEFAULT), $u['id']]);
         return ['email' => $u['email'], 'nombre' => $u['nombre'], 'clave' => $clave];
+    }
+
+    /**
+     * Registra un pago de suscripción (valida todo lo que llega del formulario del panel o del Panel Tukán Central).
+     * Campos: plan, periodo, inicio (AAAA-MM-DD), metodo (METODOS), monto (vacío = precio del plan; cortesía = 0),
+     * dominio (opcional, pago anual) y fecha (opcional: día en que pagó; por defecto hoy).
+     */
+    public function registrarPago(int $salonId, array $d): array
+    {
+        $plan = (string) ($d['plan'] ?? '');
+        $periodo = (string) ($d['periodo'] ?? '');
+        $inicio = (string) ($d['inicio'] ?? '');
+        $fi = DateTimeImmutable::createFromFormat('!Y-m-d', $inicio);
+        if (!$fi || $fi->format('Y-m-d') !== $inicio) throw new RuntimeException('Elige la fecha de inicio.');
+        $metodo = (string) ($d['metodo'] ?? '');
+        if (!isset(self::METODOS[$metodo])) throw new RuntimeException('Elige cómo pagó.');
+        $montoTxt = trim((string) ($d['monto'] ?? ''));
+        if ($montoTxt !== '' && !is_numeric(str_replace(',', '.', $montoTxt))) throw new RuntimeException('Escribe el monto con números, por ejemplo 25,00.');
+        $monto = $montoTxt === '' ? ($metodo === 'cortesia' ? 0.0 : null) : (float) str_replace(',', '.', $montoTxt);
+        $dominio = strtolower(trim((string) ($d['dominio'] ?? ''))) ?: null;
+        if ($dominio !== null && !preg_match('/^[a-z0-9-]+(\.[a-z0-9-]+)+$/', $dominio)) throw new RuntimeException('El dominio no es válido (ej. barberiaelcorte.com).');
+        $pagadoEn = null;
+        if (($fecha = (string) ($d['fecha'] ?? '')) !== '') {
+            $pagadoEn = DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
+            if (!$pagadoEn || $pagadoEn->format('Y-m-d') !== $fecha) throw new RuntimeException('La fecha del pago no es válida.');
+        }
+        if (!$this->salon($salonId)) throw new RuntimeException('Salón no encontrado.');
+        $id = $this->planes->suscribir($salonId, $plan, $periodo, $fi, $metodo, $dominio, $monto, $pagadoEn);
+        $c = $this->planes->cotizar($plan, $periodo);
+        return ['id' => $id, 'monto' => $monto ?? $c['monto'], 'plan' => $plan, 'periodo' => $periodo, 'metodo' => $metodo];
     }
 }

@@ -30,13 +30,17 @@ final class Altas
         }
     }
 
+    public const ORIGENES = ['registro', 'super', 'central'];
+
     /**
      * Crea el salón (en prueba gratis), su dueño como peluquero, su usuario, 5 servicios de ejemplo y el horario.
+     * $origen: de dónde vino el cliente (registro = se registró solo, super = panel de Tukán, central = Panel Tukán Central).
      * @return array{salon_id:int, usuario_id:int, slug:string}
      */
     public function crearSalonConDueno(string $salon, string $nombre, string $telefono, string $email,
-                                       string $clave, string $plan): array
+                                       string $clave, string $plan, string $origen = 'registro'): array
     {
+        if (!in_array($origen, self::ORIGENES, true)) throw new RuntimeException('Origen no válido.');
         $salon = trim($salon);
         $nombre = trim($nombre);
         $email = strtolower(trim($email));
@@ -57,7 +61,7 @@ final class Altas
         try {
             $slug = $this->slugLibre($salon);
             $salonId = $planes->crearSalon($salon, $slug, $plan);
-            $this->db->prepare('UPDATE salones SET telefono = ? WHERE id = ?')->execute([trim($telefono) ?: null, $salonId]);
+            $this->db->prepare('UPDATE salones SET telefono = ?, origen = ? WHERE id = ?')->execute([trim($telefono) ?: null, $origen, $salonId]);
             $profId = (new Profesionales($this->db, $planes))->agregar($salonId, $nombre, 'dueno');
             $this->db->prepare('UPDATE profesionales SET telefono = ? WHERE id = ?')->execute([trim($telefono) ?: null, $profId]);
             $st = $this->db->prepare("INSERT INTO usuarios (salon_id, profesional_id, nombre, email, password_hash, rol)

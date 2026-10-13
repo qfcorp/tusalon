@@ -15,7 +15,7 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 | Peluquero | `/` con el acceso que le crea el dueño → su portal |
 | Clientes (reservas) | `/?r=reservar&s=<nombre-del-salón>` |
 | Tukán (super administrador) | `/?r=admin_entrar` · cuenta creada con `php bin/crear_admin.php` en el servidor · o con un clic desde el Panel Tukán Central |
-| Panel Tukán Central (conector) | `/tukan_central.php?accion=sso&t=…` (entrar) · `/tukan_central.php?accion=estado&t=…` (cifras en JSON) |
+| Panel Tukán Central (conector) | v1: `/tukan_central.php?accion=sso&t=…` (entrar, con enlace directo `ir`) · `/tukan_central.php?accion=estado&t=…` (cifras en JSON) · v2: `POST /tukan_central.php?accion=<capacidades, clientes, cliente, cotizar, planes, solicitudes, solicitud, finanzas, ejecutar>` |
 | Cliente (su cita: confirmar, cambiar, cancelar, calificar) | `/?r=confirmar&t=<enlace secreto>` (le llega por WhatsApp o Telegram) |
 
 ## Tecnología
@@ -54,8 +54,16 @@ El panel central muestra las cifras de todos los programas Tukán y deja entrar 
 - **Entrar solo desde el panel central:** agrega `TUKAN_SOLO_CENTRAL=1` en `config/.env`. La página `/?r=admin_entrar` dice "El ingreso del super usuario es solo desde el Panel Tukán" y no acepta contraseñas. El ingreso de los salones y de los clientes no cambia.
 - **Emergencia** (el panel central no responde): pon `TUKAN_SOLO_CENTRAL=0` en `config/.env` y entra con tu clave; si no la recuerdas, `php /var/www/tusalon/bin/crear_admin.php` la cambia.
 - Cada entrada desde el panel central queda en "Últimos movimientos del panel" ("Entró desde el Panel Tukán Central"). La primera vez se crea el super usuario con el correo del panel central (con una contraseña al azar que nadie conoce).
-- Cifras que ve el panel central: salones por estado (las mismas del panel de TuSalón), nuevos en 30 días, cobrado del mes y del mes anterior, pruebas que vencen en 7 días, pagos vencidos, citas del mes, clientes, peluqueros y usuarios. Sin datos personales (solo nombres de salones).
-- Seguridad: cada enlace dura 60 segundos y sirve una sola vez; máximo 30 pedidos por minuto por IP. Protocolo: Tukán Central v1 (igual en todos los programas Tukán).
+- Cifras que ve el panel central: salones por estado (con la regla única de todos los programas: "por vencer" = al día y vence en 7 días o menos; los que están en días de gracia cuentan como vencidos), nuevos en 30 días, cobrado del mes y del mes anterior, pruebas que vencen en 7 días, pagos vencidos, citas del mes, clientes, peluqueros y usuarios. Sin datos personales (solo nombres de salones).
+- Seguridad: cada enlace dura 60 segundos y sirve una sola vez (30 s las operaciones); máximo 120 pedidos y 30 rechazados por minuto por IP. Protocolo: Tukán Central v1 y v2 (`PROTOCOLO.md` y `PROTOCOLO_V2.md` del panel central, iguales en todos los programas Tukán).
+
+### Qué puede hacer el Panel Tukán Central (protocolo v2)
+Con el mismo ID y el mismo secreto, el panel central ve y maneja a los salones sin entrar al panel de TuSalón:
+- **Clientes**: todos los salones con su estado (en prueba, al día, por vencer en 7 días, vencido —incluye los días de gracia— y suspendido/cancelado), plan, vencimiento, dueño, último uso (citas y ventas), pagos y lo que vale al mes. La ficha trae los pagos (también los anulados y los de Google Play), las últimas acciones, las notas internas y los mensajes de WhatsApp listos.
+- **Solicitudes**: salones que se registraron solos (30 días), pagos automáticos de Google Play (30 días, para marcar "visto"), pruebas que terminan en 2 días / hoy / terminadas sin pagar (60 días), planes que vencen en 5 días o vencidos sin renovar (30 días) y dominios gratis por registrar. Las reservas que piden los clientes de cada salón son del salón y no se mandan.
+- **Operaciones** (con las mismas funciones del panel de Tukán y una línea en "Últimos movimientos del panel" con el correo del Central): crear demo (salón en prueba con 5 servicios y el horario; la contraseña se muestra una sola vez), alargar la prueba, registrar pago (con la fecha en que pagó), anular pago, suspender, reactivar, cancelar, cambiar plan, nueva clave del dueño, nota interna, atender solicitud y guardar plan/precios.
+- **Finanzas**: cobrado por mes (por plan, tiempo y forma de pago), nuevos pagadores, devengado, ingreso mensual recurrente y la comisión estimada de Google Play (15 %).
+- Si el Central repite una operación (se cortó la red), TuSalón no la hace dos veces: devuelve el mismo resultado (`tukan_central_operaciones`, 90 días, sin contraseñas).
 
 ## Tareas automáticas y respaldo (en el servidor)
 El instalador ya las deja programadas. Son estas dos líneas de cron:
@@ -71,13 +79,14 @@ El instalador ya las deja programadas. Son estas dos líneas de cron:
 Solo en una base de prueba (el script la borra y la vuelve a crear):
 
 ```bash
-# Lógica (424 pruebas: run_tests.php + prueba_central.php, con Telegram simulado en el puerto 8098)
+# Lógica (735 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php, con Telegram simulado en el puerto 8098)
 bash tests/run_logica.sh
-# Pantallas de punta a punta (391 pruebas: prueba_web.sh + prueba_web_central.sh; levanta solo los sitios de prueba,
-# Payphone y Telegram simulados). Opcional: DB=<base> PUERTO=<puerto>
+# Pantallas de punta a punta (476 pruebas: prueba_web.sh + prueba_web_central.sh + prueba_web_central_v2.sh; levanta solo
+# los sitios de prueba, Payphone y Telegram simulados). Opcional: DB=<base> PUERTO=<puerto>
 PGPASSWORD=prueba bash tests/run_web.sh
-# Solo el conector con el Panel Tukán Central
+# Solo el conector con el Panel Tukán Central (v1 y v2)
 TUSALON_DB_NAME=tusalon_prueba TUSALON_DB_USER=tusalon TUSALON_DB_PASS=prueba php tests/prueba_central.php
+TUSALON_DB_NAME=tusalon_prueba TUSALON_DB_USER=tusalon TUSALON_DB_PASS=prueba php tests/prueba_central_v2.php
 PGPASSWORD=prueba bash tests/run_web.sh central
 ```
 Las pruebas de siempre se pueden seguir corriendo a mano como antes (`php tests/run_tests.php` y `bash tests/prueba_web.sh` con el sitio corriendo).

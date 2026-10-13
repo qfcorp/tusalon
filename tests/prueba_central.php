@@ -169,14 +169,20 @@ $conectar(null, '');
 $rechazo('Sin configurar: rechaza todo', 'no está configurado', $token());
 $conectar();
 
-titulo('3. Límite: 30 pedidos por minuto por IP');
+titulo('3. Límite por IP: 120 pedidos por minuto y 30 rechazados por minuto (protocolo v2 §3.1)');
 $t0 = 1760371200;   // un minuto exacto
 $bien = 0;
-for ($i = 0; $i < 30; $i++) $bien += $central->dentroDelLimite('203.0.113.7', $t0 + $i) ? 1 : 0;
-check('Los primeros 30 pasan', 30, $bien);
-check('El 31 se frena', false, $central->dentroDelLimite('203.0.113.7', $t0 + 40));
-check('Otra IP no se frena', true, $central->dentroDelLimite('203.0.113.8', $t0 + 41));
+for ($i = 0; $i < 120; $i++) $bien += $central->dentroDelLimite('203.0.113.7', $t0 + ($i % 50)) ? 1 : 0;
+check('Los primeros 120 pasan', 120, $bien);
+check('El 121 se frena', false, $central->dentroDelLimite('203.0.113.7', $t0 + 50));
+check('Otra IP no se frena', true, $central->dentroDelLimite('203.0.113.8', $t0 + 51));
 check('Al minuto siguiente vuelve a pasar', true, $central->dentroDelLimite('203.0.113.7', $t0 + 61));
+$bien = 0;
+for ($i = 0; $i < 30; $i++) { $bien += $central->dentroDelLimite('203.0.113.9', $t0 + $i) ? 1 : 0; $central->anotarRechazo('203.0.113.9', $t0 + $i); }
+check('30 pedidos rechazados pasan a revisar', 30, $bien);
+check('Después de 30 rechazados se frena', false, $central->dentroDelLimite('203.0.113.9', $t0 + 40));
+check('Los rechazos son de esa IP', true, $central->dentroDelLimite('203.0.113.10', $t0 + 40));
+check('Al minuto siguiente vuelve a pasar', true, $central->dentroDelLimite('203.0.113.9', $t0 + 65));
 $central->dentroDelLimite('203.0.113.7', $t0 + 3600);
 check('Los conteos viejos se borran', 0, $cuenta("SELECT count(*) FROM tukan_central_pedidos WHERE minuto < to_timestamp($t0 + 3000)"));
 
@@ -254,8 +260,10 @@ $e = $central->estado($hoy);
 $r = $panel->resumen($hoy);
 check('ok y protocolo 1', [true, 1], [$e['ok'], $e['protocolo']]);
 check('Producto', ['tusalon', 'TuSalón'], [$e['producto'], $e['nombre']]);
-check('Todas las claves del protocolo', ['ok', 'protocolo', 'producto', 'nombre', 'version', 'generado', 'negocios', 'nuevos_30d', 'ingresos_mes',
-      'ingresos_mes_anterior', 'pruebas_vencen_7d', 'pagos_vencidos', 'extra'], array_keys($e));
+check('Todas las claves del protocolo (+ las 3 del v2 al final)', ['ok', 'protocolo', 'producto', 'nombre', 'version', 'generado', 'negocios', 'nuevos_30d', 'ingresos_mes',
+      'ingresos_mes_anterior', 'pruebas_vencen_7d', 'pagos_vencidos', 'extra', 'protocolo_max', 'solicitudes_abiertas', 'solicitudes_huella'], array_keys($e));
+check('protocolo_max = 2', 2, $e['protocolo_max']);
+check('Huella de 16 hex', true, (bool) preg_match('/^[0-9a-f]{16}$/', $e['solicitudes_huella']));
 check('Claves de negocios', ['total', 'prueba', 'activos', 'por_vencer', 'vencidos', 'suspendidos'], array_keys($e['negocios']));
 check('Fecha con zona horaria', true, (bool) preg_match('/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d-05:00$/', $e['generado']));
 check('Total = panel', $r['total'], $e['negocios']['total']);
@@ -264,10 +272,10 @@ check('En prueba = panel', $r['cuenta']['prueba'], $e['negocios']['prueba']);
 check('En prueba: 2', 2, $e['negocios']['prueba']);
 check('Activos = panel ("Al día")', $r['cuenta']['activo'], $e['negocios']['activos']);
 check('Activos: 1', 1, $e['negocios']['activos']);
-check('Por vencer = panel (en gracia)', $r['cuenta']['por_vencer'], $e['negocios']['por_vencer']);
-check('Por vencer: 1', 1, $e['negocios']['por_vencer']);
-check('Vencidos = panel "Sin pagar" (vencido + prueba terminada)', count($r['sin_pagar']), $e['negocios']['vencidos']);
-check('Vencidos: 2', 2, $e['negocios']['vencidos']);
+// Regla única del protocolo v2 (§4.2): "por vencer" = pagado y vence en 0 a 7 días; los que están en gracia ya son vencidos
+check('Por vencer: 0 (nadie vence en 7 días; el que está en gracia ya venció)', 0, $e['negocios']['por_vencer']);
+check('Vencidos = "Sin pagar" del panel + en gracia', count($r['sin_pagar']) + $r['cuenta']['por_vencer'], $e['negocios']['vencidos']);
+check('Vencidos: 3 (vencido, prueba terminada y en gracia)', 3, $e['negocios']['vencidos']);
 check('Suspendidos = suspendidos + cancelados del panel', $r['cuenta']['suspendido'] + $r['cuenta']['cancelado'], $e['negocios']['suspendidos']);
 check('Los grupos suman el total', $e['negocios']['total'], array_sum(array_slice($e['negocios'], 1)));
 check('Nuevos en 30 días (no cuenta la de hace 40)', 7, $e['nuevos_30d']);
@@ -307,7 +315,7 @@ for ($i = 1; $i <= 22; $i++) $st->execute([sprintf('Vencida Masiva %02d', $i), "
 $e = $central->estado($hoy);
 check('Pruebas por vencer: máximo 20', 20, count($e['pruebas_vencen_7d']));
 check('Pagos vencidos: máximo 20', 20, count($e['pagos_vencidos']));
-check('Pero las cifras cuentan todos', [52, 24, 24], [$e['negocios']['total'], $e['negocios']['prueba'], $e['negocios']['vencidos']]);
+check('Pero las cifras cuentan todos', [52, 24, 25], [$e['negocios']['total'], $e['negocios']['prueba'], $e['negocios']['vencidos']]);
 check('La lista empieza por la que vence antes', 'Prueba Masiva 01', $e['pruebas_vencen_7d'][0]['nombre']);
 
 titulo('6. Versión (commit corto leído de .git, sin ejecutar comandos)');

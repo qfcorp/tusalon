@@ -142,6 +142,14 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - Comando: `sudo bash /var/www/tusalon/deploy/conectar_central.sh {ID} {SECRETO} {URL}` (guarda en config/.env y hace una prueba local)
     - Migración 004 (también en `db/schema.sql`). Pruebas nuevas: `tests/prueba_central.php` (122) y `tests/prueba_web_central.sh` (158); corredores `tests/run_logica.sh` y `tests/run_web.sh` con Telegram y Payphone simulados (`tests/simulador.php`). Totales: lógica 424/424, pantallas 391/391, sin avisos de PHP
     - [ ] DIMI: cuando el Panel Tukán Central esté listo, actualizar TuSalón (instalador) y correr el comando con los datos que da el panel
+3j. [x] **Panel Tukán Central v2 (13 oct)** — protocolo Tukán Central v2 (el mismo de TuEvento y los demás)
+    - El panel central ya puede, para TuSalón: ver todos los salones con su estado y vencimiento, abrir su ficha (pagos, últimas acciones, notas, WhatsApp listo), ver las solicitudes (registros nuevos, pagos de Google Play, pruebas por terminar o terminadas, planes por vencer o vencidos, dominios gratis) y marcarlas atendidas, y ver las finanzas por mes (con la comisión estimada de Google Play)
+    - Desde el central: crear demos (con 5 servicios y horario; la clave se ve una sola vez), alargar la prueba (no a quien ya paga), registrar pago con la fecha en que pagó, anular pago, suspender, reactivar, cancelar, cambiar plan, nueva clave del dueño, nota interna y cambiar precios de los planes. Si el central reintenta, no se cobra ni se crea dos veces
+    - "Por vencer" ahora es lo mismo en todos los programas: al día y vence en 7 días o menos. Los que están en días de gracia cuentan como vencidos (antes TuSalón los contaba como "por vencer")
+    - El registro de pagos del panel de Tukán pasó a `PanelTukan::registrarPago()` (lo usan el panel y el central); anular un pago revisa que sea de ese salón; cambiar el estado avisa si el salón no existe
+    - Se guarda de dónde vino cada salón (se registró solo, panel de Tukán o demo del central). Entrar desde el central puede abrir directo la ficha de un salón
+    - Migración 005 (también en `db/schema.sql`). Pruebas nuevas: `tests/prueba_central_v2.php` (306) y `tests/prueba_web_central_v2.sh` (85). Totales: lógica 735/735, pantallas 476/476, sin avisos de PHP
+    - Falta (no existe en TuSalón): pedidos de demo, comprobantes de pago y soporte. Si se quieren en el central, hay que construirlos aquí primero
 3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
 5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje

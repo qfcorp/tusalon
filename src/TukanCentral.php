@@ -7,10 +7,12 @@ use DateTimeImmutable;
 use PDO;
 
 /**
- * Conector con el Panel Tukán Central (protocolo v1, igual en todos los programas Tukán).
+ * Conector con el Panel Tukán Central (protocolo v1, igual en todos los programas Tukán; el v2 está en TukanCentralV2).
  *  - Configuración: TUKAN_CENTRAL_ID, TUKAN_CENTRAL_SECRET, TUKAN_CENTRAL_URL y TUKAN_SOLO_CENTRAL en config/.env
- *  - public/tukan_central.php usa esta clase: ?accion=sso (entrar como super usuario) y ?accion=estado (cifras en JSON)
+ *  - public/tukan_central.php usa esta clase: ?accion=sso (entrar como super usuario, con enlace directo "ir")
+ *    y ?accion=estado (cifras en JSON)
  *  - Token: b64url(json) . "." . b64url(HMAC-SHA256(b64url(json), secreto)), dura máximo 60 s y sirve una sola vez
+ *  - Los rechazos traen el "codigo" del protocolo v2 (§3.2) y el límite es por IP: 120 pedidos y 30 rechazados por minuto
  */
 final class TukanCentral
 {
@@ -18,10 +20,12 @@ final class TukanCentral
     public const NOMBRE = 'TuSalón';
     public const PROTOCOLO = 1;
     public const URL_POR_DEFECTO = 'https://panel.tukanec.com';
-    public const LIMITE_POR_MINUTO = 30;
+    public const LIMITE_POR_MINUTO = 120;      // pedidos por minuto por IP (protocolo v2 §3.1)
+    public const RECHAZOS_POR_MINUTO = 30;     // rechazados (401) por minuto por IP
     public const TOLERANCIA = 30;   // segundos de diferencia de reloj permitidos
     public const VIDA_MAXIMA = 60;  // exp - iat
     public const MAX_LISTA = 20;
+    public const RUTAS_SSO = ['/?r=admin'];   // a dónde puede llevar el enlace directo "ir" del SSO
 
     public function __construct(private PDO $db) {}
 
@@ -82,58 +86,96 @@ final class TukanCentral
     public function validar(string $token, string $accion, ?int $ahora = null): array
     {
         $conf = self::config();
-        if (!$conf) throw new TukanCentralRechazo('El conector no está configurado.');
+        if (!$conf) throw new TukanCentralRechazo('El conector no está configurado.', 'sin_configurar', 404);
         $ahora ??= time();
 
         // 1. Dos partes separadas por "." y firma correcta
         $partes = explode('.', $token);
-        if (count($partes) !== 2 || $partes[0] === '' || $partes[1] === '') throw new TukanCentralRechazo('El enlace no es válido.');
+        if (count($partes) !== 2 || $partes[0] === '' || $partes[1] === '') throw new TukanCentralRechazo('El enlace no es válido.', 'firma');
         $esperada = self::b64(hash_hmac('sha256', $partes[0], $conf['secreto'], true));
-        if (!hash_equals($esperada, $partes[1])) throw new TukanCentralRechazo('La firma del enlace no es correcta.');
+        if (!hash_equals($esperada, $partes[1])) throw new TukanCentralRechazo('La firma del enlace no es correcta.', 'firma');
         $json = self::unb64($partes[0]);
         $p = $json === false ? null : json_decode($json, true);
-        if (!is_array($p)) throw new TukanCentralRechazo('El enlace no es válido.');
+        if (!is_array($p)) throw new TukanCentralRechazo('El enlace no es válido.', 'firma');
 
         // 2. Versión, tipo e instancia
-        if (($p['v'] ?? null) !== 1) throw new TukanCentralRechazo('Versión del protocolo no soportada.');
-        if (($p['tipo'] ?? null) !== $accion) throw new TukanCentralRechazo('El enlace no es para esta acción.');
-        if (($p['inst'] ?? null) !== $conf['id']) throw new TukanCentralRechazo('El enlace es de otra instalación.');
+        if (($p['v'] ?? null) !== 1) throw new TukanCentralRechazo('Versión del protocolo no soportada.', 'version');
+        if (($p['tipo'] ?? null) !== $accion) throw new TukanCentralRechazo('El enlace no es para esta acción.', 'tipo');
+        if (($p['inst'] ?? null) !== $conf['id']) throw new TukanCentralRechazo('El enlace es de otra instalación.', 'inst');
 
         // 3. Tiempo (30 s de tolerancia de reloj)
         $iat = $p['iat'] ?? null;
         $exp = $p['exp'] ?? null;
-        if (!is_int($iat) || !is_int($exp)) throw new TukanCentralRechazo('El enlace no tiene fecha válida.');
-        if ($ahora > $exp + self::TOLERANCIA) throw new TukanCentralRechazo('El enlace ya venció. Vuelve a intentar desde el Panel Tukán.');
-        if ($iat > $ahora + self::TOLERANCIA) throw new TukanCentralRechazo('El enlace tiene una fecha futura. Revisa la hora del servidor.');
-        if ($exp < $iat || $exp - $iat > self::VIDA_MAXIMA) throw new TukanCentralRechazo('El enlace dura más de lo permitido.');
+        if (!is_int($iat) || !is_int($exp)) throw new TukanCentralRechazo('El enlace no tiene fecha válida.', 'invalido');
+        if ($ahora > $exp + self::TOLERANCIA) throw new TukanCentralRechazo('El enlace ya venció. Vuelve a intentar desde el Panel Tukán.', 'vencido');
+        if ($iat > $ahora + self::TOLERANCIA) throw new TukanCentralRechazo('El enlace tiene una fecha futura. Revisa la hora del servidor.', 'futuro');
+        if ($exp < $iat || $exp - $iat > self::VIDA_MAXIMA) throw new TukanCentralRechazo('El enlace dura más de lo permitido.', 'invalido');
 
         // 4. Nonce de un solo uso (se guarda hasta que el token ya no podría servir)
-        $nonce = $p['nonce'] ?? null;
-        if (!is_string($nonce) || !preg_match('/^[0-9a-f]{32}$/', $nonce)) throw new TukanCentralRechazo('El enlace no es válido (nonce).');
-        $this->db->prepare('DELETE FROM tukan_central_nonces WHERE vence < to_timestamp(?)')->execute([$ahora]);
-        $st = $this->db->prepare('INSERT INTO tukan_central_nonces (nonce, vence) VALUES (?, to_timestamp(?)) ON CONFLICT (nonce) DO NOTHING');
-        $st->execute([$nonce, $exp + self::TOLERANCIA]);
-        if ($st->rowCount() !== 1) throw new TukanCentralRechazo('Este enlace ya se usó. Vuelve a intentar desde el Panel Tukán.');
+        if (!$this->usarNonce($p['nonce'] ?? null, $exp, $ahora)) {
+            throw new TukanCentralRechazo(is_string($p['nonce'] ?? null) && preg_match('/^[0-9a-f]{32}$/', $p['nonce'])
+                ? 'Este enlace ya se usó. Vuelve a intentar desde el Panel Tukán.' : 'El enlace no es válido (nonce).', 'nonce');
+        }
 
         // 5. Correo válido
         $email = $p['email'] ?? null;
         if (!is_string($email) || mb_strlen($email) > 120 || !filter_var(trim($email), FILTER_VALIDATE_EMAIL)) {
-            throw new TukanCentralRechazo('El correo del enlace no es válido.');
+            throw new TukanCentralRechazo('El correo del enlace no es válido.', 'invalido');
         }
         $p['email'] = strtolower(trim($email));
         return $p;
     }
 
-    /** 6. Límite: máximo 30 pedidos por minuto por IP. Devuelve false si ya se pasó. */
+    /**
+     * Nonce de un solo uso: 32 hex en minúsculas que no se haya usado. Se guarda hasta exp + 30 s (los vencidos se borran).
+     * Devuelve false si está mal formado o ya se usó. La usan v1 y v2 (misma tabla).
+     */
+    public function usarNonce(mixed $nonce, int $exp, ?int $ahora = null): bool
+    {
+        $ahora ??= time();
+        if (!is_string($nonce) || !preg_match('/^[0-9a-f]{32}$/', $nonce)) return false;
+        $this->db->prepare('DELETE FROM tukan_central_nonces WHERE vence < to_timestamp(?)')->execute([$ahora]);
+        $st = $this->db->prepare('INSERT INTO tukan_central_nonces (nonce, vence) VALUES (?, to_timestamp(?)) ON CONFLICT (nonce) DO NOTHING');
+        $st->execute([$nonce, $exp + self::TOLERANCIA]);
+        return $st->rowCount() === 1;
+    }
+
+    /**
+     * 6. Límite por IP (cuenta este pedido): máximo 120 pedidos por minuto y 30 rechazados (401) por minuto.
+     * Devuelve false si ya se pasó.
+     */
     public function dentroDelLimite(string $ip, ?int $ahora = null): bool
     {
         $ahora ??= time();
         $minuto = $ahora - $ahora % 60;
         $this->db->prepare("DELETE FROM tukan_central_pedidos WHERE minuto < to_timestamp(?) - interval '5 minutes'")->execute([$minuto]);
         $st = $this->db->prepare('INSERT INTO tukan_central_pedidos (ip, minuto, n) VALUES (?, to_timestamp(?), 1)
-                                  ON CONFLICT (ip, minuto) DO UPDATE SET n = tukan_central_pedidos.n + 1 RETURNING n');
+                                  ON CONFLICT (ip, minuto) DO UPDATE SET n = tukan_central_pedidos.n + 1 RETURNING n, rechazados');
         $st->execute([mb_substr($ip, 0, 45), $minuto]);
-        return (int) $st->fetchColumn() <= self::LIMITE_POR_MINUTO;
+        $f = $st->fetch();
+        return (int) $f['n'] <= self::LIMITE_POR_MINUTO && (int) $f['rechazados'] < self::RECHAZOS_POR_MINUTO;
+    }
+
+    /** Anota un pedido rechazado (401) de esa IP en este minuto. */
+    public function anotarRechazo(string $ip, ?int $ahora = null): void
+    {
+        $ahora ??= time();
+        $minuto = $ahora - $ahora % 60;
+        $this->db->prepare('INSERT INTO tukan_central_pedidos (ip, minuto, n, rechazados) VALUES (?, to_timestamp(?), 1, 1)
+                            ON CONFLICT (ip, minuto) DO UPDATE SET rechazados = tukan_central_pedidos.rechazados + 1')
+                 ->execute([mb_substr($ip, 0, 45), $minuto]);
+    }
+
+    /**
+     * Enlace directo del SSO ("ir", protocolo v2 §5.3): ruta relativa segura que empieza con una de RUTAS_SSO.
+     */
+    public static function irValido(mixed $ir): bool
+    {
+        if (!is_string($ir) || $ir === '' || strlen($ir) > 300 || $ir[0] !== '/' || str_starts_with($ir, '//')) return false;
+        if (str_contains($ir, '\\') || preg_match('/[\x00-\x1F\x7F]/', $ir)) return false;
+        if (!preg_match('/^\/[A-Za-z0-9._~!$&\'()*+,;=:@%\/?#-]*$/', $ir)) return false;
+        foreach (self::RUTAS_SSO as $r) if (str_starts_with($ir, $r)) return true;
+        return false;
     }
 
     // ------------------------------------------------------------------
@@ -143,8 +185,23 @@ final class TukanCentral
     /**
      * Super usuario con el correo del token (lo crea la primera vez, con una contraseña aleatoria que nadie conoce).
      * Deja constancia en el registro del panel. Devuelve su id. La sesión la inicia tukan_central.php.
+     * $ir: enlace directo pedido (null = no vino; false = vino pero no es válido).
      */
-    public function superUsuario(array $p, string $ip = ''): int
+    public function superUsuario(array $p, string $ip = '', string|false|null $ir = null): int
+    {
+        [$id] = $this->buscarSuper($p);
+        $this->db->prepare('UPDATE superadmins SET ultimo_ingreso = now() WHERE id = ?')->execute([$id]);
+        $texto = 'Entró desde el Panel Tukán Central' . (is_string($ir) ? ' → ' . $ir : ($ir === false ? ' (ir no válido: abrió el inicio)' : ''));
+        $this->db->prepare('INSERT INTO registro_admin (admin_id, accion) VALUES (?, ?)')
+                 ->execute([$id, mb_substr($texto . ($ip !== '' ? ' · IP ' . $ip : ''), 0, 300)]);
+        return $id;
+    }
+
+    /**
+     * Busca (o crea, marcado creado_por_central) el super usuario del correo del token. Devuelve [id, nuevo].
+     * Lo usan el SSO y la auditoría de "ejecutar" (protocolo v2 §7.3).
+     */
+    public function buscarSuper(array $p): array
     {
         $email = strtolower(trim((string) $p['email']));
         $nombre = trim(preg_replace('/\s+/u', ' ', (string) ($p['nombre'] ?? '')) ?? '');
@@ -168,13 +225,12 @@ final class TukanCentral
                 $a = ['id' => (int) $id, 'activo' => true];
             }
         }
-        if (!$a['activo']) throw new TukanCentralRechazo('Tu super usuario está desactivado en ' . self::NOMBRE . '.');
+        if (!$a['activo']) throw new TukanCentralRechazo('Tu super usuario está desactivado en ' . self::NOMBRE . '.', 'no_permitido', 403);
         $id = (int) $a['id'];
-        $this->db->prepare('UPDATE superadmins SET ultimo_ingreso = now() WHERE id = ?')->execute([$id]);
-        $registro = $this->db->prepare('INSERT INTO registro_admin (admin_id, accion) VALUES (?, ?)');
-        if ($nuevo) $registro->execute([$id, 'Super usuario creado por el Panel Tukán Central']);
-        $registro->execute([$id, mb_substr('Entró desde el Panel Tukán Central' . ($ip !== '' ? ' · IP ' . $ip : ''), 0, 300)]);
-        return $id;
+        if ($nuevo) {
+            $this->db->prepare('INSERT INTO registro_admin (admin_id, accion) VALUES (?, ?)')->execute([$id, 'Super usuario creado por el Panel Tukán Central']);
+        }
+        return [$id, $nuevo];
     }
 
     // ------------------------------------------------------------------
@@ -188,6 +244,10 @@ final class TukanCentral
         $todos = $panel->salones('', '', $hoy);   // mismo estado de cuenta que el panel (Planes::estadoCuenta)
         $cuenta = array_fill_keys(array_keys(PanelTukan::ESTADOS), 0);
         foreach ($todos as $s) $cuenta[$s['estado_cuenta']]++;
+        // Cifras con la regla única del protocolo v2 (§4.2), las mismas de "clientes.contadores"
+        $v2 = new TukanCentralV2($this->db, $hoy);
+        $contadores = $v2->contadores($todos);
+        $abiertas = $v2->solicitudesAbiertas();
 
         $hace30 = $hoy->modify('-30 days')->format('Y-m-d');
         $en7 = $hoy->modify('+7 days')->format('Y-m-d');
@@ -218,12 +278,12 @@ final class TukanCentral
             'version' => self::version(dirname(__DIR__)),
             'generado' => (new DateTimeImmutable('now'))->format('c'),
             'negocios' => [
-                'total' => count($todos),
-                'prueba' => $cuenta['prueba'],
-                'activos' => $cuenta['activo'],
-                'por_vencer' => $cuenta['por_vencer'],
-                'vencidos' => $cuenta['vencido'] + $cuenta['prueba_vencida'],
-                'suspendidos' => $cuenta['suspendido'] + $cuenta['cancelado'],
+                'total' => $contadores['total'],
+                'prueba' => $contadores['prueba'],
+                'activos' => $contadores['activo'],
+                'por_vencer' => $contadores['por_vencer'],         // pagado y vence en 0 a 7 días
+                'vencidos' => $contadores['vencido'],              // ya venció (incluidos los días de gracia y las pruebas terminadas)
+                'suspendidos' => $contadores['suspendido'],        // suspendidos y cancelados
             ],
             'nuevos_30d' => count(array_filter($todos, fn($s) => substr((string) $s['creado_en'], 0, 10) >= $hace30)),
             'ingresos_mes' => round($panel->cobradoMes($hoy->format('Y-m')), 2),
@@ -242,6 +302,10 @@ final class TukanCentral
                 'Pruebas terminadas sin pagar' => $cuenta['prueba_vencida'],
                 'Cancelados' => $cuenta['cancelado'],
             ],
+            // Agregados del protocolo v2 (§2.4; el Central v1 los ignora)
+            'protocolo_max' => TukanCentralV2::PROTOCOLO,
+            'solicitudes_abiertas' => count($abiertas),
+            'solicitudes_huella' => TukanCentralV2::huella($abiertas),
         ];
     }
 

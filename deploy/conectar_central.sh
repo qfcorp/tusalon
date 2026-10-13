@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Conecta TuSalon con el Panel Tukan Central (protocolo v1).
+# Conecta TuSalon con el Panel Tukan Central (protocolo v1 y v2: mismo ID y mismo secreto).
 # Uso (en el servidor, con sudo):
 #   sudo bash /var/www/tusalon/deploy/conectar_central.sh ID SECRETO URL
 # Ejemplo:
@@ -73,12 +73,16 @@ fi
 
 echo "== 3. Tablas del conector en la base"
 leer() { grep -E "^$1=" "$ENVF" | head -1 | cut -d= -f2-; }
-MIG="$APP/db/migraciones/004_tukan_central.sql"
-if [ -f "$MIG" ] && command -v psql > /dev/null; then
+# 004 = protocolo v1 (nonces y limite); 005 = protocolo v2 (operaciones, atenciones, origen de cada salon)
+if [ -f "$APP/db/migraciones/004_tukan_central.sql" ] && command -v psql > /dev/null; then
   HOSTDB="$(leer TUSALON_DB_HOST)"
-  PGPASSWORD="$(leer TUSALON_DB_PASS)" psql -h "${HOSTDB:-127.0.0.1}" -U "$(leer TUSALON_DB_USER)" \
-    -d "$(leer TUSALON_DB_NAME)" -q -v ON_ERROR_STOP=1 -f "$MIG" < /dev/null > /dev/null 2>&1 \
-    && echo "   listo" || echo "   AVISO: no se pudo preparar la base (corre otra vez instalar.sh)"
+  BIEN=1
+  for MIG in "$APP"/db/migraciones/004_tukan_central.sql "$APP"/db/migraciones/005_tukan_central_v2.sql; do
+    [ -f "$MIG" ] || continue
+    PGPASSWORD="$(leer TUSALON_DB_PASS)" psql -h "${HOSTDB:-127.0.0.1}" -U "$(leer TUSALON_DB_USER)" \
+      -d "$(leer TUSALON_DB_NAME)" -q -v ON_ERROR_STOP=1 -f "$MIG" < /dev/null > /dev/null 2>&1 || BIEN=0
+  done
+  [ "$BIEN" = "1" ] && echo "   listo" || echo "   AVISO: no se pudo preparar la base (corre otra vez instalar.sh)"
 else
   echo "   (se omite)"
 fi

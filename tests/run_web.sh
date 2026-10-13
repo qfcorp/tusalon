@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Corre las pruebas de pantallas de TuSalón contra sitios de prueba que levanta solo:
-#   tests/prueba_web.sh (todo el sistema) y tests/prueba_web_central.sh (conector con el Panel Tukán Central).
+#   tests/prueba_web.sh (todo el sistema), tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
+#   Panel Tukán Central, protocolos v1 y v2).
 # Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
 # Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099).
@@ -53,6 +54,8 @@ if [ "${1:-}" != "central" ]; then
 fi
 echo; echo "==================== prueba_web_central ===================="
 bash tests/prueba_web_central.sh || FALLO=1
+echo; echo "==================== prueba_web_central_v2 ===================="
+bash tests/prueba_web_central_v2.sh || FALLO=1
 
 echo
 if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then
