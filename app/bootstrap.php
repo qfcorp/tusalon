@@ -200,6 +200,27 @@ function es_peluquero(?array $u): bool
     return $u !== null && $u['rol'] === 'profesional';
 }
 
+/** Usuario de recepción (plan Completa): agenda, citas, cobros, caja y clientes; nada del dinero del dueño ni la configuración. */
+function es_recepcion(?array $u): bool
+{
+    return $u !== null && $u['rol'] === 'recepcion';
+}
+
+/**
+ * Los clientes privados de quien alquila el puesto son solo suyos: el dueño y recepción ven la hora ocupada
+ * como "Cliente de <peluquero>", sin nombre ni celular. Necesita la columna cliente_privado_de.
+ */
+function ocultar_cliente_privado(array $c, ?array $u): array
+{
+    if (empty($c['cliente_privado_de']) || (int) $c['cliente_privado_de'] === (int) ($u['profesional_id'] ?? 0)) return $c;
+    $c['cliente'] = 'Cliente de ' . trim((string) ($c['profesional'] ?? 'quien alquila'));
+    foreach (['telefono', 'cliente_email', 'cliente_telegram'] as $k) {
+        if (array_key_exists($k, $c)) $c[$k] = null;
+    }
+    $c['privado_oculto'] = true;
+    return $c;
+}
+
 function planes(): \TuSalon\Planes
 {
     static $p = null;

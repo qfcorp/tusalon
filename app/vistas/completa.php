@@ -2,15 +2,15 @@
 $wa = fn(string $plan, string $periodo) => 'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode(
     "Hola, quiero contratar TuSalón plan $plan ($periodo) para mi salón \"{$u['salon']}\" ({$u['email']}).");
 $filas = ['mensual' => planes()->textoPeriodo('mensual'), 'semestral' => planes()->textoPeriodo('semestral'), 'anual' => planes()->textoPeriodo('anual')];
+// Solo lo que existe y se puede usar hoy (sin promesas): cada línea tiene su pantalla.
 $completa = [
-    'Personas ilimitadas y varias sucursales',
-    'Reservas en línea con enlace y código QR',
+    'Personas ilimitadas',
+    'Reservas en línea con tu propio enlace',
     'Recordatorios por WhatsApp con un toque y avisos automáticos por Telegram',
     'Anticipo en línea para que el cliente no falte',
-    'Comisiones por servicio y producto, escalas por meta, propinas, anticipos',
-    'Rol de pagos con IESS y décimos',
-    'Cobro automático del arriendo y reparto del porcentaje',
+    'Comisiones por servicio y producto, reparto del porcentaje y propinas, con la cuenta de cada peluquero',
     'Clientes privados para quien alquila el puesto',
+    'Cuenta de recepción: agenda y cobra sin ver tus ganancias',
     'Ficha técnica de color con fotos antes y después',
     'Inventario, paquetes, tarjetas de regalo y puntos',
     'Gastos con las facturas que recibes del SRI y ganancia real',
@@ -22,7 +22,7 @@ $completa = [
     $compras = $gp->deSalon((int) $u['salon_id']);
     $nombres = ['basica' => 'Básica', 'completa' => 'Completa'];
     $resumenes = ['basica' => 'Agenda, clientes, caja diaria y cuentas del equipo, para hasta 3 personas.',
-                  'completa' => 'Todo, sin límite de personas: reservas en línea, anticipo, paquetes, tarjetas de regalo, puntos, ficha de color, inventario y reporte del mes.'];
+                  'completa' => 'Todo, sin límite de personas: reservas en línea, anticipo, recepción, gastos con tus facturas del SRI, paquetes, tarjetas de regalo, puntos, ficha de color, inventario y reporte del mes.'];
 ?>
 <div class="cabecera">
     <div>

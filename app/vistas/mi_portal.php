@@ -27,6 +27,10 @@ $diaAnterior = '';
     </nav>
 </div>
 
+<?php if ($yo['tipo'] === 'alquiler' && es_completa($u)): ?>
+    <a class="aviso franja-avisos" href="<?= e(url('mis_clientes')) ?>">👤 Mis clientes: guarda a tus clientes propios (solo tú los ves) y agéndalos en tu silla · Ver</a>
+<?php endif; ?>
+
 <div class="instalar-app" data-instalar-app>
     <img src="/assets/icono-192.png" alt="" width="48" height="48">
     <div style="flex:1">

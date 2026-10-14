@@ -23,9 +23,12 @@ final class FichaTecnica
     /** ¿Puede este usuario ver y escribir fichas de este cliente? Dueño: siempre. Peluquero: si lo ha atendido o lo tiene agendado. */
     public function puedeVer(int $salonId, int $clienteId, array $usuario): bool
     {
-        $st = $this->db->prepare('SELECT 1 FROM clientes WHERE id = ? AND salon_id = ?');
+        $st = $this->db->prepare('SELECT profesional_privado_id FROM clientes WHERE id = ? AND salon_id = ?');
         $st->execute([$clienteId, $salonId]);
-        if (!$st->fetchColumn()) return false;
+        $privadoDe = $st->fetchColumn();
+        if ($privadoDe === false) return false;
+        // Cliente privado de quien alquila el puesto: solo lo ve él
+        if ($privadoDe !== null) return (int) $privadoDe === (int) ($usuario['profesional_id'] ?? 0);
         if (in_array($usuario['rol'], ['dueno', 'admin'], true)) return true;
         $pid = (int) ($usuario['profesional_id'] ?? 0);
         $st = $this->db->prepare("SELECT 1 FROM citas WHERE salon_id = ? AND cliente_id = ? AND profesional_id = ? AND estado <> 'rechazada'

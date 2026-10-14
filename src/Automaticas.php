@@ -34,12 +34,14 @@ final class Automaticas
     // ------------------------------------------------------------------
 
     /** Citas de mañana con el mensaje y enlace de WhatsApp listos. */
-    public function recordatoriosManana(int $salonId, DateTimeImmutable $ahora): array
+    public function recordatoriosManana(int $salonId, DateTimeImmutable $ahora, bool $incluirPrivados = true): array
     {
         $manana = $ahora->modify('+1 day')->format('Y-m-d');
+        // Sin privados = la lista que ve el dueño: los clientes privados de quien alquila no aparecen (sí reciben su Telegram)
         $st = $this->db->prepare(
             "SELECT c.id FROM citas c WHERE c.salon_id = ? AND c.inicio::date = ? AND c.estado IN ('reservada','confirmada')
-                AND c.cliente_id IS NOT NULL ORDER BY c.inicio"
+                AND c.cliente_id IS NOT NULL" . ($incluirPrivados ? '' : '
+                AND NOT EXISTS (SELECT 1 FROM clientes x WHERE x.id = c.cliente_id AND x.profesional_privado_id IS NOT NULL)') . " ORDER BY c.inicio"
         );
         $st->execute([$salonId, $manana]);
         $agenda = new Agenda($this->db);
@@ -100,7 +102,7 @@ final class Automaticas
         // Los del 29 de febrero se saludan el 28 cuando el año no es bisiesto
         $extra = ($mes === 2 && $dia === 28 && !$hoy->format('L')) ? ' OR (cumple_mes = 2 AND cumple_dia = 29)' : '';
         $st = $this->db->prepare("SELECT id, nombre, telefono, telegram_chat_id, cumple_saludo_anio FROM clientes
-                                   WHERE salon_id = ? AND ((cumple_mes = ? AND cumple_dia = ?)$extra) ORDER BY nombre");
+                                   WHERE salon_id = ? AND profesional_privado_id IS NULL AND ((cumple_mes = ? AND cumple_dia = ?)$extra) ORDER BY nombre");
         $st->execute([$salonId, $mes, $dia]);
         $salon = $this->salon($salonId);
         $lista = [];
@@ -153,7 +155,7 @@ final class Automaticas
             "SELECT cl.id, cl.nombre, cl.telefono, max(c.inicio) AS ultima,
                     count(*) AS visitas
                FROM clientes cl JOIN citas c ON c.cliente_id = cl.id AND c.estado = 'atendida'
-              WHERE cl.salon_id = ?
+              WHERE cl.salon_id = ? AND cl.profesional_privado_id IS NULL
                 AND NOT EXISTS (SELECT 1 FROM citas f WHERE f.cliente_id = cl.id AND f.inicio > ?
                                    AND f.estado IN ('pendiente','reservada','confirmada'))
               GROUP BY cl.id
@@ -275,7 +277,7 @@ final class Automaticas
         $cancel = (int) $q("SELECT count(*) FROM citas WHERE salon_id = ? AND estado = 'cancelada' AND cancelada_por = 'cliente' AND inicio >= ? AND inicio < ?", $p)->fetchColumn();
         $online = (int) $q("SELECT count(*) FROM citas WHERE salon_id = ? AND origen = 'online' AND inicio >= ? AND inicio < ? AND estado <> 'rechazada'", $p)->fetchColumn();
         $prom = $q('SELECT round(avg(estrellas)::numeric,1) AS p, count(*) AS n FROM calificaciones WHERE salon_id = ? AND creada_en >= ? AND creada_en < ?', $p)->fetch();
-        $gastos = (float) $q('SELECT COALESCE(sum(total),0) FROM facturas_recibidas WHERE salon_id = ? AND fecha_emision >= ? AND fecha_emision < ?', $p)->fetchColumn();
+        $gastos = (float) $q("SELECT COALESCE(sum(CASE WHEN tipo = 'nota_credito' THEN -total ELSE total END),0) FROM facturas_recibidas WHERE salon_id = ? AND fecha_emision >= ? AND fecha_emision < ?", $p)->fetchColumn();
 
         return [
             'mes' => $mes,

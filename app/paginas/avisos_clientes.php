@@ -16,7 +16,7 @@ if (es_post()) {
     }
     redirigir('avisos_clientes');
 }
-$manana = $auto->recordatoriosManana($sid, $ahora);
+$manana = $auto->recordatoriosManana($sid, $ahora, false);
 $cumples = $auto->cumpleanosHoy($sid, $ahora);
 $recuperar = es_completa($u) ? $auto->porRecuperar($sid, $ahora) : [];
 $st = db()->prepare('SELECT semanas_sin_volver FROM salones WHERE id = ?');

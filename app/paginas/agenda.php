@@ -9,7 +9,7 @@ $sid = (int) $u['salon_id'];
 $st = db()->prepare('SELECT id, nombre, tipo, color_agenda FROM profesionales WHERE salon_id = ? AND activo ORDER BY tipo = \'dueno\' DESC, nombre');
 $st->execute([$sid]);
 $sillas = $st->fetchAll();
-$citas = (new Agenda(db()))->delDia($sid, $fecha);
+$citas = array_map(fn($c) => ocultar_cliente_privado($c, $u), (new Agenda(db()))->delDia($sid, $fecha));
 
 $porSilla = [];
 foreach ($citas as $c) {

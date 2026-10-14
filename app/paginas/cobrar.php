@@ -7,6 +7,7 @@ $error = null;
 $completa = es_completa($u);
 $citaId = (int) ($_REQUEST['cita'] ?? 0);
 $cita = $citaId ? (new Agenda($pdo))->cita($sid, $citaId) : null;
+if ($cita) $cita = ocultar_cliente_privado($cita, $u);
 if ($citaId && (!$cita || !in_array($cita['estado'], ['reservada', 'confirmada'], true))) {
     aviso('Esa cita ya no se puede cobrar.', 'error');
     redirigir('caja');
@@ -41,9 +42,14 @@ $fid = new Fidelidad($pdo);
 $cliente = null;
 $paquetes = [];
 if ($clienteId) {
-    $st = $pdo->prepare('SELECT id, nombre, puntos FROM clientes WHERE id = ? AND salon_id = ?');
+    $st = $pdo->prepare('SELECT id, nombre, puntos, profesional_privado_id FROM clientes WHERE id = ? AND salon_id = ?');
     $st->execute([$clienteId, $sid]);
     $cliente = $st->fetch() ?: null;
+    if ($cliente && $cliente['profesional_privado_id'] !== null) {
+        // Cliente privado de quien alquila: solo se cobra desde su cita y sin mostrar su nombre
+        if (!$cita) $cliente = null;
+        else $cliente['nombre'] = $cita['cliente'];
+    }
     if (!$cliente) $clienteId = 0;
     elseif ($completa) $paquetes = $fid->paquetesDeCliente($sid, $clienteId);
 }

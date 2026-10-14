@@ -13,7 +13,7 @@ YO="$(id -un)"
 cd /tmp
 
 echo "== 1. Programas de PHP"
-sudo apt-get install -y "php$PHPV-fpm" "php$PHPV-pgsql" "php$PHPV-gd" "php$PHPV-curl" "php$PHPV-mbstring" "php$PHPV-intl" < /dev/null > /dev/null \
+sudo apt-get install -y "php$PHPV-fpm" "php$PHPV-pgsql" "php$PHPV-gd" "php$PHPV-curl" "php$PHPV-mbstring" "php$PHPV-intl" "php$PHPV-xml" "php$PHPV-zip" < /dev/null > /dev/null \
   && echo "   listo" || echo "   AVISO: no se pudieron instalar los programas de PHP"
 
 echo "== 2. Bajar o actualizar TuSalón"
@@ -134,7 +134,7 @@ echo
 echo "=========== RESULTADO ==========="
 [ -f "$APP/config/.env" ] && echo "1) Configuración: OK" || echo "1) Configuración: FALTA"
 echo "2) Tablas en la base: $(PGPASSWORD="$CLAVE" psql -h 127.0.0.1 -U tusalon -d tusalon -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" < /dev/null) (deben ser más de 25)"
-echo "3) Extensiones de PHP: $(php -m | grep -E -c '^(pdo_pgsql|gd|curl|mbstring)$') (deben ser 4)"
+echo "3) Extensiones de PHP: $(php -m | grep -E -c '^(pdo_pgsql|gd|curl|mbstring|SimpleXML|zip)$') (deben ser 6)"
 if command -v nginx > /dev/null; then
   curl -s -o /dev/null -w "4) Prueba de la página: %{http_code} (debe ser 200)\n" -H "Host: $DOMINIO" "http://127.0.0.1/?r=login"
 fi

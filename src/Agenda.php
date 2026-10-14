@@ -342,7 +342,7 @@ final class Agenda
         if ($motivo = $this->motivoNoCancelar($cita, $ahora)) throw new RuntimeException($motivo);
         $this->db->prepare("UPDATE citas SET estado = 'cancelada', cancelada_por = 'cliente', expira_en = NULL WHERE id = ?")->execute([$citaId]);
         (new Notificaciones($this->db))->avisoSimple((int) $cita['salon_id'], (int) $cita['profesional_id'], $citaId,
-            "{$cita['cliente']} canceló su cita del " . (new \DateTimeImmutable($cita['inicio']))->format('d/m H:i') . " con {$cita['profesional']}. La hora quedó libre.");
+            self::nombreParaAvisos($cita) . " canceló su cita del " . (new \DateTimeImmutable($cita['inicio']))->format('d/m H:i') . " con {$cita['profesional']}. La hora quedó libre.");
     }
 
     public function confirmarPorCliente(int $citaId): void
@@ -355,7 +355,13 @@ final class Agenda
         if (!$r) throw new RuntimeException('Esta cita ya no se puede confirmar.');
         $c = $this->cita((int) $r['salon_id'], $citaId);
         (new Notificaciones($this->db))->avisoSimple((int) $r['salon_id'], (int) $r['profesional_id'], $citaId,
-            "{$c['cliente']} confirmó que vendrá el " . (new \DateTimeImmutable($c['inicio']))->format('d/m H:i') . " con {$c['profesional']}.");
+            self::nombreParaAvisos($c) . " confirmó que vendrá el " . (new \DateTimeImmutable($c['inicio']))->format('d/m H:i') . " con {$c['profesional']}.");
+    }
+
+    /** Nombre del cliente para avisos que ven el dueño y recepción: los clientes privados de quien alquila no se nombran. */
+    public static function nombreParaAvisos(array $cita): string
+    {
+        return !empty($cita['cliente_privado_de']) ? 'Un cliente de ' . $cita['profesional'] : (string) $cita['cliente'];
     }
 
     /** Mensaje para el cliente con el valor a cancelar y su enlace. */
@@ -597,7 +603,7 @@ final class Agenda
 
     public static function puedeResponder(string $regla, array $usuario, int $profesionalCita): bool
     {
-        $esDueno = in_array($usuario['rol'], ['dueno', 'admin'], true);
+        $esDueno = in_array($usuario['rol'], ['dueno', 'admin', 'recepcion'], true);   // recepción responde como el dueño
         $esSuPeluquero = (int) ($usuario['profesional_id'] ?? 0) === $profesionalCita;
         return match ($regla) {
             'dueno'      => $esDueno,
@@ -610,14 +616,14 @@ final class Agenda
     /** Solicitudes pendientes que este usuario puede ver/responder. */
     public function solicitudes(int $salonId, array $usuario): array
     {
-        $sql = "SELECT c.*, cl.nombre AS cliente, cl.telefono, p.nombre AS profesional, s.acepta_reservas,
+        $sql = "SELECT c.*, cl.nombre AS cliente, cl.telefono, cl.profesional_privado_id AS cliente_privado_de, p.nombre AS profesional, s.acepta_reservas,
                        (SELECT string_agg(sv.nombre, ' + ') FROM cita_servicios cs JOIN servicios sv ON sv.id = cs.servicio_id WHERE cs.cita_id = c.id) AS servicios,
                        (SELECT COALESCE(SUM(cs.precio),0) FROM cita_servicios cs WHERE cs.cita_id = c.id) AS precio
                   FROM citas c JOIN profesionales p ON p.id = c.profesional_id JOIN salones s ON s.id = c.salon_id
              LEFT JOIN clientes cl ON cl.id = c.cliente_id
                  WHERE c.salon_id = ? AND c.estado = 'pendiente' AND c.fin >= now()";
         $params = [$salonId];
-        if (!in_array($usuario['rol'], ['dueno', 'admin'], true)) {
+        if (!in_array($usuario['rol'], ['dueno', 'admin', 'recepcion'], true)) {
             $sql .= ' AND c.profesional_id = ?';
             $params[] = (int) $usuario['profesional_id'];
         }
@@ -642,7 +648,7 @@ final class Agenda
     /** Citas de un día con cliente, profesional y servicios. */
     public function delDia(int $salonId, string $fecha, ?int $soloProfesional = null): array
     {
-        $sql = "SELECT c.*, cl.nombre AS cliente, cl.telefono, p.nombre AS profesional,
+        $sql = "SELECT c.*, cl.nombre AS cliente, cl.telefono, cl.profesional_privado_id AS cliente_privado_de, p.nombre AS profesional,
                        (SELECT string_agg(s.nombre, ' + ' ORDER BY s.nombre) FROM cita_servicios cs
                           JOIN servicios s ON s.id = cs.servicio_id WHERE cs.cita_id = c.id) AS servicios,
                        (SELECT COALESCE(SUM(cs.precio),0) FROM cita_servicios cs WHERE cs.cita_id = c.id) AS precio
@@ -664,7 +670,7 @@ final class Agenda
     {
         $st = $this->db->prepare(
             'SELECT c.*, cl.nombre AS cliente, cl.telefono, cl.email AS cliente_email, cl.telegram_chat_id AS cliente_telegram,
-                    p.nombre AS profesional, sa.nombre AS salon, sa.slug AS salon_slug
+                    cl.profesional_privado_id AS cliente_privado_de, p.nombre AS profesional, sa.nombre AS salon, sa.slug AS salon_slug
                FROM citas c JOIN profesionales p ON p.id = c.profesional_id JOIN salones sa ON sa.id = c.salon_id
           LEFT JOIN clientes cl ON cl.id = c.cliente_id
               WHERE c.id = ? AND c.salon_id = ?'

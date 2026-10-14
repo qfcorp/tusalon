@@ -32,7 +32,7 @@ final class Calificaciones
                             VALUES (?,?,?,?,?,?) ON CONFLICT (cita_id) DO NOTHING')
                  ->execute([$cita['salon_id'], $cita['id'], $cita['profesional_id'], $cita['cliente_id'], $estrellas, $comentario ?: null]);
 
-        $txt = str_repeat('★', $estrellas) . str_repeat('☆', 5 - $estrellas) . " {$cita['cliente']} calificó a {$cita['profesional']}"
+        $txt = str_repeat('★', $estrellas) . str_repeat('☆', 5 - $estrellas) . ' ' . Agenda::nombreParaAvisos($cita) . " calificó a {$cita['profesional']}"
              . ($comentario !== '' ? ": \"$comentario\"" : '.');
         (new Notificaciones($this->db))->avisoSimple((int) $cita['salon_id'], (int) $cita['profesional_id'], (int) $cita['id'], $txt);
 

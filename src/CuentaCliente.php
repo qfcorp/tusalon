@@ -30,7 +30,7 @@ final class CuentaCliente
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('El correo no es válido.');
         if (strlen($clave) < 8) throw new RuntimeException('La contraseña debe tener al menos 8 caracteres.');
 
-        $st = $this->db->prepare('SELECT id, password_hash FROM clientes WHERE salon_id = ? AND lower(email) = ? ORDER BY password_hash IS NOT NULL DESC LIMIT 1');
+        $st = $this->db->prepare('SELECT id, password_hash FROM clientes WHERE salon_id = ? AND lower(email) = ? AND profesional_privado_id IS NULL ORDER BY password_hash IS NOT NULL DESC LIMIT 1');
         $st->execute([$salonId, $email]);
         $existe = $st->fetch();
         if ($existe && $existe['password_hash']) {

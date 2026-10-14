@@ -36,8 +36,8 @@ Al cerrar el periodo, el sistema suma la cuenta y dice en palabras simples:
 ## Vista doble del dueño
 - **Producción en la silla:** lo que el dueño cortó.
 - **Ganancia del local:** lo que entró a la caja, menos lo que se les debe a los peluqueros, más lo que ellos le deben al local (arriendos, partes del local).
-- **Gastos:** las facturas que el salón **recibe** de sus proveedores (tintes, shampoo, luz, agua, arriendo del local), importadas del SRI y separadas por categoría. Cada proveedor recuerda su categoría.
-- **Ganancia después de gastos:** ganancia del local menos esos gastos. Los sueldos fijos e IESS se ven en el rol de pagos.
+- **Gastos:** las facturas que el salón **recibe** de sus proveedores (tintes, shampoo, luz, agua, arriendo del local), importadas del SRI en Más → **Gastos y facturas** (XML, reporte TXT o clave de acceso) y separadas por categoría. Cada proveedor recuerda su categoría. Las notas de crédito restan.
+- **Ganancia después de gastos:** ganancia del local menos esos gastos. No incluye sueldos fijos ni aportes al IESS (el sistema no hace rol de pagos).
 
 ## Ejemplo probado (Barbería Don Pepe, un día)
 | Peluquero | Tipo | Qué pasó | Cuenta |

@@ -8,7 +8,7 @@ $menu = [
     'clientes' => ['Clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'],
     'equipo'   => ['Equipo',   'M6 20v-8M6 8V4M12 20v-4M12 12V4M18 20v-10M18 6V4M4 12h4M10 16h4M16 10h4'],
 ];
-$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes'], true);
+$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes', 'gastos', 'recepcion'], true);
 $pendientesCampana = 0;
 if ($u) {
     $pendientesCampana = (new \TuSalon\Notificaciones(db()))->sinLeer((int) $u['id']);
@@ -17,6 +17,14 @@ if ($u) {
             'mi_portal'   => ['Mi día', 'M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z'],
             'solicitudes' => ['Solicitudes', 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4'],
         ];
+        if (($u['tipo_profesional'] ?? '') === 'alquiler' && es_completa($u)) {
+            $menu['mis_clientes'] = ['Mis clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'];
+        }
+    } elseif (es_recepcion($u)) {
+        $masActivo = false;
+        $menu = ['inicio' => $menu['inicio'], 'agenda' => $menu['agenda'],
+                 'solicitudes' => ['Solicitudes', 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4'],
+                 'caja' => $menu['caja'], 'clientes' => $menu['clientes']];
     } else {
         $menu = ['inicio' => $menu['inicio'], 'agenda' => $menu['agenda'],
                  'solicitudes' => ['Solicitudes', 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4'],
@@ -24,8 +32,9 @@ if ($u) {
     }
 }
 $avisos = tomar_avisos();
-$diasPrueba = ($u && !es_peluquero($u)) ? dias_prueba($u) : null;
-$estadoCuenta = ($u && !es_peluquero($u)) ? planes()->estadoCuenta($u) : null;
+$esDuenoAqui = $u && !es_peluquero($u) && !es_recepcion($u);
+$diasPrueba = $esDuenoAqui ? dias_prueba($u) : null;
+$estadoCuenta = $esDuenoAqui ? planes()->estadoCuenta($u) : null;
 $diasPlan = ($estadoCuenta === 'activo' && !empty($u['activo_hasta']))
     ? (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($u['activo_hasta']))->days : null;
 $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
@@ -45,7 +54,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=12">
+<link rel="stylesheet" href="/assets/app.css?v=13">
 </head>
 <body class="<?= $u ? 'con-sesion' : 'sin-sesion' ?>">
 <?php if ($u): ?>
@@ -68,10 +77,13 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <?php endforeach; ?>
     </nav>
     <div class="lateral-pie">
-        <?php if (!es_peluquero($u)): ?>
+        <?php if (es_recepcion($u)): ?>
+        <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
+        <?php elseif (!es_peluquero($u)): ?>
         <a href="<?= e(url('clientes')) ?>">Clientes</a>
         <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
         <a href="<?= e(url('reporte')) ?>">Reporte del mes</a>
+        <a href="<?= e(url('gastos')) ?>">Gastos y facturas</a>
         <a href="<?= e(url('servicios')) ?>">Servicios y precios</a>
         <a href="<?= e(url('inventario')) ?>">Inventario</a>
         <a href="<?= e(url('paquetes')) ?>">Paquetes</a>
@@ -79,6 +91,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <a href="<?= e(url('puntos')) ?>">Puntos</a>
         <a href="<?= e(url('horario')) ?>">Horario y reservas en línea</a>
         <a href="<?= e(url('cuentas')) ?>">Cuentas del equipo</a>
+        <a href="<?= e(url('recepcion')) ?>">Recepción</a>
         <a href="<?= e(url('completa')) ?>">Mi plan</a>
         <?php endif; ?>
         <a href="<?= e(url('salir')) ?>">Cerrar sesión</a>

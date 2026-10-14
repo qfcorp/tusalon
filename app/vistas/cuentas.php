@@ -47,7 +47,7 @@
 </div>
 
 <?php if (!es_completa($u)): ?>
-    <p class="candado">Cobro automático del arriendo, anticipos, escalas de comisión y rol de pagos con IESS: <a href="<?= e(url('completa')) ?>">plan Completa</a></p>
+    <p class="candado">Portal para que cada peluquero vea lo que gana y clientes privados para quien alquila el puesto: <a href="<?= e(url('completa')) ?>">plan Completa</a></p>
 <?php endif; ?>
 
 <?php if ($historial): ?>

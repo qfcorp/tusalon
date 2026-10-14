@@ -358,7 +358,7 @@ final class Fidelidad
 
     public function mejoresClientes(int $salonId, int $limite = 20): array
     {
-        $st = $this->db->prepare('SELECT id, nombre, telefono, puntos FROM clientes WHERE salon_id = ? AND puntos > 0
+        $st = $this->db->prepare('SELECT id, nombre, telefono, puntos FROM clientes WHERE salon_id = ? AND puntos > 0 AND profesional_privado_id IS NULL
                                    ORDER BY puntos DESC, nombre LIMIT ' . (int) $limite);
         $st->execute([$salonId]);
         return $st->fetchAll();

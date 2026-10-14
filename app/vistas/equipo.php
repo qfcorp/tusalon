@@ -27,7 +27,9 @@ $resumenRegla = function (array $p) use ($num): string {
         <a class="boton boton-claro boton-chico" href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('puntos')) ?>">Puntos</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('horario')) ?>">Horario y reservas</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('gastos')) ?>">Gastos y facturas</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('recepcion')) ?>">Recepción</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>
         <a class="boton boton-claro boton-chico solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
     </div>
@@ -121,7 +123,7 @@ $resumenRegla = function (array $p) use ($num): string {
             <div class="campo"><label for="comision_producto_pct">Comisión de productos (%)</label>
                 <input type="number" id="comision_producto_pct" name="comision_producto_pct" value="10" step="0.5" min="0" max="100"></div>
             <label class="opcion" style="margin-bottom:14px"><input type="checkbox" name="afiliado_iess" value="1">
-                <span><strong>Está afiliado al IESS</strong><small>Se completa hasta el básico y se calcula el aporte.</small></span></label>
+                <span><strong>Está afiliado al IESS</strong><small>Queda anotado en su ficha.</small></span></label>
         </div>
 
         <div data-tipo="porcentaje">

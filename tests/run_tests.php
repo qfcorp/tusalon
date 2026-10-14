@@ -403,6 +403,7 @@ check('El dueño borra la foto (y el archivo)', false, is_file($guardada));
 
 echo "\n13. Telegram (con Telegram simulado)\n";
 $logTg = getenv('TG_MOCK_LOG');
+$tgBaseOriginal = getenv('TELEGRAM_API_BASE') ?: 'http://127.0.0.1:8098';
 if ($logTg && getenv('TELEGRAM_API_BASE')) {
     $tg = new Telegram($db);
     $enlace = $tg->enlaceConectar((int) $uPepe['id']);
@@ -436,7 +437,7 @@ if ($logTg && getenv('TELEGRAM_API_BASE')) {
 
 // ------------------------------------------------------------------
 echo "\n14. Horario propio, almuerzo y vacaciones por peluquero\n";
-putenv('TELEGRAM_API_BASE=' . ($tgBase = 'http://127.0.0.1:8098'));
+putenv('TELEGRAM_API_BASE=' . ($tgBase = $tgBaseOriginal));
 $ahoraN = new DateTimeImmutable('2026-11-08 12:00');   // domingo
 $diasAna = [];
 foreach ([2, 3, 4, 5, 6] as $d) $diasAna[$d] = ['abre' => '10:00', 'cierra' => '18:00', 'almuerzo_desde' => '13:00', 'almuerzo_hasta' => '14:00'];

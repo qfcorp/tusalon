@@ -40,6 +40,7 @@ if (es_post()) {
 }
 
 $cita = $agenda->cita($sid, $id);
+if ($cita) $cita = ocultar_cliente_privado($cita, $u);
 if (!$cita) {
     aviso('No se encontró la cita.', 'error');
     redirigir('agenda');

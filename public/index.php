@@ -20,9 +20,13 @@ $publicas = ['login', 'registro', 'reservar', 'horas', 'cliente_entrar', 'client
 $privadas = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 'servicios', 'equipo',
              'caja', 'cobrar', 'cuentas', 'completa', 'salir', 'prueba_terminada', 'horario', 'solicitudes', 'mi_portal', 'fotos',
              'horario_peluquero', 'avisos_clientes', 'reporte',
-             'inventario', 'paquetes', 'tarjetas', 'puntos', 'ficha', 'ficha_foto', 'comprobante', 'play_compra'];
-// Lo único que ve un peluquero con acceso propio
-$dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada', 'ficha', 'ficha_foto', 'comprobante'];
+             'inventario', 'paquetes', 'tarjetas', 'puntos', 'ficha', 'ficha_foto', 'comprobante', 'play_compra',
+             'gastos', 'recepcion', 'mis_clientes'];
+// Lo único que ve un peluquero con acceso propio (mis_clientes: solo quien alquila el puesto)
+$dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada', 'ficha', 'ficha_foto', 'comprobante', 'mis_clientes'];
+// Recepción (plan Completa): agenda, citas, cobros, caja y clientes; nada de configuración, cuentas del equipo ni ganancias
+$deRecepcion = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 'caja', 'cobrar', 'solicitudes', 'avisos_clientes',
+                'comprobante', 'salir', 'prueba_terminada'];
 
 // Panel del super administrador (Tukán): sesión aparte
 $deAdmin = ['admin', 'admin_salones', 'admin_salon', 'admin_nuevo', 'admin_planes', 'admin_ver', 'admin_volver', 'admin_salir'];
@@ -41,6 +45,14 @@ if (in_array($ruta, $privadas, true)) {
     $u = requiere_sesion();
     if (es_peluquero($u) && !in_array($ruta, $dePeluquero, true)) {
         redirigir('mi_portal');
+    }
+    if (es_recepcion($u) && !in_array($ruta, $deRecepcion, true)) {
+        redirigir('inicio');
+    }
+    if (es_recepcion($u) && !es_completa($u) && $ruta !== 'salir') {
+        vista('error', ['mensaje' => 'La cuenta de recepción es del plan Completa. Pídele al dueño que active el plan Completa para volver a entrar.',
+                        'salir' => true], 'Recepción · TuSalón');
+        return;
     }
     if (!es_peluquero($u) && $ruta === 'mi_portal') {
         redirigir('inicio');

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Corre las pruebas de pantallas de TuSalón contra sitios de prueba que levanta solo:
-#   tests/prueba_web.sh (todo el sistema), tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
+#   tests/prueba_web.sh (todo el sistema), tests/prueba_web_gastos_recepcion.sh (gastos con facturas del SRI, recepción y
+#   clientes privados de quien alquila), tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
 #   Panel Tukán Central, protocolos v1 y v2).
 # Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
-# Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099).
+# Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM y PUERTO_APAGADA (si no, puertos libres al azar).
 set -u
 cd "$(dirname "$0")/.."
 export DB=${DB:-tusalon_web_prueba}
@@ -23,7 +24,7 @@ psql -h 127.0.0.1 -U tusalon -d "$DB" -q -v ON_ERROR_STOP=1 -f db/schema.sql > /
 # Payphone y Telegram simulados
 export PP_MOCK_DIR="$TMPW/payphone" TG_MOCK_LOG="$TMPW/telegram.log"
 mkdir -p "$PP_MOCK_DIR"
-P_SIM=$(puerto_libre)
+P_SIM=${PUERTO_SIM:-$(puerto_libre)}
 php -S "127.0.0.1:$P_SIM" tests/simulador.php > "$TMPW/simulador.log" 2>&1 &
 PIDS=$!
 
@@ -36,11 +37,11 @@ export TG_SECRET=secreto-web-prueba
 
 # Sitios de prueba: principal (Google Play prendido) y otro con Google Play apagado
 SITIO="TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD TUSALON_URL=$BASE TUSALON_UPLOADS=$TMPW/uploads
-       PAYPHONE_API_BASE=http://127.0.0.1:$P_SIM TELEGRAM_WEBHOOK_SECRET=$TG_SECRET
+       PAYPHONE_API_BASE=http://127.0.0.1:$P_SIM TELEGRAM_WEBHOOK_SECRET=$TG_SECRET SRI_WS_URL=http://127.0.0.1:$P_SIM/sri
        TWA_SHA256=39:0C:08:10:D4:40:C1:71:C4:30:C8:D0:F1:93:7B:8F:E4:37:03:25:27:2E:B2:F6:2E:4E:A6:5E:01:98:40:DC"
 env $SITIO GOOGLE_PLAY_ACTIVO=1 php -S "127.0.0.1:$PUERTO" -t public tests/router.php > "$TMPW/servidor.log" 2>&1 &
 PIDS="$PIDS $!"
-P_APAGADA=$(puerto_libre)
+P_APAGADA=${PUERTO_APAGADA:-$(puerto_libre)}
 export BASE_APAGADA="http://127.0.0.1:$P_APAGADA"
 env $SITIO php -S "127.0.0.1:$P_APAGADA" -t public tests/router.php > "$TMPW/servidor_apagado.log" 2>&1 &
 PIDS="$PIDS $!"
@@ -51,6 +52,10 @@ FALLO=0
 if [ "${1:-}" != "central" ]; then
   echo "==================== prueba_web ===================="
   bash tests/prueba_web.sh || FALLO=1
+fi
+if [ "${1:-}" != "central" ]; then
+  echo; echo "==================== prueba_web_gastos_recepcion ===================="
+  bash tests/prueba_web_gastos_recepcion.sh || FALLO=1
 fi
 echo; echo "==================== prueba_web_central ===================="
 bash tests/prueba_web_central.sh || FALLO=1

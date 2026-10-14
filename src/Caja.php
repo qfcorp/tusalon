@@ -14,7 +14,8 @@ final class Caja
     public function resumenDia(int $salonId, string $fecha): array
     {
         $st = $this->db->prepare(
-            "SELECT v.*, cl.nombre AS cliente,
+            "SELECT v.*, CASE WHEN cl.profesional_privado_id IS NULL THEN cl.nombre
+                              ELSE 'Cliente de ' || (SELECT nombre FROM profesionales WHERE id = cl.profesional_privado_id) END AS cliente,
                     (SELECT string_agg(DISTINCT p.nombre, ', ') FROM venta_items vi
                        JOIN profesionales p ON p.id = vi.profesional_id WHERE vi.venta_id = v.id) AS profesionales,
                     (SELECT string_agg(COALESCE(s.nombre, pr.nombre), ' + ') FROM venta_items vi

@@ -3,7 +3,7 @@
 Notas para quien cambia el código (Claude o un programador). Lo de uso diario está en el `README.md` y el avance en `BLOC_DE_NOTAS.md`.
 
 ## Pruebas
-- Lógica: `bash tests/run_logica.sh` (borra y crea la base de prueba; Telegram simulado en el puerto 8098). Pantallas: `PGPASSWORD=prueba bash tests/run_web.sh` (opcional `DB=…` y `PUERTO=…`). Todo debe terminar en `TODO BIEN`, sin avisos de PHP.
+- Lógica: `bash tests/run_logica.sh` (borra y crea la base de prueba; Telegram y SRI simulados en el puerto 8098, se cambia con `TG_PUERTO`). Pantallas: `PGPASSWORD=prueba bash tests/run_web.sh` (opcional `DB=…` y `PUERTO=…`). Todo debe terminar en `TODO BIEN`, sin avisos de PHP.
 - Las bases de prueba deben tener "prueba" en el nombre (se borran).
 - Cada cambio de base va en una migración nueva en `db/migraciones/` (que se pueda correr muchas veces) **y** al final de `db/schema.sql`, antes del `COMMIT;` (las pruebas de pantallas solo cargan `schema.sql`).
 
@@ -18,3 +18,10 @@ Notas para quien cambia el código (Claude o un programador). Lo de uso diario e
 - Cuidado: `PDOException` es `RuntimeException`. En el conector siempre se relanza antes de convertir los `RuntimeException` del negocio en 422 (si no, un error de base saldría como "dato inválido" con el texto técnico).
 - Enlace público de un salón: `/?r=reservar&s=<slug>` (no existe `/<slug>`).
 - Pruebas del conector: `tests/prueba_central.php` y `tests/prueba_web_central.sh` (v1), `tests/prueba_central_v2.php` y `tests/prueba_web_central_v2.sh` (v2). Migraciones 004 (v1) y 005 (v2); `deploy/conectar_central.sh` corre las dos.
+
+## Gastos, recepción y clientes privados (14 oct 2026, migración 006)
+- **Textos de venta:** Mi plan (`app/vistas/completa.php`), registro y el candado de Cuentas solo nombran lo que tiene pantalla. Decisión de Dimitry: NO se vende "rol de pagos con IESS / décimos" ni "cobro automático del arriendo" (la lógica `Liquidacion::rolDePagos()` y `aplicarEscalas()` sigue en `src/`, sin pantalla). Tampoco "varias sucursales" (pendiente en el bloc). `tests/prueba_web_gastos_recepcion.sh` revisa que esas palabras no vuelvan.
+- **Facturas recibidas** (`?r=gastos`, Completa): `src/Sri.php` lee el XML autorizado, el TXT "Comprobantes electrónicos recibidos" y descarga por clave del servicio público del SRI (`SRI_WS_URL` solo en pruebas; el simulador responde en `/sri`). `FacturasRecibidas::guardarComprobante()`: un TXT no pisa un XML; un XML completa lo del TXT. Notas de crédito restan en `gastos()` y en el reporte del mes. Máximo `MAX_SRI` (15) claves por vez. Se rechazan XML con DOCTYPE/ENTITY. Necesita php-xml y php-zip (el instalador los pone).
+- **Recepción** (`rol = 'recepcion'`, Completa): rutas permitidas en `$deRecepcion` (`public/index.php`). Responde solicitudes como el dueño (`Agenda::puedeResponder`) y recibe los avisos del dueño (`Notificaciones::destinos`), pero no `alDueno()` (reportes). El inicio no muestra ganancias (`$resumen = null`). Si el salón baja a Básica, recepción ve un aviso y no entra.
+- **Clientes privados** (`clientes.profesional_privado_id`): los crea quien alquila en `?r=mis_clientes`. En agenda, cita, caja, solicitudes y cobro se muestran con `ocultar_cliente_privado()` (bootstrap) como "Cliente de <peluquero>"; los avisos usan `Agenda::nombreParaAvisos()`. No salen en clientes, cumpleaños, por recuperar, puntos, recordatorios del dueño, ni se unen a reservas en línea o cuentas de cliente. Ficha técnica: solo el arrendatario (`FichaTecnica::puedeVer`).
+- Pruebas: `tests/prueba_gastos_recepcion.php` (lógica) y `tests/prueba_web_gastos_recepcion.sh` (pantallas).

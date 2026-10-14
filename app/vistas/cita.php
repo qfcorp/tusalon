@@ -91,7 +91,7 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
                 <?= $boton('cancelada', 'Cancelar cita', 'boton-peligro', '¿Cancelar esta cita?') ?>
             <?php elseif ($cita['estado'] === 'atendida'): ?>
                 <p>Esta cita ya se cobró. Puedes verla en <a href="<?= e(url('caja', ['fecha' => $ini->format('Y-m-d')])) ?>">la caja de ese día</a>.</p>
-                <a class="boton boton-claro" href="<?= e(url('fotos', ['cita' => $cita['id']])) ?>">Fotos del servicio</a>
+                <?php if (empty($cita['privado_oculto'])): ?><a class="boton boton-claro" href="<?= e(url('fotos', ['cita' => $cita['id']])) ?>">Fotos del servicio</a><?php endif; ?>
                 <?php if ($calificacion): ?>
                     <p>Calificación del cliente: <span class="estrellas" aria-label="<?= (int) $calificacion['estrellas'] ?> de 5"><?= str_repeat('★', (int) $calificacion['estrellas']) . str_repeat('☆', 5 - (int) $calificacion['estrellas']) ?></span>
                         <?php if ($calificacion['comentario']): ?><br><small>"<?= e($calificacion['comentario']) ?>"</small><?php endif; ?></p>

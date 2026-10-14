@@ -1,13 +1,13 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 13 de octubre de 2026
+Última actualización: 14 de octubre de 2026
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
 - **Dueño que atiende:** sin comisión ni licencia extra; ve por separado lo que produjo y lo que ganó el local
-- **Empleado:** sueldo, comisión o ambos; rol de pagos con IESS y décimos
+- **Empleado:** sueldo, comisión o ambos
 - **Porcentaje:** 50/50, 60/40, con reparto automático
-- **Alquiler de puesto:** cobra con su propio QR; el sistema le cobra el arriendo
+- **Alquiler de puesto:** cobra con su propio QR; el dueño le carga el arriendo con un botón; sus clientes privados son solo suyos (Completa)
 
 ## Decisiones tomadas
 - [x] Nombre: TuSalón (sigue el esquema TuPass, TuVocalía)
@@ -26,18 +26,22 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 ## Planes
 | Función | Básica $25 | Completa $35 |
 |---|---|---|
-| Agenda | Hasta 3 personas | Ilimitado, varias sucursales |
+| Agenda | Hasta 3 personas | Ilimitado (una sola sucursal) |
 | 4 tipos de peluquero | Cálculo simple | Completo |
 | Ficha del cliente | Básica | Ficha técnica de color con fotos |
 | Caja diaria | Sí | Sí |
 | WhatsApp | Con un clic | Con un clic + avisos automáticos por Telegram (WhatsApp automático: pendiente) |
 | Reservas en línea, anticipo en línea (transferencia/DeUna con comprobante o tarjeta con Payphone) | No | Sí |
-| Comisiones avanzadas, anticipos, rol de pagos IESS | No | Sí |
-| Cobro automático de arriendo, reparto del porcentaje | No | Sí |
+| Reparto del porcentaje, comisiones de producto, cuentas del equipo | Cálculo simple | Sí |
 | Clientes privados del arrendatario, vista doble del dueño | No | Sí |
+| Cuenta de recepción (sin ver ganancias) | No | Sí |
 | App del peluquero, inventario, fidelidad | No | Sí |
-| Importar facturas recibidas (gastos en el panel) | No | Sí |
+| Importar facturas recibidas del SRI (XML, TXT o clave) y ganancia real | No | Sí |
 | Reportes | Del día | Rentabilidad por servicio y peluquero |
+
+## Decisión del 14 oct 2026: nada que no exista en los textos de venta
+- QUITADO para siempre de Mi plan, planes y registro: **rol de pagos con IESS y décimos** y **cobro automático del arriendo**. No se venden. (La lógica vieja sigue en `src/Liquidacion.php` sin pantalla; el arriendo se carga con el botón "Cargar arriendo" en Cuentas.)
+- **Varias sucursales:** QUITADO de los textos y queda PENDIENTE (ver abajo).
 
 ## Decisiones pendientes
 - [ ] Peluquería conocida para la primera prueba gratis
@@ -124,7 +128,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - [ ] Falta: crear el bot de Telegram (docs/TELEGRAM.md)
     - [x] **Manual para clientes** terminado: documento "Manual de TuSalón" (en Claude, se puede exportar a PDF o Word) con 28 capturas marcadas con números en `docs/manual/`. Explica registro, pantalla, servicios, equipo, horarios, citas, solicitudes, cobro y caja, clientes, reservas del cliente, avisos, Telegram, portal del peluquero, cuentas, reporte, planes y preguntas frecuentes
     - [ ] Decidir si el repositorio de GitHub pasa a privado (hoy es público)
-    - Para actualizar el servidor: la misma línea del instalador (no borra datos)
+    - Para actualizar el servidor: la misma línea del instalador (no borra datos). Ver "Cómo actualizar el servidor" al final
 3h. [x] **Apps de Android para Google Play (12 oct)** — listas para subir, TODAVÍA NO publicadas (Dimi está analizando precios)
     - Apps en el repositorio privado **qfcorp/tukan-apps** (carpeta `salidas/`): TuSalón y TuGuardería, cada una con `.aab` (Google Play) y `.apk` (instalar directo). Guía completa en `LEEME.md` de ese repositorio
     - Compilar desde el celular: GitHub → tukan-apps → Actions → "Compilar app" → Run workflow
@@ -150,10 +154,18 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
     - Se guarda de dónde vino cada salón (se registró solo, panel de Tukán o demo del central). Entrar desde el central puede abrir directo la ficha de un salón
     - Migración 005 (también en `db/schema.sql`). Pruebas nuevas: `tests/prueba_central_v2.php` (306) y `tests/prueba_web_central_v2.sh` (85). Totales: lógica 735/735, pantallas 476/476, sin avisos de PHP
     - Falta (no existe en TuSalón): pedidos de demo, comprobantes de pago y soporte. Si se quieren en el central, hay que construirlos aquí primero
+3k. [x] **Pedido del 14 de octubre: lo que Mi plan prometía sin pantalla** (migración `db/migraciones/006_gastos_recepcion.sql`)
+    - **Textos de venta corregidos** (Mi plan, registro, aviso de Cuentas, ayuda de "afiliado al IESS"): ya no dicen rol de pagos, IESS, décimos, cobro automático del arriendo ni sucursales. Ahora venden la cuenta de recepción y los gastos con facturas del SRI
+    - **Gastos y facturas** (Más → Gastos y facturas, Completa): se suben las facturas que el salón RECIBE (TuSalón no emite): XML (varios o .zip), reporte TXT de "Comprobantes electrónicos recibidos" de SRI en línea, o claves de acceso pegadas (se bajan del SRI, 15 por vez). Botón "Completar con el SRI" para las del TXT. Categoría por factura (el proveedor la recuerda), quitar facturas personales, aviso si la factura vino a nombre de otro RUC (se guarda el RUC del salón ahí mismo), notas de crédito restan. Ganancia del local, gastos y ganancia real del mes. El inicio del dueño enlaza aquí. Lector igual al de TuVocalía (`src/Sri.php`)
+    - **Recepción** (Más → Recepción, Completa): el dueño crea, cambia la clave o quita el acceso. Recepción ve Hoy (sin ganancias), Agenda, Solicitudes (acepta/rechaza como el dueño y le llegan esos avisos), Caja (cobra y cierra) y Clientes. No entra a equipo, cuentas, gastos, reporte, servicios, horario, inventario, paquetes ni Mi plan
+    - **Clientes privados de quien alquila** (en su portal → Mis clientes, Completa): los crea, edita, les escribe por WhatsApp y los agenda en su silla. El dueño y recepción ven la hora como "Cliente de Mateo" sin nombre ni celular (agenda, cita, caja, solicitudes, avisos); no salen en Clientes, cumpleaños, por recuperar, puntos ni reservas en línea; la ficha técnica solo la ve él
+    - Pruebas: **lógica 807/807, pantallas 581/581** (nuevas: `tests/prueba_gastos_recepcion.php` 72 y `tests/prueba_web_gastos_recepcion.sh` 105, con el SRI simulado), sin avisos de PHP; capturas en celular y computadora
+    - PENDIENTE (no se hizo hoy, y por eso se quitó de los textos): **varias sucursales**. Es grande: cada sucursal necesita su propio horario, sus sillas/peluqueros, su caja y cierre, su enlace de reservas, filtros en agenda, reportes y gastos, y decidir cómo se cobra el plan (¿por sucursal?). Hoy la base tiene la tabla `sucursales` y columnas `sucursal_id` sin uso. Hacerlo a medias rompería la caja y las reservas. Proponer a Dimi el precio por sucursal antes de construirlo
+    - PENDIENTE: avisar a Dimi que la web tukansoftware.com (repo qfcorp/tukan-web) no promete nada de esto (dice "Comisiones y arriendo de sillas", que sí existe): no hubo que tocarla
 3c. [ ] Más adelante: aviso automático por WhatsApp (API oficial de Meta); hoy los avisos son la campana y Telegram
 4. [ ] Completa 1: reservas en línea, WhatsApp automático, anticipos con Plux o Payphone
-5. [ ] Completa 2: comisiones avanzadas, rol de pagos, cobro de arriendo, reparto del porcentaje
-6. [~] Completa 3: ficha técnica, inventario, fidelidad (paquetes, tarjetas, puntos) y app del peluquero HECHOS (3g); falta importar facturas recibidas del SRI
+5. [~] Completa 2: reparto del porcentaje y cuentas del equipo HECHOS; rol de pagos y cobro automático del arriendo DESCARTADOS (14 oct)
+6. [x] Completa 3: ficha técnica, inventario, fidelidad y app del peluquero (3g); facturas recibidas del SRI, recepción y clientes privados (3k)
 7. [ ] Cobro de la suscripción (mensual, semestral, anual) y bloqueo de funciones según el plan
 8. [ ] Prueba real en una peluquería, ajustes y lanzamiento en tukansoftware.com
 9. [ ] **Después del programa base:** versión con logo para **Daniel Mendoza Asesores de Imagen** (Quito). Datos y lo que falta conseguir en `docs/CLIENTE_DANIEL_MENDOZA.md`. Falta: logo, colores y fotos (Dimitry los baja de su Facebook/Instagram)
@@ -179,3 +191,10 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 8. Clientes que no vuelven: aviso "hace 6 semanas no viene" con mensaje listo
 9. Reporte del mes para el dueño (lo más vendido, mejor peluquero, horas muertas) por Telegram
 10. Respaldo automático diario de la base (como el ERP) antes de tener salones pagando
+
+## Cómo actualizar el servidor qfcorp
+Pegar en la sesión SSH, una línea a la vez (no borra datos):
+1. `curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar.sh -o ~/instalar_tusalon.sh && bash ~/instalar_tusalon.sh`
+   - Pregunta "Activar la app de Google Play esta vez?": contestar `no` mientras Dimi no decida publicar
+   - Debe mostrar las migraciones con "listo" (incluida `006_gastos_recepcion.sql`) y al final: tablas más de 25, extensiones 6, prueba de la página 200
+2. `curl -s -o /dev/null -w "%{http_code}\n" -H "Host: tusalon.tukanec.com" "http://127.0.0.1/?r=login"` → debe salir 200

@@ -12,6 +12,7 @@ $nombre = explode(' ', trim($u['nombre']))[0];
     <div class="acciones">
         <a class="boton" href="<?= e(url('cita_nueva')) ?>">Nueva cita</a>
         <a class="boton boton-claro" href="<?= e(url('cobrar')) ?>">Cobrar</a>
+        <?php if (es_recepcion($u)): ?><a class="boton boton-claro solo-celular" href="<?= e(url('salir')) ?>">Salir</a><?php endif; ?>
     </div>
 </div>
 
@@ -57,10 +58,17 @@ $nombre = explode(' ', trim($u['nombre']))[0];
         <div class="cifra"><?= count($pendientes) ?></div>
         <p class="cifra-nombre">Citas por atender · <?= $atendidas ?> atendidas</p>
     </div>
+    <?php if ($resumen === null): /* recepción: no ve ganancias */ ?>
+    <div class="bloque">
+        <div class="cifra"><?= $solicitudes ?></div>
+        <p class="cifra-nombre">Solicitudes por aceptar</p>
+    </div>
+    <?php else: ?>
     <div class="bloque">
         <div class="cifra"><?= dinero($resumen['ganancia_local']) ?></div>
         <p class="cifra-nombre">Ganancia del local hoy</p>
     </div>
+    <?php endif; ?>
 </div>
 
 <div class="rejilla rejilla-2">
@@ -89,6 +97,7 @@ $nombre = explode(' ', trim($u['nombre']))[0];
         <?php endif; ?>
     </section>
 
+    <?php if ($resumen !== null): ?>
     <section class="bloque">
         <h2>Tu día como dueño</h2>
         <ul class="lista">
@@ -96,11 +105,15 @@ $nombre = explode(' ', trim($u['nombre']))[0];
             <li><span>Entró a la caja del local</span><span class="monto"><?= dinero($resumen['entro_a_caja']) ?></span></li>
             <li><span>Ganancia del local</span><span class="monto"><?= dinero($resumen['ganancia_local']) ?></span></li>
             <?php if (es_completa($u)): ?>
-                <li><span>Gastos (facturas recibidas)</span><span class="monto monto-neg"><?= dinero(-$resumen['gastos_facturas']) ?></span></li>
+                <li><a href="<?= e(url('gastos')) ?>">Gastos (facturas recibidas)</a><span class="monto monto-neg"><?= dinero(-$resumen['gastos_facturas']) ?></span></li>
                 <li><strong>Ganancia después de gastos</strong><strong class="monto"><?= dinero($resumen['ganancia_despues_de_gastos']) ?></strong></li>
             <?php else: ?>
                 <li><span class="candado">Gastos y ganancia real con tus facturas</span><a href="<?= e(url('completa')) ?>">Plan Completa</a></li>
             <?php endif; ?>
         </ul>
+        <?php if (es_completa($u) && (float) $resumen['gastos_facturas'] == 0.0): ?>
+            <p class="suave" style="margin-top:8px;font-size:.9rem">¿Te llegaron facturas de tus proveedores? <a href="<?= e(url('gastos')) ?>">Súbelas del SRI</a> para ver tu ganancia real.</p>
+        <?php endif; ?>
     </section>
+    <?php endif; ?>
 </div>

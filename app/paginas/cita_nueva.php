@@ -27,6 +27,11 @@ if (es_post()) {
             throw new RuntimeException('Elige con quién es la cita.');
         }
         $clienteId = $d['cliente_id'] ?: null;
+        if ($clienteId) {   // los clientes privados de quien alquila solo los agenda él (en Mis clientes)
+            $st = $pdo->prepare('SELECT 1 FROM clientes WHERE id = ? AND salon_id = ? AND profesional_privado_id IS NULL');
+            $st->execute([$clienteId, $sid]);
+            if (!$st->fetchColumn()) throw new RuntimeException('Ese cliente no existe.');
+        }
         if (!$clienteId && $d['cliente_nuevo'] !== '') {
             $st = $pdo->prepare('INSERT INTO clientes (salon_id, nombre, telefono) VALUES (?,?,?) RETURNING id');
             $st->execute([$sid, $d['cliente_nuevo'], $d['telefono'] ?: null]);

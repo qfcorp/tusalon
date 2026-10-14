@@ -11,7 +11,8 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 ## Direcciones
 | Quién | Dirección |
 |---|---|
-| Dueño y recepción | `/` (entrar con correo y contraseña) |
+| Dueño y recepción | `/` (entrar con correo y contraseña; la cuenta de recepción la crea el dueño en Más → Recepción, plan Completa) |
+| Quien alquila el puesto | Su portal → **Mis clientes** (clientes privados, plan Completa) |
 | Peluquero | `/` con el acceso que le crea el dueño → su portal |
 | Clientes (reservas) | `/?r=reservar&s=<nombre-del-salón>` |
 | Tukán (super administrador) | `/?r=admin_entrar` · cuenta creada con `php bin/crear_admin.php` en el servidor · o con un clic desde el Panel Tukán Central |
@@ -25,7 +26,7 @@ PHP 8.3+ y PostgreSQL 16.
 | Carpeta | Qué tiene |
 |---|---|
 | `db/schema.sql` | Todas las tablas |
-| `src/` | La lógica: planes, profesionales, liquidación, rol de pagos, facturas recibidas, agenda, avisos, Telegram, tareas automáticas y calificaciones |
+| `src/` | La lógica: planes, profesionales, liquidación, facturas recibidas (lector del SRI en `Sri.php`), agenda, avisos, Telegram, tareas automáticas y calificaciones |
 | `bin/tareas.php` | Tareas automáticas (correr cada hora con cron) |
 | `deploy/respaldo.sh` | Respaldo diario de la base y las fotos (guarda 14 días) |
 | `tests/` | Pruebas de lógica y de pantallas |

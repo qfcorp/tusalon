@@ -46,6 +46,7 @@ if (es_post()) {
 
 $pendientes = $agenda->solicitudes($sid, $u);
 foreach ($pendientes as &$p) {
+    $p = ocultar_cliente_privado($p, $u);
     $p['lista_servicios'] = $agenda->cita($sid, (int) $p['id'])['lista_servicios'] ?? [];
 }
 unset($p);

@@ -6,6 +6,7 @@ $sid = (int) $u['salon_id'];
 $citaId = (int) ($_GET['cita'] ?? 0);
 $fotos = new Fotos(db(), Fotos::carpetaPorDefecto());
 $cita = (new Agenda(db()))->cita($sid, $citaId);
+if ($cita && !empty($cita['cliente_privado_de']) && (int) $cita['cliente_privado_de'] !== (int) ($u['profesional_id'] ?? 0)) $cita = null;   // cliente privado de quien alquila
 $volver = es_peluquero($u) ? url('mi_portal', ['p' => 'mes']) : url('cita', ['id' => $citaId]);
 if (!$cita || (es_peluquero($u) && (int) $cita['profesional_id'] !== (int) $u['profesional_id'])) {
     aviso('No se encontró la cita.', 'error');

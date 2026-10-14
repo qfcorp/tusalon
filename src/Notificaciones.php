@@ -57,8 +57,8 @@ final class Notificaciones
             $avisarA = (string) $st->fetchColumn();
         }
         $destinos = [];
-        if (in_array($avisarA, ['dueno', 'ambos'], true)) {
-            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND rol IN ('dueno','admin') AND activo");
+        if (in_array($avisarA, ['dueno', 'ambos'], true)) {   // recepción recibe lo mismo que el dueño
+            $st = $this->db->prepare("SELECT id FROM usuarios WHERE salon_id = ? AND rol IN ('dueno','admin','recepcion') AND activo");
             $st->execute([$salonId]);
             $destinos = array_merge($destinos, $st->fetchAll(PDO::FETCH_COLUMN));
         }
