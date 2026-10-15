@@ -16,6 +16,24 @@ $metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' =
         <button class="boton boton-claro" type="submit">Entrar como el dueño (soporte)</button></form>
 </div>
 
+<?php if (!empty($s['eliminado_en'])): $purga = TuSalon\Papelera::fechaPurga($s['eliminado_en']); ?>
+    <section class="bloque" style="border-color:var(--rojo);border-width:2px" role="alert">
+        <h2>En la papelera</h2>
+        <p>Borrado el <?= date('d/m/Y H:i', strtotime($s['eliminado_en'])) ?> por <?= e($s['eliminado_por']) ?>. Motivo: <?= e($s['eliminado_motivo']) ?></p>
+        <p>No puede entrar y su página de reservas no existe. <strong>Se borra para siempre el <?= date('d/m/Y', strtotime($purga)) ?></strong> (la copia se guarda 1 año).</p>
+        <?php if ($purga > date('Y-m-d')): ?>
+            <form method="post" action="<?= e(url('admin_salon', ['id' => $s['id']])) ?>"><?= campo_csrf() ?><input type="hidden" name="accion" value="restaurar">
+                <button class="boton" type="submit">Restaurar</button></form>
+        <?php endif; ?>
+    </section>
+<?php elseif ($s['estado'] === 'suspendido' && !empty($s['pausa_motivo'])): ?>
+    <section class="bloque" role="status">
+        <h2>Cuenta pausada<?= !empty($s['pausa_tipo']) ? ' · ' . e(TuSalon\Papelera::TIPOS_PAUSA[$s['pausa_tipo']] ?? $s['pausa_tipo']) : '' ?></h2>
+        <p>Motivo: <?= e($s['pausa_motivo']) ?><?= $s['pausa_en'] ? ' · desde el ' . date('d/m/Y', strtotime($s['pausa_en'])) : '' ?></p>
+        <p class="suave">El salón ve: «<?= e(TuSalon\Papelera::textoPausa($s['pausa_tipo'], $s['pausa_motivo'])) ?>»</p>
+    </section>
+<?php endif; ?>
+
 <?php if ($claveNueva): ?>
     <section class="bloque" style="border-color:var(--navaja)">
         <h2>Nueva contraseña del dueño</h2>

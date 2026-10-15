@@ -49,6 +49,13 @@ if (es_post()) {
                 $panel->guardarNotas($id, (string) ($_POST['notas'] ?? ''));
                 aviso('Notas guardadas.');
                 break;
+            case 'restaurar':   // Anexo A: sacar de la papelera (dentro de los 30 días)
+                if (empty($salon['eliminado_en'])) throw new RuntimeException('Este salón no está en la papelera.');
+                if (TuSalon\Papelera::fechaPurga($salon['eliminado_en']) <= date('Y-m-d')) throw new RuntimeException('Ya pasaron los 30 días de la papelera.');
+                (new TuSalon\Papelera(db()))->restaurar($id);
+                registrar_admin('Restaurado de la papelera', $id);
+                aviso('Salón restaurado: vuelve tal como estaba.');
+                break;
             case 'clave':
                 $claveNueva = $panel->nuevaClaveDueno($id);
                 registrar_admin('Nueva contraseña para el dueño', $id);

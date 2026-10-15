@@ -348,8 +348,18 @@ final class Automaticas
     public function correr(DateTimeImmutable $ahora): array
     {
         $planes = new Planes($this->db);
-        $st = $this->db->query("SELECT id, plan_codigo, estado, prueba_hasta, activo_hasta FROM salones WHERE estado IN ('prueba','activo')");
-        $total = ['salones' => 0, 'recordatorios' => 0, 'cumpleanos' => 0, 'calificaciones' => 0, 'reportes' => 0];
+        $total = ['salones' => 0, 'recordatorios' => 0, 'cumpleanos' => 0, 'calificaciones' => 0, 'reportes' => 0, 'purgados' => 0, 'copias_borradas' => 0, 'errores' => 0];
+        // Papelera (Anexo A): borra de verdad los salones con más de 30 días en la papelera y las copias de más de 1 año
+        try {
+            $p = (new Papelera($this->db))->purgar($ahora);
+            $total['purgados'] = $p['salones'];
+            $total['copias_borradas'] = $p['copias'];
+        } catch (\Throwable $e) {
+            $total['errores']++;
+            error_log('TuSalón tareas papelera: ' . $e->getMessage());
+        }
+        // Ni los pausados (suspendidos) ni los que están en la papelera reciben tareas ni avisos
+        $st = $this->db->query("SELECT id, plan_codigo, estado, prueba_hasta, activo_hasta FROM salones WHERE estado IN ('prueba','activo') AND eliminado_en IS NULL");
         foreach ($st->fetchAll() as $s) {
             if (!$planes->alDia($s, $ahora)) continue;
             $id = (int) $s['id'];
@@ -363,6 +373,7 @@ final class Automaticas
                 }
                 $total['cumpleanos'] += $this->saludarCumpleanos($id, $ahora);
             } catch (\Throwable $e) {
+                $total['errores']++;
                 error_log("TuSalón tareas salón $id: " . $e->getMessage());
             }
         }

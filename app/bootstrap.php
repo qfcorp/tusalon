@@ -129,10 +129,10 @@ function usuario(): ?array
     $st = db()->prepare(
         'SELECT u.id, u.nombre, u.email, u.rol, u.profesional_id, u.salon_id,
                 s.nombre AS salon, s.slug, s.plan_codigo, s.estado, s.prueba_hasta, s.activo_hasta,
-                p.tipo AS tipo_profesional
+                s.pausa_tipo, s.pausa_motivo, p.tipo AS tipo_profesional
            FROM usuarios u JOIN salones s ON s.id = u.salon_id
       LEFT JOIN profesionales p ON p.id = u.profesional_id
-          WHERE u.id = ? AND u.activo'
+          WHERE u.id = ? AND u.activo AND s.eliminado_en IS NULL'
     );
     $st->execute([$_SESSION['usuario_id']]);
     return $u = ($st->fetch() ?: null);

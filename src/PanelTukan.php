@@ -39,13 +39,22 @@ final class PanelTukan
           JOIN planes pl ON pl.codigo = s.plan_codigo
      LEFT JOIN LATERAL (SELECT id, nombre, email FROM usuarios WHERE salon_id = s.id AND rol = 'dueno' ORDER BY id LIMIT 1) u ON true";
 
-    /** Lista de salones con su estado real. $filtro = '' | una clave de ESTADOS. */
-    public function salones(string $filtro = '', string $buscar = '', ?DateTimeImmutable $hoy = null): array
+    /** Pagos que cuentan en las cifras: de salones que no están en la papelera, o hechos hasta el día en que se mandaron ahí. */
+    public const SQL_PAGO_CUENTA = 'NOT EXISTS (SELECT 1 FROM salones sx WHERE sx.id = suscripciones.salon_id AND sx.eliminado_en IS NOT NULL
+                                                AND suscripciones.pagado_en > sx.eliminado_en::date)';
+    /** Pagos de salones que siguen vivos (para el ingreso mensual de hoy). */
+    public const SQL_PAGO_VIVO = 'NOT EXISTS (SELECT 1 FROM salones sx WHERE sx.id = suscripciones.salon_id AND sx.eliminado_en IS NOT NULL)';
+
+    /**
+     * Lista de salones con su estado real. $filtro = '' | una clave de ESTADOS.
+     * Los que están en la papelera (Anexo A) no salen; con $papelera = true salen solo ellos.
+     */
+    public function salones(string $filtro = '', string $buscar = '', ?DateTimeImmutable $hoy = null, bool $papelera = false): array
     {
-        $sql = self::SQL_SALONES;
+        $sql = self::SQL_SALONES . ' WHERE s.eliminado_en IS ' . ($papelera ? 'NOT NULL' : 'NULL');
         $params = [];
         if (($buscar = trim($buscar)) !== '') {
-            $sql .= ' WHERE s.nombre ILIKE ? OR u.nombre ILIKE ? OR u.email ILIKE ? OR s.telefono ILIKE ? OR s.slug ILIKE ?';
+            $sql .= ' AND (s.nombre ILIKE ? OR u.nombre ILIKE ? OR u.email ILIKE ? OR s.telefono ILIKE ? OR s.slug ILIKE ?)';
             $params = array_fill(0, 5, '%' . $buscar . '%');
         }
         $st = $this->db->prepare($sql . ' ORDER BY s.creado_en DESC');
@@ -100,7 +109,7 @@ final class PanelTukan
         foreach ($todos as $s) $cuenta[$s['estado_cuenta']]++;
 
         $cobradoMes = $this->cobradoMes($hoy->format('Y-m'));
-        $st = $this->db->prepare("SELECT COALESCE(sum(monto),0) FROM suscripciones WHERE NOT anulada AND to_char(pagado_en,'YYYY') = ?");
+        $st = $this->db->prepare("SELECT COALESCE(sum(monto),0) FROM suscripciones WHERE NOT anulada AND " . self::SQL_PAGO_CUENTA . " AND to_char(pagado_en,'YYYY') = ?");
         $st->execute([$hoy->format('Y')]);
         $cobradoAnio = (float) $st->fetchColumn();
         $mensual = $this->ingresoMensual($hoy);
@@ -123,7 +132,7 @@ final class PanelTukan
     /** Lo cobrado en un mes ('YYYY-MM'): pagos de suscripción no anulados. Lo usan el resumen y el Panel Tukán Central. */
     public function cobradoMes(string $mes): float
     {
-        $st = $this->db->prepare("SELECT COALESCE(sum(monto),0) FROM suscripciones WHERE NOT anulada AND to_char(pagado_en,'YYYY-MM') = ?");
+        $st = $this->db->prepare("SELECT COALESCE(sum(monto),0) FROM suscripciones WHERE NOT anulada AND " . self::SQL_PAGO_CUENTA . " AND to_char(pagado_en,'YYYY-MM') = ?");
         $st->execute([$mes]);
         return (float) $st->fetchColumn();
     }
@@ -131,7 +140,7 @@ final class PanelTukan
     /** Ingreso mensual recurrente: lo que vale al mes cada pago vigente. */
     public function ingresoMensual(DateTimeImmutable $hoy): float
     {
-        $st = $this->db->prepare('SELECT COALESCE(sum(monto / meses_recibidos),0) FROM suscripciones WHERE NOT anulada AND inicio <= ? AND fin >= ?');
+        $st = $this->db->prepare('SELECT COALESCE(sum(monto / meses_recibidos),0) FROM suscripciones WHERE NOT anulada AND ' . self::SQL_PAGO_VIVO . ' AND inicio <= ? AND fin >= ?');
         $st->execute([$hoy->format('Y-m-d'), $hoy->format('Y-m-d')]);
         return (float) $st->fetchColumn();
     }
@@ -150,8 +159,13 @@ final class PanelTukan
     public function cambiarEstado(int $salonId, string $estado): void
     {
         if (!in_array($estado, ['prueba', 'activo', 'suspendido', 'cancelado'], true)) throw new RuntimeException('Estado no válido.');
-        $st = $this->db->prepare('UPDATE salones SET estado = ? WHERE id = ?');
-        $st->execute([$estado, $salonId]);
+        // Al salir de "suspendido" se borra el motivo de la pausa (Papelera::pausar lo pone)
+        $st = $this->db->prepare("UPDATE salones SET estado = ?,
+                                         pausa_tipo = CASE WHEN ? = 'suspendido' THEN pausa_tipo END,
+                                         pausa_motivo = CASE WHEN ? = 'suspendido' THEN pausa_motivo END,
+                                         pausa_en = CASE WHEN ? = 'suspendido' THEN COALESCE(pausa_en, now()) END
+                                   WHERE id = ?");
+        $st->execute([$estado, $estado, $estado, $estado, $salonId]);
         if ($st->rowCount() !== 1) throw new RuntimeException('Salón no encontrado.');
     }
 

@@ -259,7 +259,8 @@ final class GooglePlay
         if (!self::configurado() && !$this->http) return $res;
         $st = $this->db->prepare("SELECT * FROM google_play_compras
                                    WHERE estado IN ('SUBSCRIPTION_STATE_ACTIVE','SUBSCRIPTION_STATE_IN_GRACE_PERIOD','SUBSCRIPTION_STATE_ON_HOLD')
-                                     AND expira < ? AND revisado_en < ?");
+                                     AND expira < ? AND revisado_en < ?
+                                     AND salon_id NOT IN (SELECT id FROM salones WHERE eliminado_en IS NOT NULL)");   // la papelera no se renueva
         $st->execute([$ahora->modify('+1 day')->format('Y-m-d H:i:s'), $ahora->modify('-50 minutes')->format('Y-m-d H:i:s')]);
         foreach ($st->fetchAll() as $c) {
             $res['revisadas']++;

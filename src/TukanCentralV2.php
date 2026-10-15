@@ -16,7 +16,8 @@ use Throwable;
  *
  * Lectura: capacidades, clientes, cliente, cotizar, planes, solicitudes, solicitud, finanzas.
  * Escritura: ejecutar (crear_demo, extender_prueba, registrar_pago, anular_pago, suspender, reactivar, cancelar,
- *            cambiar_plan, nueva_clave_dueno, nota_interna, atender_solicitud, guardar_plan).
+ *            cambiar_plan, nueva_clave_dueno, nota_interna, atender_solicitud, guardar_plan,
+ *            y del Anexo A: pausar, borrar_cliente, restaurar_cliente — ver Papelera).
  * Las reglas del negocio son las de TuSalón (Planes, PanelTukan, Altas); aquí solo se validan los datos,
  * se arma la respuesta y se garantiza que una operación repetida no se haga dos veces (tukan_central_operaciones).
  * TuSalón no tiene pedidos de demo, comprobantes ni soporte: sus solicitudes son los registros nuevos, los pagos
@@ -26,7 +27,7 @@ use Throwable;
 final class TukanCentralV2
 {
     public const PROTOCOLO = 2;
-    public const REVISION = 1;
+    public const REVISION = 2;   // 2: Anexo A (pausar, papelera)
     public const MAX_CUERPO = 65536;
     public const VIDA_LECTURA = 60;
     public const VIDA_EJECUTAR = 30;
@@ -35,7 +36,10 @@ final class TukanCentralV2
     /** Las que TuSalón contesta (sin "adjunto": no tiene comprobantes ni tickets con archivos). */
     public const ACCIONES = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'finanzas', 'ejecutar'];
     public const OPERACIONES = ['crear_demo', 'extender_prueba', 'registrar_pago', 'anular_pago', 'suspender', 'reactivar', 'cancelar',
-                                'cambiar_plan', 'nueva_clave_dueno', 'nota_interna', 'atender_solicitud', 'guardar_plan'];
+                                'cambiar_plan', 'nueva_clave_dueno', 'nota_interna', 'atender_solicitud', 'guardar_plan',
+                                'pausar', 'borrar_cliente', 'restaurar_cliente'];
+    /** Operaciones que se pueden pedir sobre un salón que está en la papelera. */
+    public const OPERACIONES_PAPELERA = ['restaurar_cliente', 'borrar_cliente'];
     public const TIPOS_SOLICITUD = ['registro_nuevo', 'pago_automatico', 'seguimiento_prueba', 'renovacion', 'dominio_gratis'];
     public const COMISION_GOOGLE_PLAY = 0.15;   // la misma que usa GooglePlay::precioSugerido()
     public const ESTADOS = ['prueba', 'activo', 'por_vencer', 'vencido', 'suspendido'];
@@ -218,8 +222,12 @@ final class TukanCentralV2
             'meses_libres' => false,
             'metodos_pago' => $metodos,
             'planes_editar' => true,
-            'filtros_clientes' => ['buscar', 'estados', 'plan', 'vence_desde', 'vence_hasta', 'alta_desde', 'alta_hasta', 'sin_uso_dias', 'origen', 'ids'],
+            'filtros_clientes' => ['buscar', 'estados', 'plan', 'vence_desde', 'vence_hasta', 'alta_desde', 'alta_hasta', 'sin_uso_dias', 'origen', 'ids', 'papelera'],
+            'tipos_pausa' => Papelera::TIPOS_PAUSA,
+            'papelera' => ['dias' => Papelera::DIAS_PAPELERA, 'copia_dias' => Papelera::DIAS_COPIA],
             'formularios' => [
+                'pausar' => self::camposPausa(),
+                'borrar_cliente' => self::camposBorrar(null),
                 'crear_demo' => [],   // TuSalón no pide nada más que los campos comunes
                 'guardar_plan' => $this->camposPlan(null),
             ],
@@ -339,6 +347,16 @@ final class TukanCentralV2
             'ir' => '/?r=admin_salon&id=' . (int) $n['id'],
             'ir_trabajar' => null,
             'actualizado' => (new DateTimeImmutable('now'))->format('c'),
+            // Anexo A: pausa y papelera
+            'pausa' => $n['estado'] === 'suspendido' ? [
+                'tipo' => $n['pausa_tipo'] ?? null, 'tipo_nombre' => Papelera::TIPOS_PAUSA[$n['pausa_tipo'] ?? ''] ?? 'Suspendido',
+                'motivo' => $n['pausa_motivo'] ?? null, 'desde' => self::momento($n['pausa_en'] ?? null),
+                'texto_cliente' => Papelera::textoPausa($n['pausa_tipo'] ?? null, $n['pausa_motivo'] ?? null)] : null,
+            'eliminado' => !empty($n['eliminado_en']),
+            'papelera' => !empty($n['eliminado_en']) ? [
+                'desde' => self::momento($n['eliminado_en']), 'hasta' => Papelera::fechaPurga($n['eliminado_en']),
+                'motivo' => $n['eliminado_motivo'] ?? null, 'por' => $n['eliminado_por'] ?? null,
+                'se_puede_restaurar' => Papelera::fechaPurga($n['eliminado_en']) > $this->hoy->format('Y-m-d')] : null,
         ];
     }
 
@@ -352,9 +370,9 @@ final class TukanCentralV2
             'gracia' => 'Venció el ' . self::fechaTexto($n['activo_hasta']) . ' (en días de gracia, todavía puede trabajar)',
             'vencido' => 'Venció el ' . self::fechaTexto($n['activo_hasta']),
             'prueba_vencida' => 'La prueba gratis terminó el ' . self::fechaTexto($n['prueba_hasta']),
-            'suspendido' => 'Suspendido por Tukán',
+            'suspendido' => !empty($n['pausa_tipo']) ? 'Pausado por Tukán: ' . (Papelera::TIPOS_PAUSA[$n['pausa_tipo']] ?? $n['pausa_tipo']) : 'Suspendido por Tukán',
             default => 'Cancelado',
-        };
+        } . (!empty($n['eliminado_en']) ? ' · En la papelera (se borra el ' . self::fechaTexto(Papelera::fechaPurga($n['eliminado_en'])) . ')' : '');
     }
 
     public function clientes(array $d): array
@@ -362,6 +380,12 @@ final class TukanCentralV2
         $pagina = $this->entero($d, 'pagina', 1, 1, 1000000);
         $porPagina = $this->entero($d, 'por_pagina', 50, 1, 200);
         $buscar = $this->texto($d, 'buscar', 80);
+        // Papelera (Anexo A): filtros.estado = "papelera" (también "estado" o "papelera" en "estados")
+        $filtros = $d['filtros'] ?? [];
+        if (!is_array($filtros)) throw TukanCentralError::campo('filtros', 'Los filtros no son válidos.');
+        $papelera = ($filtros['estado'] ?? null) === 'papelera' || ($d['estado'] ?? null) === 'papelera'
+                    || (is_array($d['estados'] ?? null) && in_array('papelera', $d['estados'], true));
+        if (is_array($d['estados'] ?? null)) $d['estados'] = array_values(array_filter($d['estados'], fn($x) => $x !== 'papelera'));
         $estados = $this->lista($d, 'estados', self::ESTADOS);
         $plan = $this->texto($d, 'plan', 40);
         $tipo = $this->texto($d, 'tipo', 40);
@@ -379,10 +403,11 @@ final class TukanCentralV2
 
         $todos = $this->filas();
         $contadores = $this->contadores($todos);
-        $base = $todos;
+        $enPapelera = $this->panel->salones('', '', $this->hoy, true);
+        $base = $papelera ? $enPapelera : $todos;
         if ($buscar !== '') {
             $base = [];
-            foreach ($this->panel->salones('', $buscar, $this->hoy) as $n) $base[(int) $n['id']] = $n;
+            foreach ($this->panel->salones('', $buscar, $this->hoy, $papelera) as $n) $base[(int) $n['id']] = $n;
         }
         $limiteUso = $sinUso === null ? null : (new DateTimeImmutable('now'))->modify("-$sinUso days")->format('Y-m-d H:i:s');
         $lista = [];
@@ -412,7 +437,7 @@ final class TukanCentralV2
         $total = count($lista);
         $pagina_ = array_map(function ($c) { unset($c['_act']); return $c; }, array_slice($lista, ($pagina - 1) * $porPagina, $porPagina));
         return ['total' => $total, 'pagina' => $pagina, 'por_pagina' => $porPagina, 'paginas' => max(1, (int) ceil($total / $porPagina)),
-                'contadores' => $contadores, 'clientes' => $pagina_];
+                'contadores' => $contadores, 'papelera' => $papelera, 'papelera_total' => count($enPapelera), 'clientes' => $pagina_];
     }
 
     public function clienteFicha(int $id): array
@@ -497,6 +522,14 @@ final class TukanCentralV2
         $datos = ['cliente_id' => $c['id']];
         $m = $this->mensajes($n);
         $a = [];
+        if ($c['eliminado']) {   // en la papelera: solo restaurar (mientras se pueda) y ver
+            if ($c['papelera']['se_puede_restaurar']) {
+                $a[] = ['accion' => 'restaurar_cliente', 'etiqueta' => 'Restaurar', 'estilo' => 'principal',
+                        'confirmar' => '¿Sacar a ' . $c['nombre'] . ' de la papelera? Vuelve tal como estaba.', 'datos' => $datos, 'campos' => []];
+            }
+            $a[] = ['accion' => 'abrir', 'etiqueta' => 'Ver en TuSalón', 'ir' => $c['ir']];
+            return $a;
+        }
         if ($c['dueno']['whatsapp']) {
             $texto = $m['vencido'] ?? $m['recordar_prueba'] ?? $m['recordar_renovacion'] ?? $m['bienvenida'];
             $a[] = ['accion' => 'whatsapp', 'etiqueta' => 'WhatsApp', 'estilo' => 'normal', 'whatsapp' => $c['dueno']['whatsapp'], 'texto' => $texto];
@@ -509,8 +542,9 @@ final class TukanCentralV2
         if (in_array($c['estado_detalle'], ['suspendido', 'cancelado'], true)) {
             $a[] = ['accion' => 'reactivar', 'etiqueta' => 'Reactivar', 'estilo' => 'principal', 'confirmar' => '¿Reactivar ' . $c['nombre'] . '?', 'datos' => $datos, 'campos' => []];
         } else {
-            $a[] = ['accion' => 'suspender', 'etiqueta' => 'Suspender', 'estilo' => 'peligro', 'confirmar' => '¿Suspender ' . $c['nombre'] . '? No podrá trabajar hasta que lo reactives.',
-                    'datos' => $datos, 'campos' => [['campo' => 'motivo', 'etiqueta' => 'Motivo', 'tipo' => 'texto', 'requerido' => true, 'min' => 5, 'max' => 200]]];
+            $a[] = ['accion' => 'pausar', 'etiqueta' => 'Pausar', 'estilo' => 'peligro',
+                    'confirmar' => '¿Pausar ' . $c['nombre'] . '? No podrá trabajar y su página de reservas dirá "temporalmente no disponible" hasta que lo reactives.',
+                    'datos' => $datos, 'campos' => self::camposPausa()];
         }
         if ($c['estado_detalle'] !== 'cancelado') {
             $a[] = ['accion' => 'cancelar', 'etiqueta' => 'Cancelar cuenta', 'estilo' => 'peligro', 'confirmar' => '¿Cancelar la cuenta de ' . $c['nombre'] . '?',
@@ -523,8 +557,32 @@ final class TukanCentralV2
         $a[] = ['accion' => 'nota_interna', 'etiqueta' => 'Nota interna', 'estilo' => 'normal', 'confirmar' => null, 'datos' => $datos,
                 'campos' => [['campo' => 'texto', 'etiqueta' => 'Notas de Tukán (el cliente no las ve)', 'tipo' => 'texto_largo', 'requerido' => false,
                               'valor' => (string) ($n['notas_admin'] ?? ''), 'max' => 4000]]];
+        $a[] = ['accion' => 'borrar_cliente', 'etiqueta' => 'Borrar', 'estilo' => 'peligro',
+                'confirmar' => '¿Borrar ' . $c['nombre'] . '? Queda ' . Papelera::DIAS_PAPELERA . ' días en la papelera (se puede restaurar) y después se borra para siempre.',
+                'datos' => $datos, 'campos' => self::camposBorrar($c['nombre'])];
         $a[] = ['accion' => 'abrir', 'etiqueta' => 'Ver en TuSalón', 'ir' => $c['ir']];
         return $a;
+    }
+
+    /** Campos de "pausar" (Anexo A): tipo y motivo obligatorios. */
+    public static function camposPausa(): array
+    {
+        $tipos = [];
+        foreach (Papelera::TIPOS_PAUSA as $k => $v) $tipos[] = ['valor' => $k, 'etiqueta' => $v];
+        return [
+            ['campo' => 'tipo', 'etiqueta' => 'Tipo', 'tipo' => 'opcion', 'requerido' => true, 'valor' => 'falta_pago', 'opciones' => $tipos],
+            ['campo' => 'motivo', 'etiqueta' => 'Motivo (el salón lo ve, salvo en revisión y uso indebido)', 'tipo' => 'texto', 'requerido' => true, 'min' => 3, 'max' => 300],
+        ];
+    }
+
+    /** Campos de "borrar_cliente" (Anexo A): escribir el nombre exacto y el motivo. */
+    public static function camposBorrar(?string $nombre): array
+    {
+        return [
+            ['campo' => 'confirmar', 'etiqueta' => 'Escribe el nombre exacto del salón', 'tipo' => 'texto', 'requerido' => true, 'max' => 120,
+             'ayuda' => $nombre !== null ? 'Escribe: ' . $nombre : 'El nombre exacto (o el número) del salón.'],
+            ['campo' => 'motivo', 'etiqueta' => 'Motivo', 'tipo' => 'texto', 'requerido' => true, 'min' => 3, 'max' => 300],
+        ];
     }
 
     private function opcionesPlan(): array
@@ -627,7 +685,7 @@ final class TukanCentralV2
     public function planesV2(): array
     {
         $a = $this->planes->ajustes();
-        $cuantos = $this->db->query('SELECT plan_codigo, count(*) FROM salones GROUP BY plan_codigo')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $cuantos = $this->db->query('SELECT plan_codigo, count(*) FROM salones WHERE eliminado_en IS NULL GROUP BY plan_codigo')->fetchAll(PDO::FETCH_KEY_PAIR);
         return ['editable' => true, 'planes' => array_map(fn($p) => $this->plan($p, (int) ($cuantos[$p['codigo']] ?? 0)), $this->planes->lista()),
                 'ajustes' => ['dias_prueba' => (int) $a['dias_prueba'], 'dias_demo' => (int) $a['dias_prueba'], 'dias_gracia' => (int) $a['dias_gracia'],
                               'dias_gracia_demo' => 0, 'registro_abierto' => true]];
@@ -886,7 +944,8 @@ final class TukanCentralV2
         $st = $this->db->prepare("SELECT su.salon_id, su.plan_codigo, pl.nombre AS plan_nombre, su.periodo, su.meses_recibidos, su.monto, su.metodo_pago,
                                          to_char(su.pagado_en, 'YYYY-MM') AS mes
                                     FROM suscripciones su JOIN planes pl ON pl.codigo = su.plan_codigo
-                                   WHERE NOT su.anulada AND su.pagado_en >= ? AND su.pagado_en < ? ORDER BY su.pagado_en, su.id");
+                                   WHERE NOT su.anulada AND " . str_replace('suscripciones.', 'su.', PanelTukan::SQL_PAGO_CUENTA) . "
+                                     AND su.pagado_en >= ? AND su.pagado_en < ? ORDER BY su.pagado_en, su.id");
         $st->execute([$ini->format('Y-m-d'), $finRango->format('Y-m-d')]);
         $sumar = function (array &$grupo, string $clave, array $base, float $monto): void {
             $grupo[$clave] ??= $base + ['monto' => 0.0, 'pagos' => 0];
@@ -905,11 +964,14 @@ final class TukanCentralV2
             $met = (string) ($p['metodo_pago'] ?? 'otro');
             $sumar($r[$mes]['por_metodo'], $met, ['metodo' => $met, 'nombre' => self::nombreMetodo($met)], $monto);
         }
-        foreach ($this->db->query("SELECT salon_id, to_char(min(pagado_en), 'YYYY-MM') AS mes FROM suscripciones WHERE NOT anulada GROUP BY salon_id")->fetchAll() as $f) {
+        foreach ($this->db->query("SELECT salon_id, to_char(min(pagado_en), 'YYYY-MM') AS mes FROM suscripciones WHERE NOT anulada AND " . PanelTukan::SQL_PAGO_CUENTA
+                                  . ' GROUP BY salon_id')->fetchAll() as $f) {
             if (isset($r[$f['mes']])) $r[$f['mes']]['nuevos_pagadores']++;
         }
-        // Devengado: cada pago repartido por días entre su inicio y su fin
-        $st = $this->db->prepare('SELECT monto, inicio, fin FROM suscripciones WHERE NOT anulada AND inicio < ? AND fin >= ?');
+        // Devengado: cada pago repartido por días entre su inicio y su fin (de un salón en la papelera, solo hasta el mes en que se borró)
+        $st = $this->db->prepare("SELECT su.monto, su.inicio, su.fin, to_char(n.eliminado_en, 'YYYY-MM') AS borrado
+                                    FROM suscripciones su JOIN salones n ON n.id = su.salon_id
+                                   WHERE NOT su.anulada AND " . str_replace('suscripciones.', 'su.', PanelTukan::SQL_PAGO_CUENTA) . ' AND su.inicio < ? AND su.fin >= ?');
         $st->execute([$finRango->format('Y-m-d'), $ini->format('Y-m-d')]);
         foreach ($st->fetchAll() as $s) {
             $i = new DateTimeImmutable($s['inicio']);
@@ -917,6 +979,7 @@ final class TukanCentralV2
             $total = (int) $i->diff($f)->days + 1;
             if ($total <= 0) continue;
             foreach ($meses as $mes) {
+                if ($s['borrado'] !== null && $mes > $s['borrado']) continue;
                 $mi = new DateTimeImmutable("$mes-01");
                 $mf = $mi->modify('last day of this month');
                 $a = max($i, $mi);
@@ -950,7 +1013,8 @@ final class TukanCentralV2
         $tot['ingresos'] = round($tot['ingresos'], 2);
         $tot['costos'] = round($tot['costos'], 2);
         return ['moneda' => 'USD',
-                'criterio' => 'Pagos de suscripción no anulados (también los de Google Play), por fecha de pago. Devengado: cada pago repartido por días entre su inicio y su fin. La comisión de Google Play es un cálculo (15 %).',
+                'criterio' => 'Pagos de suscripción no anulados (también los de Google Play), por fecha de pago. Devengado: cada pago repartido por días entre su inicio y su fin. La comisión de Google Play es un cálculo (15 %). '
+                              . 'Un salón en la papelera no cuenta desde el día en que se borró.',
                 'mrr' => round($this->panel->ingresoMensual($this->hoy), 2),
                 'meses' => array_values($r), 'totales' => $tot];
     }
@@ -1006,6 +1070,12 @@ final class TukanCentralV2
             if (!in_array($accion, ['crear_demo', 'atender_solicitud', 'guardar_plan'], true)) {
                 if ($clienteId === null) throw TukanCentralError::campo('cliente_id', 'Falta el cliente.');
                 $id = $this->bloquear($clienteId);
+                if (!in_array($accion, self::OPERACIONES_PAPELERA, true) && $this->enPapelera($id)) {
+                    throw new TukanCentralError('conflicto', 'Ese salón está en la papelera. Primero restáuralo.', 409, null, ['motivo' => 'en_papelera']);
+                }
+            }
+            if ($accion === 'borrar_cliente' && ($p['rol'] ?? null) !== 'dueno') {   // Anexo A: borrar es solo del dueño de Tukán
+                throw new TukanCentralError('no_permitido', 'Solo el dueño del Panel Tukán Central puede borrar clientes.', 403, null, ['motivo' => 'rol']);
             }
             $r = $this->operar($accion, $id, $datos, $p);
             $id = $r['cliente_id'] ?? $id;
@@ -1018,7 +1088,7 @@ final class TukanCentralV2
                 'operacion' => $accion, 'operacion_id' => $op, 'repetida' => false, 'sin_cambios' => (bool) ($r['sin_cambios'] ?? false),
                 'mensaje' => $r['mensaje'], 'resultado' => $r['resultado'], 'cliente' => $fila ? $this->cliente($fila) : null,
                 'solicitud' => $r['solicitud'] ?? null,
-            ];
+            ] + ($r['arriba'] ?? []);   // borrar_cliente: "copia" y "borrar_definitivo_el" también arriba (Anexo A)
             $this->db->prepare("UPDATE tukan_central_operaciones SET estado = 'ok', http = 200, respuesta = ?, cliente_id = ?, terminado = now() WHERE operacion_id = ?")
                      ->execute([json_encode(self::sinClaves($json), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION),
                                 $id === null ? ($clienteId === null ? null : (string) $clienteId) : (string) $id, $op]);
@@ -1065,6 +1135,11 @@ final class TukanCentralV2
         return $json;
     }
 
+    private function enPapelera(int $id): bool
+    {
+        return (bool) $this->db->query("SELECT eliminado_en IS NOT NULL FROM salones WHERE id = $id")->fetchColumn();
+    }
+
     private function bloquear(int|string $clienteId): int
     {
         if (!preg_match('/^\d{1,10}$/', (string) $clienteId)) throw new TukanCentralError('no_encontrado', 'Ese salón no existe en TuSalón.', 404);
@@ -1091,6 +1166,9 @@ final class TukanCentralV2
                 'nota_interna' => $this->opNota($id, $d),
                 'atender_solicitud' => $this->opAtender($d, $p),
                 'guardar_plan' => $this->opGuardarPlan($d),
+                'pausar' => $this->opPausar($id, $d),
+                'borrar_cliente' => $this->opBorrar($id, $d, $p),
+                'restaurar_cliente' => $this->opRestaurar($id),
             };
         } catch (TukanCentralError | PDOException $e) {
             throw $e;
@@ -1228,6 +1306,9 @@ final class TukanCentralV2
                     'resultado' => ['estado' => $this->clasificar($n)['estado']], 'auditoria' => ucfirst($palabra) . ": $motivo"];
         }
         $this->panel->cambiarEstado($id, $estado);
+        if ($estado === 'suspendido') {   // sin tipo: el salón ve el texto genérico de "cuenta pausada"
+            $this->db->prepare('UPDATE salones SET pausa_tipo = NULL, pausa_motivo = ?, pausa_en = now() WHERE id = ?')->execute([$motivo, $id]);
+        }
         return ['mensaje' => "{$n['nombre']} quedó $palabra. Sus datos se guardan.", 'resultado' => ['estado' => 'suspendido'],
                 'auditoria' => ($estado === 'suspendido' ? 'Suspendido' : 'Cancelado') . ": $motivo"];
     }
@@ -1243,6 +1324,71 @@ final class TukanCentralV2
         $nuevo = $this->clasificar($this->fila($id))['estado'];
         return ['mensaje' => "{$n['nombre']} reactivado: queda " . self::ESTADOS_V2_TEXTO[$nuevo] . '.', 'resultado' => ['estado' => $nuevo],
                 'auditoria' => 'Reactivado (' . ($n['activo_hasta'] ? 'activo' : 'prueba') . ')'];
+    }
+
+    // --- Anexo A: pausar, borrar (papelera) y restaurar ---
+
+    private function opPausar(int $id, array $d): array
+    {
+        $tipo = $d['tipo'] ?? null;
+        if (!is_string($tipo) || !isset(Papelera::TIPOS_PAUSA[$tipo])) {
+            throw TukanCentralError::campo('datos.tipo', 'Elige el tipo de pausa: ' . implode(', ', array_keys(Papelera::TIPOS_PAUSA)) . '.');
+        }
+        $motivo = $this->textoReq($d, 'motivo', 3, 300);
+        $n = $this->fila($id);
+        if ($n['estado'] === 'cancelado') {
+            throw new TukanCentralError('conflicto', "{$n['nombre']} está cancelado: reactívalo antes de pausarlo.", 409, null, ['motivo' => 'cancelado']);
+        }
+        $nombreTipo = Papelera::TIPOS_PAUSA[$tipo];
+        $cambio = (new Papelera($this->db))->pausar($id, $tipo, $motivo);
+        $res = ['estado' => 'suspendido', 'pausa' => ['tipo' => $tipo, 'motivo' => $motivo, 'texto_cliente' => Papelera::textoPausa($tipo, $motivo)]];
+        if (!$cambio) {
+            return ['mensaje' => "{$n['nombre']} ya estaba pausado así.", 'sin_cambios' => true, 'resultado' => $res, 'auditoria' => "Pausado ($nombreTipo): $motivo"];
+        }
+        return ['mensaje' => "{$n['nombre']} quedó pausado ($nombreTipo). No puede trabajar y su página de reservas dice \"temporalmente no disponible\". Sus datos se guardan.",
+                'resultado' => $res, 'auditoria' => ($n['estado'] === 'suspendido' ? 'Pausa cambiada' : 'Pausado') . " ($nombreTipo): $motivo"];
+    }
+
+    private function opBorrar(int $id, array $d, array $p): array
+    {
+        $n = $this->fila($id);
+        $confirmar = $this->texto($d, 'confirmar', 200, 'datos.');
+        if ($confirmar === '' || ($confirmar !== trim((string) $n['nombre']) && $confirmar !== (string) $id)) {
+            throw TukanCentralError::campo('datos.confirmar', 'Para borrar, escribe el nombre exacto del salón: ' . $n['nombre'] . '.');
+        }
+        $motivo = $this->textoReq($d, 'motivo', 3, 300);
+        if (!empty($n['eliminado_en'])) {
+            $hasta = Papelera::fechaPurga($n['eliminado_en']);
+            return ['mensaje' => "{$n['nombre']} ya estaba en la papelera (se borra para siempre el " . self::fechaTexto($hasta) . ').', 'sin_cambios' => true,
+                    'resultado' => ['copia' => $n['eliminado_copia'], 'borrar_definitivo_el' => $hasta],
+                    'arriba' => ['copia' => $n['eliminado_copia'], 'borrar_definitivo_el' => $hasta], 'auditoria' => "Borrar: $motivo"];
+        }
+        $por = trim(($p['nombre'] ?: 'Panel Tukán Central') . ' <' . $p['email'] . '>');
+        $c = (new Papelera($this->db))->borrar($id, $motivo, $por);
+        $res = ['copia' => $c['ruta'], 'borrar_definitivo_el' => $c['borrar_definitivo_el'], 'tablas' => count($c['tablas']),
+                'filas' => array_sum($c['tablas']), 'archivos' => $c['archivos']];
+        return ['mensaje' => "{$n['nombre']} está en la papelera: ya no puede entrar y su página de reservas no existe. Se puede restaurar hasta el "
+                             . self::fechaTexto((new DateTimeImmutable($c['borrar_definitivo_el']))->modify('-1 day')->format('Y-m-d'))
+                             . '; el ' . self::fechaTexto($c['borrar_definitivo_el']) . ' se borra para siempre (la copia se guarda 1 año).',
+                'resultado' => $res, 'arriba' => ['copia' => $c['ruta'], 'borrar_definitivo_el' => $c['borrar_definitivo_el']],
+                'auditoria' => "Enviado a la papelera: $motivo · copia " . basename($c['ruta'])];
+    }
+
+    private function opRestaurar(int $id): array
+    {
+        $n = $this->fila($id);
+        if (empty($n['eliminado_en'])) {
+            return ['mensaje' => "{$n['nombre']} no está en la papelera.", 'sin_cambios' => true,
+                    'resultado' => ['estado' => $this->clasificar($n)['estado']], 'auditoria' => 'Restaurar'];
+        }
+        if (Papelera::fechaPurga($n['eliminado_en']) <= $this->hoy->format('Y-m-d')) {
+            throw new TukanCentralError('conflicto', 'Ya pasaron los ' . Papelera::DIAS_PAPELERA . ' días de la papelera: se está borrando para siempre.', 409, null,
+                                        ['motivo' => 'papelera_vencida']);
+        }
+        (new Papelera($this->db))->restaurar($id);
+        $estado = $this->clasificar($this->fila($id))['estado'];
+        return ['mensaje' => "{$n['nombre']} salió de la papelera: queda " . self::ESTADOS_V2_TEXTO[$estado] . ', con todos sus datos.',
+                'resultado' => ['estado' => $estado], 'auditoria' => 'Restaurado de la papelera'];
     }
 
     public const ESTADOS_V2_TEXTO = ['prueba' => 'en prueba', 'activo' => 'al día', 'por_vencer' => 'al día (vence pronto)', 'vencido' => 'vencido', 'suspendido' => 'suspendido'];
@@ -1356,7 +1502,7 @@ final class TukanCentralV2
             $this->planes->guardarAjustes(array_map('strval', array_merge($this->planes->ajustes(), $d['ajustes'])));
         }
         $st->execute([$codigo]);
-        $cuantos = (int) $this->db->query('SELECT count(*) FROM salones WHERE plan_codigo = ' . $this->db->quote($codigo))->fetchColumn();
+        $cuantos = (int) $this->db->query('SELECT count(*) FROM salones WHERE eliminado_en IS NULL AND plan_codigo = ' . $this->db->quote($codigo))->fetchColumn();
         return ['mensaje' => "Plan $nombre guardado (" . self::dinero($precio) . ' al mes).', 'resultado' => ['plan' => $this->plan($st->fetch(), $cuantos)],
                 'auditoria' => "Plan $codigo guardado: $nombre " . self::dinero($precio) . ' al mes'];
     }

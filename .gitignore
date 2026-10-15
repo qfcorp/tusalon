@@ -9,3 +9,6 @@ uploads/
 # Copias de respaldo
 *.bak
 *.bak_*
+
+# Copias de los salones borrados (papelera del Panel Tukán Central)
+respaldos/

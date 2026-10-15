@@ -73,11 +73,11 @@ fi
 
 echo "== 3. Tablas del conector en la base"
 leer() { grep -E "^$1=" "$ENVF" | head -1 | cut -d= -f2-; }
-# 004 = protocolo v1 (nonces y limite); 005 = protocolo v2 (operaciones, atenciones, origen de cada salon)
+# 004 = protocolo v1 (nonces y limite); 005 = protocolo v2 (operaciones, atenciones, origen de cada salon); 007 = pausar y papelera
 if [ -f "$APP/db/migraciones/004_tukan_central.sql" ] && command -v psql > /dev/null; then
   HOSTDB="$(leer TUSALON_DB_HOST)"
   BIEN=1
-  for MIG in "$APP"/db/migraciones/004_tukan_central.sql "$APP"/db/migraciones/005_tukan_central_v2.sql; do
+  for MIG in "$APP"/db/migraciones/004_tukan_central.sql "$APP"/db/migraciones/005_tukan_central_v2.sql "$APP"/db/migraciones/007_papelera.sql; do
     [ -f "$MIG" ] || continue
     PGPASSWORD="$(leer TUSALON_DB_PASS)" psql -h "${HOSTDB:-127.0.0.1}" -U "$(leer TUSALON_DB_USER)" \
       -d "$(leer TUSALON_DB_NAME)" -q -v ON_ERROR_STOP=1 -f "$MIG" < /dev/null > /dev/null 2>&1 || BIEN=0

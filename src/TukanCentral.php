@@ -291,13 +291,16 @@ final class TukanCentral
             'pruebas_vencen_7d' => array_slice(array_map(fn($s) => ['nombre' => (string) $s['nombre'], 'vence' => (string) $s['prueba_hasta']], $pruebas), 0, self::MAX_LISTA),
             'pagos_vencidos' => array_slice($vencidos, 0, self::MAX_LISTA),
             'extra' => [
-                'Citas este mes' => $contar("SELECT count(*) FROM citas WHERE inicio >= ? AND inicio < ? AND estado NOT IN ('cancelada','rechazada')",
+                // Sin los salones que están en la papelera (Anexo A)
+                'Citas este mes' => $contar("SELECT count(*) FROM citas x JOIN salones s ON s.id = x.salon_id AND s.eliminado_en IS NULL
+                                              WHERE x.inicio >= ? AND x.inicio < ? AND x.estado NOT IN ('cancelada','rechazada')",
                                             [$inicioMes, $inicioSiguiente]),
-                'Citas atendidas este mes' => $contar("SELECT count(*) FROM citas WHERE inicio >= ? AND inicio < ? AND estado = 'atendida'",
+                'Citas atendidas este mes' => $contar("SELECT count(*) FROM citas x JOIN salones s ON s.id = x.salon_id AND s.eliminado_en IS NULL
+                                                        WHERE x.inicio >= ? AND x.inicio < ? AND x.estado = 'atendida'",
                                                       [$inicioMes, $inicioSiguiente]),
-                'Clientes' => $contar('SELECT count(*) FROM clientes'),
-                'Peluqueros activos' => $contar('SELECT count(*) FROM profesionales WHERE activo'),
-                'Usuarios activos' => $contar('SELECT count(*) FROM usuarios WHERE activo'),
+                'Clientes' => $contar('SELECT count(*) FROM clientes x JOIN salones s ON s.id = x.salon_id AND s.eliminado_en IS NULL'),
+                'Peluqueros activos' => $contar('SELECT count(*) FROM profesionales x JOIN salones s ON s.id = x.salon_id AND s.eliminado_en IS NULL WHERE x.activo'),
+                'Usuarios activos' => $contar('SELECT count(*) FROM usuarios x JOIN salones s ON s.id = x.salon_id AND s.eliminado_en IS NULL WHERE x.activo'),
                 'Ingreso mensual recurrente' => round($panel->ingresoMensual($hoy), 2),
                 'Pruebas terminadas sin pagar' => $cuenta['prueba_vencida'],
                 'Cancelados' => $cuenta['cancelado'],

@@ -65,29 +65,38 @@ Con el mismo ID y el mismo secreto, el panel central ve y maneja a los salones s
 - **Operaciones** (con las mismas funciones del panel de Tukán y una línea en "Últimos movimientos del panel" con el correo del Central): crear demo (salón en prueba con 5 servicios y el horario; la contraseña se muestra una sola vez), alargar la prueba, registrar pago (con la fecha en que pagó), anular pago, suspender, reactivar, cancelar, cambiar plan, nueva clave del dueño, nota interna, atender solicitud y guardar plan/precios.
 - **Finanzas**: cobrado por mes (por plan, tiempo y forma de pago), nuevos pagadores, devengado, ingreso mensual recurrente y la comisión estimada de Google Play (15 %).
 - Si el Central repite una operación (se cortó la red), TuSalón no la hace dos veces: devuelve el mismo resultado (`tukan_central_operaciones`, 90 días, sin contraseñas).
+- **Pausar y borrar salones** (Anexo A del protocolo):
+  - `pausar` (tipo: falta de pago, pedido del cliente, revisión, uso indebido u otro + motivo): el salón no puede trabajar y ve "Tu cuenta está pausada" con el motivo (en revisión y uso indebido, un texto genérico) y el WhatsApp de Tukán; su página de reservas, las horas libres, la cuenta de sus clientes y el enlace de cada cita dicen "temporalmente no disponible". `reactivar` la quita.
+  - `borrar_cliente` (escribir el nombre exacto del salón o su número + motivo; solo el rol dueño del Central): guarda una **copia completa** (todas las filas de todas las tablas del salón, sacadas del esquema, y la lista de sus fotos y archivos) en `respaldos/borrados/<id>_<fecha>.json.gz` (fuera de la web, carpeta 700 de `www-data`; otra carpeta con `TUSALON_BORRADOS`) y lo manda a la **papelera**: no entra, no sale en listas ni cifras (`estado`, `clientes`, `finanzas` desde ese día), sus páginas dan 404 y no recibe tareas, avisos ni renovaciones de Google Play.
+  - `restaurar_cliente` dentro de 30 días lo devuelve tal cual (también desde el Panel Tukán de TuSalón: Salones → filtro **Papelera** → Restaurar). Pasados 30 días, la tarea de cada hora lo borra de verdad (sus fotos pasan junto a la copia); las copias se borran al año.
+  - `clientes` con `filtros.estado = "papelera"` los lista (cada uno con `papelera: {desde, hasta, motivo}`); cada ficha trae los botones que corresponden (`pausar`/`reactivar`, `borrar_cliente` o `restaurar_cliente`).
 
 ## Tareas automáticas y respaldo (en el servidor)
 El instalador ya las deja programadas. Son estas dos líneas de cron:
 ```
-5 * * * * php /var/www/tusalon/bin/tareas.php >> /var/log/tusalon-tareas.log 2>&1
+5 * * * * php /var/www/tusalon/bin/tareas.php >> /var/log/tusalon-tareas.log 2>&1     (en el crontab de www-data)
 15 3 * * * /var/www/tusalon/deploy/respaldo.sh >> /var/log/tusalon-respaldo.log 2>&1
 ```
 
-- Cada hora: recordatorios de mañana (desde las 9:00), cumpleaños (desde las 8:00), pedir calificación, reporte del mes (día 1 desde las 7:00). Cada cosa se envía una sola vez.
+- Cada hora: recordatorios de mañana (desde las 9:00), cumpleaños (desde las 8:00), pedir calificación, reporte del mes (día 1 desde las 7:00) y la **papelera** (borra de verdad los salones con más de 30 días en ella y las copias de más de 1 año). Cada cosa se envía una sola vez. Los salones pausados o en la papelera no reciben tareas.
+- **Al actualizar a esta versión** hay que volver a correr el instalador: crea `respaldos/borrados` y pasa las tareas al usuario `www-data` (así pueden borrar las copias viejas).
 - Cada día a las 3:15: copia de la base y de las fotos en `/var/backups/tusalon` (solo legible por el servidor). Para restaurar: `pg_restore -d tusalon --clean archivo.dump`.
 
 ## Correr las pruebas
 Solo en una base de prueba (el script la borra y la vuelve a crear):
 
 ```bash
-# Lógica (735 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php, con Telegram simulado en el puerto 8098)
+# Lógica (893 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php + prueba_gastos_recepcion.php + prueba_papelera.php,
+# con Telegram simulado en el puerto 8098)
 bash tests/run_logica.sh
-# Pantallas de punta a punta (476 pruebas: prueba_web.sh + prueba_web_central.sh + prueba_web_central_v2.sh; levanta solo
+# Pantallas de punta a punta (636 pruebas: prueba_web.sh + prueba_web_gastos_recepcion.sh + prueba_web_central.sh + prueba_web_central_v2.sh
+# + prueba_web_papelera.sh; levanta solo
 # los sitios de prueba, Payphone y Telegram simulados). Opcional: DB=<base> PUERTO=<puerto>
 PGPASSWORD=prueba bash tests/run_web.sh
-# Solo el conector con el Panel Tukán Central (v1 y v2)
+# Solo el conector con el Panel Tukán Central (v1, v2 y pausar/papelera)
 TUSALON_DB_NAME=tusalon_prueba TUSALON_DB_USER=tusalon TUSALON_DB_PASS=prueba php tests/prueba_central.php
 TUSALON_DB_NAME=tusalon_prueba TUSALON_DB_USER=tusalon TUSALON_DB_PASS=prueba php tests/prueba_central_v2.php
+TUSALON_DB_NAME=tusalon_prueba TUSALON_DB_USER=tusalon TUSALON_DB_PASS=prueba php tests/prueba_papelera.php
 PGPASSWORD=prueba bash tests/run_web.sh central
 ```
 Las pruebas de siempre se pueden seguir corriendo a mano como antes (`php tests/run_tests.php` y `bash tests/prueba_web.sh` con el sitio corriendo).

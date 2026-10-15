@@ -261,7 +261,8 @@ check('Prueba que termina hoy sigue en prueba', ['prueba', 0], [$por[$P2]['estad
 check('Vencido: días negativos', -10, $por[$V1]['fechas']['dias_para_vencer']);
 $x = $por[$A2];
 check('Forma del cliente (§4.3)', ['id', 'nombre', 'tipo', 'tipo_nombre', 'ciudad', 'plan', 'estado', 'estado_detalle', 'estado_texto', 'en_gracia', 'bloqueado',
-      'fechas', 'dueno', 'ultima_actividad', 'pagos', 'mensual_estimado', 'origen', 'vendedor', 'uso', 'ir', 'ir_trabajar', 'actualizado'], array_keys($x));
+      'fechas', 'dueno', 'ultima_actividad', 'pagos', 'mensual_estimado', 'origen', 'vendedor', 'uso', 'ir', 'ir_trabajar', 'actualizado',
+      'pausa', 'eliminado', 'papelera'], array_keys($x));   // + Anexo A
 check('id como texto y plan', [(string) $A2, ['codigo' => 'basica', 'nombre' => 'Básica']], [$x['id'], $x['plan']]);
 check('Dueño con WhatsApp normalizado', ['Dueño Salón Anual Al Día', '0990000000', '593990000000'], [$x['dueno']['nombre'], $x['dueno']['telefono'], $x['dueno']['whatsapp']]);
 check('Pagos (sin anulados) y mensual estimado', [250.0, 1, $d('today'), 250.0, 20.83], [$x['pagos']['total'], $x['pagos']['cantidad'], $x['pagos']['primer_pago'], $x['pagos']['ultimo_monto'], $x['mensual_estimado']]);
@@ -309,7 +310,7 @@ check('Enlace público (reservas en línea)', 'https://tusalon.prueba.ec/?r=rese
 check('Mensaje para recordar la prueba', true, str_contains((string) $x['mensajes_sugeridos']['recordar_prueba'], 'Tu prueba de Quinta Prueba Uno termina el'));
 check('Sin mensaje de vencido', null, $x['mensajes_sugeridos']['vencido']);
 $acc = array_column($x['acciones_posibles'], 'accion');
-check('Botones de una prueba', ['whatsapp', 'registrar_pago', 'extender_prueba', 'cambiar_plan', 'suspender', 'cancelar', 'nueva_clave_dueno', 'nota_interna', 'abrir'], $acc);
+check('Botones de una prueba', ['whatsapp', 'registrar_pago', 'extender_prueba', 'cambiar_plan', 'pausar', 'cancelar', 'nueva_clave_dueno', 'nota_interna', 'borrar_cliente', 'abrir'], $acc);
 $pago = $x['acciones_posibles'][1];
 check('Formulario de pago (§4.4)', ['plan', 'periodo', 'monto', 'metodo', 'fecha', 'inicio', 'nota', 'dominio'], array_column($pago['campos'], 'campo'));
 check('… con datos fijos y cotizar', [['cliente_id' => (string) $P1], true, 35.0], [$pago['datos'], $pago['campos'][2]['cotizar'], $pago['campos'][2]['valor']]);

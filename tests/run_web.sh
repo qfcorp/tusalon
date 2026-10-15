@@ -2,7 +2,7 @@
 # Corre las pruebas de pantallas de TuSalón contra sitios de prueba que levanta solo:
 #   tests/prueba_web.sh (todo el sistema), tests/prueba_web_gastos_recepcion.sh (gastos con facturas del SRI, recepción y
 #   clientes privados de quien alquila), tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
-#   Panel Tukán Central, protocolos v1 y v2).
+#   Panel Tukán Central, protocolos v1 y v2) y tests/prueba_web_papelera.sh (Anexo A: pausar y papelera).
 # Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
 # Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM y PUERTO_APAGADA (si no, puertos libres al azar).
@@ -36,7 +36,8 @@ export TUKAN_SOLO_CENTRAL=0
 export TG_SECRET=secreto-web-prueba
 
 # Sitios de prueba: principal (Google Play prendido) y otro con Google Play apagado
-SITIO="TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD TUSALON_URL=$BASE TUSALON_UPLOADS=$TMPW/uploads
+export TUSALON_BORRADOS="$TMPW/borrados" TUSALON_UPLOADS="$TMPW/uploads"   # copias de la papelera (prueba_web_papelera.sh)
+SITIO="TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD TUSALON_URL=$BASE TUSALON_UPLOADS=$TMPW/uploads TUSALON_BORRADOS=$TMPW/borrados
        PAYPHONE_API_BASE=http://127.0.0.1:$P_SIM TELEGRAM_WEBHOOK_SECRET=$TG_SECRET SRI_WS_URL=http://127.0.0.1:$P_SIM/sri
        TWA_SHA256=39:0C:08:10:D4:40:C1:71:C4:30:C8:D0:F1:93:7B:8F:E4:37:03:25:27:2E:B2:F6:2E:4E:A6:5E:01:98:40:DC"
 env $SITIO GOOGLE_PLAY_ACTIVO=1 php -S "127.0.0.1:$PUERTO" -t public tests/router.php > "$TMPW/servidor.log" 2>&1 &
@@ -61,6 +62,8 @@ echo; echo "==================== prueba_web_central ===================="
 bash tests/prueba_web_central.sh || FALLO=1
 echo; echo "==================== prueba_web_central_v2 ===================="
 bash tests/prueba_web_central_v2.sh || FALLO=1
+echo; echo "==================== prueba_web_papelera ===================="
+bash tests/prueba_web_papelera.sh || FALLO=1
 
 echo
 if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then

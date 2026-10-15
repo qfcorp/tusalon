@@ -56,6 +56,13 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 - [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
 
+## Hecho (15 oct 2026) — Pausar y borrar salones desde el Panel Tukán Central (Anexo A)
+- [x] **Pausar** (con tipo: falta de pago, pedido del cliente, revisión, uso indebido u otro, y motivo obligatorio): el salón queda suspendido; al entrar ve "Tu cuenta está pausada" con el motivo (en revisión y uso indebido, un texto genérico) y el WhatsApp de Tukán. Su página de reservas y los enlaces de las citas dicen "temporalmente no disponible". **Reactivar** lo quita
+- [x] **Borrar** (escribiendo el nombre exacto y el motivo; solo el dueño del Panel Central): primero se guarda una copia completa del salón (todas sus filas y la lista de sus fotos) en `respaldos/borrados/` (fuera de la web), y queda en la **papelera**: no entra, no sale en listas ni cifras, sus páginas dan 404 y no recibe tareas, avisos ni renovaciones de Google Play
+- [x] **Restaurar** dentro de 30 días (desde el Panel Central o desde el Panel Tukán de TuSalón, filtro "Papelera"). A los 30 días la tarea de cada hora lo borra de verdad; la copia se guarda 1 año
+- [x] Pruebas: `prueba_papelera.php` (86) y `prueba_web_papelera.sh` (55), migración 007. Totales: lógica 893/893 y pantallas 636/636
+- [ ] DIMI: al actualizar el servidor, volver a correr el instalador (abajo, "Cómo actualizar el servidor qfcorp"): crea `respaldos/borrados` y pasa las tareas de cada hora a `www-data`
+
 ## Cambio de direcciones (6 oct 2026)
 - TuSalón ahora está en **tusalon.tukanec.com** (antes tusalon.qfradioec.com, que se apaga). Nombres oficiales: TuSalón y TuGuardería (ya no "Tukán Salón" ni "Tukán Pet")
 - Se quitó la promesa de "WhatsApp automático" del registro y de la página de planes (todavía no existe)
@@ -196,5 +203,5 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 Pegar en la sesión SSH, una línea a la vez (no borra datos):
 1. `curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar.sh -o ~/instalar_tusalon.sh && bash ~/instalar_tusalon.sh`
    - Pregunta "Activar la app de Google Play esta vez?": contestar `no` mientras Dimi no decida publicar
-   - Debe mostrar las migraciones con "listo" (incluida `006_gastos_recepcion.sql`) y al final: tablas más de 25, extensiones 6, prueba de la página 200
+   - Debe mostrar las migraciones con "listo" (incluidas `006_gastos_recepcion.sql` y `007_papelera.sql`) y al final: tablas más de 25, extensiones 6, prueba de la página 200
 2. `curl -s -o /dev/null -w "%{http_code}\n" -H "Host: tusalon.tukanec.com" "http://127.0.0.1/?r=login"` → debe salir 200

@@ -14,7 +14,9 @@ if (es_post()) {
     if ($intentos['hasta'] > time()) {
         $error = 'Demasiados intentos. Espera unos minutos y vuelve a probar.';
     } else {
-        $st = db()->prepare('SELECT id, password_hash, rol FROM usuarios WHERE email = ? AND activo');
+        // Un salón en la papelera (Anexo A) ya no puede entrar: para el que intenta, es como si no existiera
+        $st = db()->prepare('SELECT u.id, u.password_hash, u.rol FROM usuarios u JOIN salones s ON s.id = u.salon_id
+                              WHERE u.email = ? AND u.activo AND s.eliminado_en IS NULL');
         $st->execute([$email]);
         $fila = $st->fetch();
         if ($fila && password_verify($clave, $fila['password_hash'])) {

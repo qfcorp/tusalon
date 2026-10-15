@@ -41,6 +41,31 @@ if (!in_array($ruta, array_merge($publicas, $privadas, $deAdmin), true)) {
     $ruta = usuario() ? 'inicio' : 'login';
 }
 
+// Anexo A: las páginas públicas de un salón pausado dicen "temporalmente no disponible" (503); las de un salón en la
+// papelera no existen (404). Cada página pública está en Papelera::RUTAS_PUBLICAS o PUBLICAS_SIN_SALON.
+if (in_array($ruta, $publicas, true) && !in_array($ruta, \TuSalon\Papelera::PUBLICAS_SIN_SALON, true)) {
+    $papelera = new \TuSalon\Papelera(db());
+    $sidPublico = $papelera->salonDeRuta($ruta, $_GET);
+    $estadoPublico = $sidPublico === null ? 'normal' : $papelera->estadoPublico($sidPublico);
+    if ($estadoPublico !== 'normal') {
+        $borrado = $estadoPublico === 'eliminado';
+        http_response_code($borrado ? 404 : 503);
+        header('Cache-Control: no-store');
+        if (!$borrado) header('Retry-After: 3600');
+        $texto = $borrado ? 'Esta página no está disponible.' : 'Temporalmente no disponible. Intenta más tarde.';
+        if ($ruta === 'horas') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['horas' => [], 'en_confirmacion' => [], 'error' => $texto, 'disponible' => false], JSON_UNESCAPED_UNICODE);
+        } elseif ($ruta === 'foto') {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $texto;
+        } else {
+            vista_publica($borrado ? 'reservar_no' : 'no_disponible', ['salon' => null], $borrado ? 'TuSalón' : 'Temporalmente no disponible · TuSalón');
+        }
+        exit;
+    }
+}
+
 if (in_array($ruta, $privadas, true)) {
     $u = requiere_sesion();
     if (es_peluquero($u) && !in_array($ruta, $dePeluquero, true)) {

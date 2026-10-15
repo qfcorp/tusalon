@@ -13,6 +13,7 @@
         <select id="f" name="f" onchange="this.form.submit()">
             <option value="">Todos</option>
             <?php foreach (PanelTukan::ESTADOS as $k => $txt): ?><option value="<?= $k ?>" <?= $filtro === $k ? 'selected' : '' ?>><?= $txt ?></option><?php endforeach; ?>
+            <option value="papelera" <?= $filtro === 'papelera' ? 'selected' : '' ?>>Papelera (borrados)</option>
         </select></div>
     <button class="boton" type="submit">Buscar</button>
 </form>
@@ -32,7 +33,9 @@
                     <td><a href="<?= e(url('admin_salon', ['id' => $s['id']])) ?>"><strong><?= e($s['nombre']) ?></strong></a><br><small>desde <?= date('d/m/Y', strtotime($s['creado_en'])) ?></small></td>
                     <td><?= e($s['dueno']) ?><br><small><?= e($s['dueno_email']) ?></small></td>
                     <td><?= e($s['plan_nombre']) ?></td>
-                    <td><span class="etq est-<?= e($s['estado_cuenta']) ?>"><?= PanelTukan::ESTADOS[$s['estado_cuenta']] ?></span></td>
+                    <td><span class="etq est-<?= e($s['estado_cuenta']) ?>"><?= PanelTukan::ESTADOS[$s['estado_cuenta']] ?></span>
+                        <?php if (!empty($s['eliminado_en'])): ?><br><span class="etq est-cancelado">En la papelera</span>
+                            <small>desde <?= date('d/m/Y', strtotime($s['eliminado_en'])) ?> · se borra el <?= date('d/m/Y', strtotime(TuSalon\Papelera::fechaPurga($s['eliminado_en']))) ?></small><?php endif; ?></td>
                     <td><?= $vence ? date('d/m/Y', strtotime($vence)) : '—' ?></td>
                     <td class="der"><?= (int) $s['peluqueros'] ?></td>
                     <td class="der"><?= (int) $s['citas_30'] ?></td>

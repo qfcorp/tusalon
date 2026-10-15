@@ -26,6 +26,14 @@ fi
 sudo chown -R "$YO":www-data "$APP"
 sudo mkdir -p "$APP/uploads/fotos" "$APP/config"
 sudo chown -R www-data:www-data "$APP/uploads" && sudo chmod 750 "$APP/uploads"
+# Copias de los salones borrados desde el Panel Tukan Central (papelera): solo las lee el programa (www-data), nunca la web
+BORRADOS="$APP/respaldos/borrados"
+if [ -f "$APP/config/.env" ] && grep -qE '^TUSALON_BORRADOS=.' "$APP/config/.env"; then
+  BORRADOS="$(grep -E '^TUSALON_BORRADOS=' "$APP/config/.env" | head -1 | cut -d= -f2-)"
+fi
+sudo mkdir -p "$BORRADOS" && sudo chown -R www-data:www-data "$BORRADOS" && sudo chmod 700 "$BORRADOS" \
+  && { [ "$BORRADOS" != "$APP/respaldos/borrados" ] || { sudo chown www-data:www-data "$APP/respaldos" && sudo chmod 700 "$APP/respaldos"; }; } \
+  && echo "   carpeta de copias de borrados: $BORRADOS (solo www-data)" || echo "   AVISO: no se pudo preparar $BORRADOS"
 sudo chown "$YO":www-data "$APP/config"
 chmod +x "$APP/deploy/respaldo.sh" "$APP/deploy/conectar_central.sh" 2>/dev/null || true
 
@@ -87,6 +95,7 @@ esac
   echo "TUSALON_DB_USER=tusalon"
   echo "TUSALON_DB_PASS=$CLAVE"
   echo "TUSALON_URL=https://$DOMINIO"
+  echo "TUSALON_BORRADOS=$BORRADOS"
   [ -n "$TG" ] && echo "$TG"
 } > "$APP/config/.env"
 chmod 640 "$APP/config/.env" && sudo chgrp www-data "$APP/config/.env" && echo "   listo"
@@ -126,7 +135,10 @@ else
 fi
 
 echo "== 6. Tareas automáticas (cada hora) y respaldo (cada día 3:15)"
-(crontab -l 2>/dev/null | grep -v "tusalon/bin/tareas"; echo "5 * * * * php $APP/bin/tareas.php >> \$HOME/tusalon-tareas.log 2>&1") | crontab -
+# Las tareas corren como www-data (el mismo usuario de la web): asi pueden borrar las copias y los archivos de la papelera
+crontab -l 2>/dev/null | grep -q "tusalon/bin/tareas" && (crontab -l 2>/dev/null | grep -v "tusalon/bin/tareas") | crontab -
+sudo touch /var/log/tusalon-tareas.log && sudo chown www-data:www-data /var/log/tusalon-tareas.log
+(sudo crontab -u www-data -l 2>/dev/null | grep -v "tusalon/bin/tareas"; echo "5 * * * * php $APP/bin/tareas.php >> /var/log/tusalon-tareas.log 2>&1") | sudo crontab -u www-data -
 (sudo crontab -l 2>/dev/null | grep -v "tusalon/deploy/respaldo"; echo "15 3 * * * $APP/deploy/respaldo.sh >> /var/log/tusalon-respaldo.log 2>&1") | sudo crontab -
 echo "   listo"
 
@@ -138,7 +150,7 @@ echo "3) Extensiones de PHP: $(php -m | grep -E -c '^(pdo_pgsql|gd|curl|mbstring
 if command -v nginx > /dev/null; then
   curl -s -o /dev/null -w "4) Prueba de la página: %{http_code} (debe ser 200)\n" -H "Host: $DOMINIO" "http://127.0.0.1/?r=login"
 fi
-echo "5) Tareas: $(php "$APP/bin/tareas.php" < /dev/null)"
+echo "5) Tareas: $(sudo -u www-data php "$APP/bin/tareas.php" < /dev/null 2>&1 | tail -1)"
 echo "6) Respaldo: $(sudo APP="$APP" "$APP/deploy/respaldo.sh" < /dev/null 2>&1 | tail -1)"
 echo "7) Super usuarios del panel: $(PGPASSWORD="$CLAVE" psql -h 127.0.0.1 -U tusalon -d tusalon -tAc "SELECT count(*) FROM superadmins" < /dev/null)"
 grep -q '^TUKAN_CENTRAL_SECRET=' "$APP/config/.env" 2>/dev/null && echo "8) Panel Tukan Central: conectado" || echo "8) Panel Tukan Central: sin conectar"
