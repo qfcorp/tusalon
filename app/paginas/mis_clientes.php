@@ -7,7 +7,6 @@ use TuSalon\{Agenda, WhatsApp};
  * Desde aquí el arrendatario los crea, los edita, les escribe por WhatsApp y les agenda citas en su silla.
  */
 if (!es_peluquero($u) || ($u['tipo_profesional'] ?? '') !== 'alquiler') redirigir(es_peluquero($u) ? 'mi_portal' : 'clientes');
-if (!requiere_completa($u, 'Mis clientes', 'Quien alquila el puesto puede guardar sus propios clientes: solo él los ve y les agenda citas en su silla.')) return;
 $sid = (int) $u['salon_id'];
 $pid = (int) $u['profesional_id'];
 $pdo = db();

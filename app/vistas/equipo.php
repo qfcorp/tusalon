@@ -20,16 +20,16 @@ $resumenRegla = function (array $p) use ($num): string {
     <div class="acciones">
         <a class="boton boton-claro boton-chico" href="<?= e(url('clientes')) ?>">Clientes</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('reporte')) ?>">Reporte del mes</a>
+        <?php if (modulo('reportes')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('reporte')) ?>">Reporte del mes</a><?php endif; ?>
         <a class="boton boton-claro boton-chico" href="<?= e(url('servicios')) ?>">Servicios</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('inventario')) ?>">Inventario</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('paquetes')) ?>">Paquetes</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('puntos')) ?>">Puntos</a>
+        <?php if (modulo('inventario')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('inventario')) ?>">Inventario</a><?php endif; ?>
+        <?php if (modulo('paquetes_regalo')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('paquetes')) ?>">Paquetes</a><?php endif; ?>
+        <?php if (modulo('paquetes_regalo')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a><?php endif; ?>
+        <?php if (modulo('puntos')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('puntos')) ?>">Puntos</a><?php endif; ?>
         <a class="boton boton-claro boton-chico" href="<?= e(url('horario')) ?>">Horario y reservas</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('gastos')) ?>">Gastos y facturas</a>
+        <?php if (modulo('gastos_sri')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('gastos')) ?>">Gastos y facturas</a><?php endif; ?>
         <a class="boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('recepcion')) ?>">Recepción</a>
+        <?php if (modulo('recepcion')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
         <a class="boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>
         <a class="boton boton-claro boton-chico solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
     </div>
@@ -51,7 +51,7 @@ $resumenRegla = function (array $p) use ($num): string {
                             <details style="margin-top:6px">
                                 <summary style="cursor:pointer;font-size:.9rem;color:var(--verde)">
                                     <?= $p['acceso_email'] ? 'Entra a su portal con ' . e($p['acceso_email']) : 'Darle acceso a su portal' ?></summary>
-                                <?php if (es_completa($u)): ?>
+                                <?php if (modulo('portal_peluquero')): ?>
                                 <form method="post" style="margin-top:8px">
                                     <?= campo_csrf() ?>
                                     <input type="hidden" name="accion" value="acceso"><input type="hidden" name="id" value="<?= $p['id'] ?>">
@@ -69,7 +69,7 @@ $resumenRegla = function (array $p) use ($num): string {
                                         <button class="boton boton-peligro boton-chico" type="submit" data-confirmar="¿Quitarle el acceso a <?= e($p['nombre']) ?>?">Quitar acceso</button></form>
                                 <?php endif; ?>
                                 <?php else: ?>
-                                    <p class="candado" style="margin-top:6px">Portal del peluquero: <a href="<?= e(url('completa')) ?>">plan Completa</a></p>
+                                    <div style="margin-top:6px"><?= aviso_modulo('portal_peluquero') ?></div>
                                 <?php endif; ?>
                             </details>
                         <?php endif; ?>
@@ -89,8 +89,8 @@ $resumenRegla = function (array $p) use ($num): string {
     <?php if (!$puedeAgregar): ?>
         <section class="bloque">
             <h2>Agregar peluquero</h2>
-            <p>El plan Básica permite hasta 3 personas, contándote a ti.</p>
-            <a class="boton" href="<?= e(url('completa')) ?>">Pasar al plan Completa</a>
+            <p>Tu plan permite hasta <?= (int) modulos()->maxPersonas(salon_de_usuario($u)) ?> personas, contándote a ti.</p>
+            <?= aviso_modulo('equipo_ilimitado') ?>
         </section>
     <?php else: ?>
     <form method="post" class="bloque">

@@ -1,7 +1,6 @@
 <?php
 use TuSalon\Inventario;
 
-if (!requiere_completa($u, 'Inventario', 'Lleva el control de tus productos: lo que vendes (shampoo, ceras) y lo que usas en el salón (tintes, oxidantes). Te avisa cuando algo se está acabando.')) return;
 $sid = (int) $u['salon_id'];
 $inv = new Inventario(db());
 $error = null;

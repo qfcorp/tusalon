@@ -18,6 +18,9 @@ $st = db()->prepare('SELECT nombre, slug, telefono, google_resenas_url, horas_ca
 $st->execute([$cita['salon_id']]);
 $salon = $st->fetch();
 $calif = new Calificaciones(db());
+// Anexo B: cambiar la hora usa las reservas en línea; el anticipo es su propio módulo
+$conReservas = modulos()->activo((int) $cita['salon_id'], 'reservas_linea');
+$conAnticipos = modulos()->activo((int) $cita['salon_id'], 'anticipos');
 $volver = '/?r=confirmar&t=' . rawurlencode($token);
 
 if (es_post()) {
@@ -30,7 +33,7 @@ if (es_post()) {
         } elseif ($accion === 'cancelar') {
             $agenda->cancelarPorCliente((int) $cita['id']);
             $_SESSION['aviso_cliente'] = 'Tu cita quedó cancelada. Gracias por avisar.';
-        } elseif ($accion === 'comprobante') {
+        } elseif ($accion === 'comprobante' && $conAnticipos) {
             (new TuSalon\Anticipos(db()))->subirComprobante((int) $cita['id'], $_FILES['comprobante'] ?? [],
                 (string) ($_POST['metodo'] ?? 'transferencia'), (string) ($_POST['referencia'] ?? ''));
             $_SESSION['aviso_cliente'] = '¡Recibimos tu comprobante! El salón lo revisará y te confirmará la cita.';
@@ -54,7 +57,7 @@ $noCancelar = $agenda->motivoNoCancelar($cita);
 // Anticipo: datos para pagar (transferencia, DeUna o tarjeta con Payphone)
 $anticipoConf = null;
 $payphone = null;
-if (in_array($cita['anticipo_estado'], ['pendiente', 'rechazado', 'por_revisar'], true)
+if ($conAnticipos && in_array($cita['anticipo_estado'], ['pendiente', 'rechazado', 'por_revisar'], true)
     && in_array($cita['estado'], ['pendiente', 'reservada', 'confirmada'], true)) {
     $antObj = new TuSalon\Anticipos(db());
     $anticipoConf = $antObj->config((int) $cita['salon_id']);
@@ -67,5 +70,5 @@ if (in_array($cita['anticipo_estado'], ['pendiente', 'rechazado', 'por_revisar']
     }
 }
 $calificacion = $calif->deCita((int) $cita['id']);
-vista_publica('confirmar', compact('cita', 'salon', 'aviso', 'avisoError', 'google', 'noCancelar', 'calificacion', 'token', 'anticipoConf', 'payphone'),
+vista_publica('confirmar', compact('cita', 'salon', 'aviso', 'avisoError', 'google', 'noCancelar', 'calificacion', 'token', 'anticipoConf', 'payphone', 'conReservas'),
               'Tu cita · ' . $salon['nombre']);

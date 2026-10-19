@@ -5,14 +5,40 @@ Dirección: **tusalon.tukanec.com** (servidor qfcorp). Web de la marca: tukansof
 
 Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, empleado (sueldo y/o comisión), porcentaje (50/50, 60/40) y alquiler de puesto.
 
+**Todo es por módulos** y **nada se da gratis, todo se pide demo**:
+- Cada salón tiene la **base** (agenda, clientes, servicios, equipo con los 4 tipos, cuentas del equipo, cobros y caja, horarios, hasta 3 personas) y los **módulos** que contrate. Cada módulo se enciende o se apaga por salón y tiene su precio al mes; **apagar nunca borra datos**.
+- No hay registro con prueba gratis: el formulario público es **Solicitar demo**. Tukán prepara la demo (con todos los módulos o los que elija) desde el Panel Tukán Central o desde su propio panel.
+
+### Módulos y precios (USD al mes, se cambian en Panel Tukán → Planes y precios)
+| Módulo | Precio extra | Descuento si se quita del plan | Necesita |
+|---|---|---|---|
+| 🗓️ Reservas en línea (enlace propio, cuenta del cliente, cambiar la hora, fotos) | $5 | $2 | — |
+| 💳 Anticipo en línea (transferencia/DeUna o Payphone) | $3 | $1 | Reservas en línea |
+| 🎨 Ficha técnica de color | $3 | $1 | — |
+| 🔁 Clientes por recuperar | $2 | $1 | — |
+| 👥 Personas ilimitadas (sin él: hasta 3) | $5 | $2 | — |
+| 📱 Portal y app del peluquero | $4 | $1,50 | — |
+| 🔒 Clientes privados de quien alquila | $2 | $1 | Portal del peluquero |
+| 🛎️ Cuenta de recepción | $3 | $1 | — |
+| 📦 Inventario y venta de productos | $3 | $1 | — |
+| 🎁 Paquetes y tarjetas de regalo | $3 | $1 | — |
+| ⭐ Puntos para clientes fieles | $2 | $1 | — |
+| 🧾 Gastos con facturas del SRI | $4 | $1,50 | — |
+| 📊 Reporte del mes | $3 | $1 | — |
+| 📲 Avisos automáticos por Telegram | $3 | $1 | — |
+
+Planes: **Básica $25** = solo la base · **Completa $35** = todos los módulos (sumados valen $45). Precio de cada salón = plan + módulos extra − descuento de los que quitó (o un **precio acordado** fijo). Semestral paga 5 y recibe 6; anual paga 10, recibe 12 y trae dominio propio.
+
 - Plan y avance del proyecto: [BLOC_DE_NOTAS.md](BLOC_DE_NOTAS.md)
 - Cómo se reparte el dinero: [docs/COMO_FUNCIONA_EL_DINERO.md](docs/COMO_FUNCIONA_EL_DINERO.md)
 
 ## Direcciones
 | Quién | Dirección |
 |---|---|
-| Dueño y recepción | `/` (entrar con correo y contraseña; la cuenta de recepción la crea el dueño en Más → Recepción, plan Completa) |
-| Quien alquila el puesto | Su portal → **Mis clientes** (clientes privados, plan Completa) |
+| Dueño y recepción | `/` (entrar con correo y contraseña; la cuenta de recepción la crea el dueño en Más → Recepción, módulo «Cuenta de recepción») |
+| Quien alquila el puesto | Su portal → **Mis clientes** (módulo «Clientes privados de quien alquila») |
+| Quien quiere TuSalón | `/?r=registro` → **Solicitar demo** (nombre, salón, ciudad, WhatsApp, correo, qué necesita y módulos de interés). No crea el salón: llega a Tukán como pedido de demo |
+| Dueño: su plan | Más → **Mi plan** (`/?r=completa`): sus módulos, lo que puede agregar con su precio y «Pedir este módulo» |
 | Peluquero | `/` con el acceso que le crea el dueño → su portal |
 | Clientes (reservas) | `/?r=reservar&s=<nombre-del-salón>` |
 | Tukán (super administrador) | `/?r=admin_entrar` · cuenta creada con `php bin/crear_admin.php` en el servidor · o con un clic desde el Panel Tukán Central |
@@ -55,15 +81,16 @@ El panel central muestra las cifras de todos los programas Tukán y deja entrar 
 - **Entrar solo desde el panel central:** agrega `TUKAN_SOLO_CENTRAL=1` en `config/.env`. La página `/?r=admin_entrar` dice "El ingreso del super usuario es solo desde el Panel Tukán" y no acepta contraseñas. El ingreso de los salones y de los clientes no cambia.
 - **Emergencia** (el panel central no responde): pon `TUKAN_SOLO_CENTRAL=0` en `config/.env` y entra con tu clave; si no la recuerdas, `php /var/www/tusalon/bin/crear_admin.php` la cambia.
 - Cada entrada desde el panel central queda en "Últimos movimientos del panel" ("Entró desde el Panel Tukán Central"). La primera vez se crea el super usuario con el correo del panel central (con una contraseña al azar que nadie conoce).
-- Cifras que ve el panel central: salones por estado (con la regla única de todos los programas: "por vencer" = al día y vence en 7 días o menos; los que están en días de gracia cuentan como vencidos), nuevos en 30 días, cobrado del mes y del mes anterior, pruebas que vencen en 7 días, pagos vencidos, citas del mes, clientes, peluqueros y usuarios. Sin datos personales (solo nombres de salones).
+- Cifras que ve el panel central: salones por estado (con la regla única de todos los programas: "por vencer" = al día y vence en 7 días o menos; los que están en días de gracia cuentan como vencidos), nuevos en 30 días, cobrado del mes y del mes anterior, demos que vencen en 7 días, pagos vencidos, citas del mes, clientes, peluqueros y usuarios. Sin datos personales (solo nombres de salones).
 - Seguridad: cada enlace dura 60 segundos y sirve una sola vez (30 s las operaciones); máximo 120 pedidos y 30 rechazados por minuto por IP. Protocolo: Tukán Central v1 y v2 (`PROTOCOLO.md` y `PROTOCOLO_V2.md` del panel central, iguales en todos los programas Tukán).
 
 ### Qué puede hacer el Panel Tukán Central (protocolo v2)
 Con el mismo ID y el mismo secreto, el panel central ve y maneja a los salones sin entrar al panel de TuSalón:
-- **Clientes**: todos los salones con su estado (en prueba, al día, por vencer en 7 días, vencido —incluye los días de gracia— y suspendido/cancelado), plan, vencimiento, dueño, último uso (citas y ventas), pagos y lo que vale al mes. La ficha trae los pagos (también los anulados y los de Google Play), las últimas acciones, las notas internas y los mensajes de WhatsApp listos.
-- **Solicitudes**: salones que se registraron solos (30 días), pagos automáticos de Google Play (30 días, para marcar "visto"), pruebas que terminan en 2 días / hoy / terminadas sin pagar (60 días), planes que vencen en 5 días o vencidos sin renovar (30 días) y dominios gratis por registrar. Las reservas que piden los clientes de cada salón son del salón y no se mandan.
-- **Operaciones** (con las mismas funciones del panel de Tukán y una línea en "Últimos movimientos del panel" con el correo del Central): crear demo (salón en prueba con 5 servicios y el horario; la contraseña se muestra una sola vez), alargar la prueba, registrar pago (con la fecha en que pagó), anular pago, suspender, reactivar, cancelar, cambiar plan, nueva clave del dueño, nota interna, atender solicitud y guardar plan/precios.
-- **Finanzas**: cobrado por mes (por plan, tiempo y forma de pago), nuevos pagadores, devengado, ingreso mensual recurrente y la comisión estimada de Google Play (15 %).
+- **Clientes**: todos los salones con su estado (en demo, al día, por vencer en 7 días, vencido —incluye los días de gracia— y suspendido/cancelado), plan, vencimiento, dueño, último uso (citas y ventas), pagos y lo que vale al mes. La ficha trae los pagos (también los anulados y los de Google Play), las últimas acciones, las notas internas y los mensajes de WhatsApp listos.
+- **Solicitudes**: **pedidos de demo** del formulario «Solicitar demo» (`demo_pedida`: crear la demo con sus datos, marcar contactado o descartar), **pedidos de módulos** desde Mi plan (`cambio_modulos`: aprobar = `cambiar_modulos`, o rechazar), pagos automáticos de Google Play (30 días, para marcar "visto"), demos que terminan en 2 días / hoy / terminadas sin pagar (60 días), planes que vencen en 5 días o vencidos sin renovar (30 días) y dominios del pago anual por registrar. Las reservas que piden los clientes de cada salón son del salón y no se mandan.
+- **Operaciones** (con las mismas funciones del panel de Tukán y una línea en "Últimos movimientos del panel" con el correo del Central): crear demo (con plan y módulos: todos, los elegidos o «ninguno»; 5 servicios y el horario; la contraseña se muestra una sola vez; desde un pedido de demo lo deja «demo creada»), alargar la demo, registrar pago (con la fecha en que pagó), anular pago, suspender, reactivar, cancelar, cambiar plan, nueva clave del dueño, nota interna, atender solicitud, guardar plan/precios y, del Anexo B, **cambiar_modulos** (encender/apagar módulos de un salón y precio acordado) y **guardar_modulos** (precios y descripciones del catálogo y qué módulos trae cada plan).
+- **Módulos** (Anexo B, `capacidades.revision` = 3): la acción `modulos` da la base, el catálogo y los planes; cada cliente trae `modulos` (`del_plan`, `extra`, `quitados`, `activos`, precios y `mensual`) y `mensual_estimado` = lo que vale al mes con sus módulos (si está pagando).
+- **Finanzas**: cobrado por mes (por plan, tiempo y forma de pago), nuevos pagadores, devengado, ingreso mensual recurrente (suma de lo que vale al mes cada salón que paga), `por_modulo` (ingreso estimado de cada módulo extra) y la comisión estimada de Google Play (15 %).
 - Si el Central repite una operación (se cortó la red), TuSalón no la hace dos veces: devuelve el mismo resultado (`tukan_central_operaciones`, 90 días, sin contraseñas).
 - **Pausar y borrar salones** (Anexo A del protocolo):
   - `pausar` (tipo: falta de pago, pedido del cliente, revisión, uso indebido u otro + motivo): el salón no puede trabajar y ve "Tu cuenta está pausada" con el motivo (en revisión y uso indebido, un texto genérico) y el WhatsApp de Tukán; su página de reservas, las horas libres, la cuenta de sus clientes y el enlace de cada cita dicen "temporalmente no disponible". `reactivar` la quita.
@@ -78,7 +105,7 @@ El instalador ya las deja programadas. Son estas dos líneas de cron:
 15 3 * * * /var/www/tusalon/deploy/respaldo.sh >> /var/log/tusalon-respaldo.log 2>&1
 ```
 
-- Cada hora: recordatorios de mañana (desde las 9:00), cumpleaños (desde las 8:00), pedir calificación, reporte del mes (día 1 desde las 7:00) y la **papelera** (borra de verdad los salones con más de 30 días en ella y las copias de más de 1 año). Cada cosa se envía una sola vez. Los salones pausados o en la papelera no reciben tareas.
+- Cada hora: recordatorios de mañana (desde las 9:00), cumpleaños (desde las 8:00), pedir calificación, reporte del mes (día 1 desde las 7:00) y la **papelera** (borra de verdad los salones con más de 30 días en ella y las copias de más de 1 año). Cada cosa se envía una sola vez. Los salones pausados o en la papelera no reciben tareas. Cada tarea es de su módulo: el recordatorio, el pedido de calificación y el saludo por Telegram solo con «Avisos automáticos por Telegram» (sin él quedan con WhatsApp de un toque); el reporte del día 1 solo con «Reporte del mes».
 - **Al actualizar a esta versión** hay que volver a correr el instalador: crea `respaldos/borrados` y pasa las tareas al usuario `www-data` (así pueden borrar las copias viejas).
 - Cada día a las 3:15: copia de la base y de las fotos en `/var/backups/tusalon` (solo legible por el servidor). Para restaurar: `pg_restore -d tusalon --clean archivo.dump`.
 
@@ -86,12 +113,13 @@ El instalador ya las deja programadas. Son estas dos líneas de cron:
 Solo en una base de prueba (el script la borra y la vuelve a crear):
 
 ```bash
-# Lógica (893 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php + prueba_gastos_recepcion.php + prueba_papelera.php,
-# con Telegram simulado en el puerto 8098)
+# Lógica (1006 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php + prueba_gastos_recepcion.php + prueba_papelera.php
+# + prueba_modulos.php, con Telegram simulado en el puerto 8098; otro puerto con TG_PUERTO=…)
 bash tests/run_logica.sh
-# Pantallas de punta a punta (636 pruebas: prueba_web.sh + prueba_web_gastos_recepcion.sh + prueba_web_central.sh + prueba_web_central_v2.sh
-# + prueba_web_papelera.sh; levanta solo
-# los sitios de prueba, Payphone y Telegram simulados). Opcional: DB=<base> PUERTO=<puerto>
+# Pantallas de punta a punta (737 pruebas: prueba_web.sh + prueba_web_gastos_recepcion.sh + prueba_web_central.sh + prueba_web_central_v2.sh
+# + prueba_web_papelera.sh + prueba_web_modulos.sh; levanta solo los sitios de prueba, Payphone y Telegram simulados).
+# Opcional: DB=<base> PUERTO=<puerto>, y CAPTURAS=<carpeta> para sacar las capturas de Mi plan, "No está en tu plan" y los
+# interruptores del panel a 390 px y en computadora (Playwright con Chromium ya instalado; no corre "playwright install")
 PGPASSWORD=prueba bash tests/run_web.sh
 # Solo el conector con el Panel Tukán Central (v1, v2 y pausar/papelera)
 TUSALON_DB_NAME=tusalon_prueba TUSALON_DB_USER=tusalon TUSALON_DB_PASS=prueba php tests/prueba_central.php

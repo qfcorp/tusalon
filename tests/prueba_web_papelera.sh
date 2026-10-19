@@ -43,9 +43,9 @@ registrar() { # [plan] [nombre del salón]
   local plan=${1:-completa} nombre=${2:-Salón de Prueba $RANDOM}
   rm -f "$JAR"
   EMAIL="dueno$RANDOM$RANDOM@prueba.ec"
-  post "r=registro" --data-urlencode "salon=$nombre" --data-urlencode "nombre=Dimitry Prueba" \
-       --data-urlencode "telefono=0990000000" --data-urlencode "email=$EMAIL" --data-urlencode "clave=claveSegura1" \
-       --data-urlencode "plan=$plan" > /dev/null
+  # Ya no hay registro con prueba gratis: Tukán crea la demo (tests/demo_web.php) y el dueño entra
+  TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD php "$(dirname "$0")/demo_web.php" "$nombre" "Dimitry Prueba" 0990000000 "$EMAIL" claveSegura1 "$plan" > /dev/null
+  post "r=login" --data-urlencode "email=$EMAIL" --data-urlencode "clave=claveSegura1" > /dev/null
   NID=$(sql "SELECT salon_id FROM usuarios WHERE email='$EMAIL'")
 }
 entrar() { # email clave

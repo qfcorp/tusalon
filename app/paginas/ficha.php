@@ -1,7 +1,6 @@
 <?php
 use TuSalon\FichaTecnica;
 
-if (!requiere_completa($u, 'Ficha técnica de color', 'Guarda la fórmula exacta de cada tinte (marca, tono, oxidante, tiempo) con fotos de antes y después, para repetirla igual la próxima vez.')) return;
 $sid = (int) $u['salon_id'];
 $ft = new FichaTecnica(db());
 $clienteId = (int) ($_GET['cliente'] ?? 0);

@@ -1,7 +1,6 @@
 <?php
 use TuSalon\Fidelidad;
 
-if (!requiere_completa($u, 'Puntos', 'Tus clientes ganan puntos cada vez que pagan y los cambian por descuentos. Así vuelven más seguido.')) return;
 $sid = (int) $u['salon_id'];
 $fid = new Fidelidad(db());
 $error = null;

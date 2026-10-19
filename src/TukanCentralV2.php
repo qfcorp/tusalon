@@ -17,38 +17,40 @@ use Throwable;
  * Lectura: capacidades, clientes, cliente, cotizar, planes, solicitudes, solicitud, finanzas.
  * Escritura: ejecutar (crear_demo, extender_prueba, registrar_pago, anular_pago, suspender, reactivar, cancelar,
  *            cambiar_plan, nueva_clave_dueno, nota_interna, atender_solicitud, guardar_plan,
- *            y del Anexo A: pausar, borrar_cliente, restaurar_cliente — ver Papelera).
+ *            del Anexo A: pausar, borrar_cliente, restaurar_cliente — ver Papelera,
+ *            y del Anexo B: cambiar_modulos, guardar_modulos — ver Modulos). Lectura del Anexo B: modulos.
  * Las reglas del negocio son las de TuSalón (Planes, PanelTukan, Altas); aquí solo se validan los datos,
  * se arma la respuesta y se garantiza que una operación repetida no se haga dos veces (tukan_central_operaciones).
- * TuSalón no tiene pedidos de demo, comprobantes ni soporte: sus solicitudes son los registros nuevos, los pagos
- * automáticos de Google Play y los recordatorios que se arman al momento (pruebas por terminar, renovaciones,
- * dominios gratis). Las "solicitudes" de reservas de cada salón son del salón, no de Tukán: no se mandan.
+ * Solicitudes: pedidos de demo (el formulario "Solicitar demo": ya no hay prueba gratis), pedidos de módulos desde
+ * Mi plan (cambio_modulos), pagos automáticos de Google Play y los recordatorios que se arman al momento (demos por
+ * terminar, renovaciones, dominios incluidos en el pago anual). TuSalón no tiene comprobantes ni soporte. Las "solicitudes" de reservas de cada salón son del salón, no de Tukán: no se mandan.
  */
 final class TukanCentralV2
 {
     public const PROTOCOLO = 2;
-    public const REVISION = 2;   // 2: Anexo A (pausar, papelera)
+    public const REVISION = 3;   // 2: Anexo A (pausar, papelera) · 3: Anexo B (módulos) y pedidos de demo
     public const MAX_CUERPO = 65536;
     public const VIDA_LECTURA = 60;
     public const VIDA_EJECUTAR = 30;
     /** Acciones que existen en el protocolo v2 (el resto de nombres es "Acción no válida", 400). */
-    public const ACCIONES_PROTOCOLO = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'adjunto', 'finanzas', 'ejecutar'];
+    public const ACCIONES_PROTOCOLO = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'adjunto', 'finanzas', 'ejecutar', 'modulos'];
     /** Las que TuSalón contesta (sin "adjunto": no tiene comprobantes ni tickets con archivos). */
-    public const ACCIONES = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'finanzas', 'ejecutar'];
+    public const ACCIONES = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'finanzas', 'ejecutar', 'modulos'];
     public const OPERACIONES = ['crear_demo', 'extender_prueba', 'registrar_pago', 'anular_pago', 'suspender', 'reactivar', 'cancelar',
                                 'cambiar_plan', 'nueva_clave_dueno', 'nota_interna', 'atender_solicitud', 'guardar_plan',
-                                'pausar', 'borrar_cliente', 'restaurar_cliente'];
+                                'pausar', 'borrar_cliente', 'restaurar_cliente', 'cambiar_modulos', 'guardar_modulos'];
     /** Operaciones que se pueden pedir sobre un salón que está en la papelera. */
     public const OPERACIONES_PAPELERA = ['restaurar_cliente', 'borrar_cliente'];
-    public const TIPOS_SOLICITUD = ['registro_nuevo', 'pago_automatico', 'seguimiento_prueba', 'renovacion', 'dominio_gratis'];
+    public const TIPOS_SOLICITUD = ['demo_pedida', 'cambio_modulos', 'pago_automatico', 'seguimiento_prueba', 'renovacion', 'dominio_gratis'];
+    /** Estado propio de un pedido de demo -> estado genérico de la solicitud (§5.8). */
+    public const ESTADOS_DEMO = ['nueva' => 'pendiente', 'contactada' => 'en_proceso', 'demo_creada' => 'atendida', 'descartada' => 'descartada'];
     public const COMISION_GOOGLE_PLAY = 0.15;   // la misma que usa GooglePlay::precioSugerido()
     public const ESTADOS = ['prueba', 'activo', 'por_vencer', 'vencido', 'suspendido'];
-    public const ESTADOS_DETALLE = ['prueba' => 'En prueba', 'activo' => 'Al día', 'sin_limite' => 'Sin vencimiento', 'gracia' => 'Venció (en gracia)',
-                                    'vencido' => 'Vencido', 'prueba_vencida' => 'Prueba terminada', 'suspendido' => 'Suspendido', 'cancelado' => 'Cancelado'];
+    public const ESTADOS_DETALLE = ['prueba' => 'Demo', 'activo' => 'Al día', 'sin_limite' => 'Sin vencimiento', 'gracia' => 'Venció (en gracia)',
+                                    'vencido' => 'Vencido', 'prueba_vencida' => 'Demo terminada', 'suspendido' => 'Suspendido', 'cancelado' => 'Cancelado'];
     public const ORDENES = ['vence', 'alta', 'nombre', 'actividad'];
     public const RESULTADOS = ['en_proceso', 'atendida', 'descartada'];
     public const DIAS_POR_VENCER = 7;      // §4.2: pagado y vence en 0 a 7 días
-    public const DIAS_REGISTRO_NUEVO = 30;
     public const DIAS_PRUEBA_TERMINADA = 60;
     public const DIAS_RENOVACION = 5;
     public const DIAS_VENCIDA = 30;
@@ -56,16 +58,20 @@ final class TukanCentralV2
     public const ID = '/^[A-Za-z0-9_.:-]{1,80}$/';
 
     private Planes $planes;
+    private Modulos $modulos;
     private PanelTukan $panel;
     private TukanCentral $v1;
     private DateTimeImmutable $hoy;
     private ?array $pagosCache = null;
     private ?array $solicitudesCache = null;
+    /** Quién hace la operación en curso: "Nombre <correo>" del token. */
+    private ?string $quien = null;
 
     public function __construct(private PDO $db, ?DateTimeImmutable $hoy = null)
     {
         $this->hoy = ($hoy ?? new DateTimeImmutable('today'))->setTime(0, 0);
         $this->planes = new Planes($db);
+        $this->modulos = new Modulos($db);
         $this->panel = new PanelTukan($db);
         $this->v1 = new TukanCentral($db);
     }
@@ -184,6 +190,7 @@ final class TukanCentralV2
             'solicitudes' => $this->solicitudes($d),
             'solicitud' => ['solicitud' => $this->solicitud($d)],
             'finanzas' => $this->finanzas($d),
+            'modulos' => $this->modulosV2(),
         };
         return [200, $this->sobre($accion) + $r];
     }
@@ -228,8 +235,9 @@ final class TukanCentralV2
             'formularios' => [
                 'pausar' => self::camposPausa(),
                 'borrar_cliente' => self::camposBorrar(null),
-                'crear_demo' => [],   // TuSalón no pide nada más que los campos comunes
+                'crear_demo' => [self::campoModulosDemo()],   // además de los comunes (el plan va en los comunes)
                 'guardar_plan' => $this->camposPlan(null),
+                'cambiar_modulos' => $this->camposModulos(null),
             ],
             'limites' => ['por_pagina_max' => 200, 'meses_finanzas_max' => 24, 'dias_prueba_max' => 90],
         ];
@@ -289,9 +297,10 @@ final class TukanCentralV2
         $hoy = $this->hoy->format('Y-m-d');
         $st = $this->db->prepare('SELECT salon_id, count(*) AS cantidad, COALESCE(sum(monto), 0) AS total, min(pagado_en) AS primer, max(pagado_en) AS ultimo,
                                          (array_agg(monto ORDER BY pagado_en DESC, id DESC))[1] AS ultimo_monto,
-                                         COALESCE(sum(CASE WHEN inicio <= ?::date AND fin >= ?::date THEN monto / meses_recibidos ELSE 0 END), 0) AS mensual
+                                         COALESCE(sum(CASE WHEN inicio <= ?::date AND fin >= ?::date THEN monto / meses_recibidos ELSE 0 END), 0) AS mensual,
+                                         count(*) FILTER (WHERE inicio <= ?::date AND fin >= ?::date AND monto > 0) AS vigentes
                                     FROM suscripciones WHERE NOT anulada GROUP BY salon_id');
-        $st->execute([$hoy, $hoy]);
+        $st->execute([$hoy, $hoy, $hoy, $hoy]);
         $r = [];
         foreach ($st->fetchAll() as $f) $r[(int) $f['salon_id']] = $f;
         return $this->pagosCache = $r;
@@ -340,7 +349,9 @@ final class TukanCentralV2
                 'ultimo_pago' => $pg['ultimo'] ?? null,
                 'ultimo_monto' => $pg ? round((float) $pg['ultimo_monto'], 2) : null,
             ],
-            'mensual_estimado' => round((float) ($pg['mensual'] ?? 0), 2),
+            // Anexo B: lo que vale al mes = plan + módulos extra − quitados (o el precio acordado), si está pagando
+            'mensual_estimado' => (int) ($pg['vigentes'] ?? 0) > 0 ? $this->detalleModulos($n)['mensual'] : 0.0,
+            'modulos' => $this->modulosCliente($n),
             'origen' => in_array($n['origen'] ?? '', Altas::ORIGENES, true) ? $n['origen'] : 'desconocido',
             'vendedor' => null,
             'uso' => ['Peluqueros' => (int) $n['peluqueros'], 'Citas (30 días)' => (int) $n['citas_30'], 'Clientes' => (int) $n['clientes']],
@@ -363,13 +374,13 @@ final class TukanCentralV2
     private function textoEstado(array $c, array $n, ?string $vence, ?int $dias): string
     {
         return match ($c['estado_detalle']) {
-            'prueba' => 'Prueba gratis hasta el ' . self::fechaTexto($vence) . ($dias === 0 ? ' (termina hoy)' : ' (faltan ' . self::dias((int) $dias) . ')'),
+            'prueba' => 'Demo hasta el ' . self::fechaTexto($vence) . ($dias === 0 ? ' (termina hoy)' : ' (faltan ' . self::dias((int) $dias) . ')'),
             'sin_limite' => 'Al día, sin fecha de vencimiento',
             'activo' => 'Al día hasta el ' . self::fechaTexto($vence)
                         . ($c['estado'] === 'por_vencer' ? ($dias === 0 ? ' (vence hoy)' : ' (vence en ' . self::dias((int) $dias) . ')') : ''),
             'gracia' => 'Venció el ' . self::fechaTexto($n['activo_hasta']) . ' (en días de gracia, todavía puede trabajar)',
             'vencido' => 'Venció el ' . self::fechaTexto($n['activo_hasta']),
-            'prueba_vencida' => 'La prueba gratis terminó el ' . self::fechaTexto($n['prueba_hasta']),
+            'prueba_vencida' => 'La demo terminó el ' . self::fechaTexto($n['prueba_hasta']),
             'suspendido' => !empty($n['pausa_tipo']) ? 'Pausado por Tukán: ' . (Papelera::TIPOS_PAUSA[$n['pausa_tipo']] ?? $n['pausa_tipo']) : 'Suspendido por Tukán',
             default => 'Cancelado',
         } . (!empty($n['eliminado_en']) ? ' · En la papelera (se borra el ' . self::fechaTexto(Papelera::fechaPurga($n['eliminado_en'])) . ')' : '');
@@ -500,7 +511,7 @@ final class TukanCentralV2
             'bienvenida' => "$hola, te escribo de TuSalón. La cuenta de $nombre ya está lista: entra en " . self::urlLogin()
                 . ' con tu correo' . ($n['dueno_email'] ? ' ' . $n['dueno_email'] : '') . '. ¿Te ayudo a empezar?',
             'recordar_prueba' => $nat === 'prueba' && $n['prueba_hasta']
-                ? "$hola, soy de TuSalón. Tu prueba de $nombre " . ($this->diasHasta($n['prueba_hasta']) === 0 ? 'termina hoy' : 'termina el ' . self::fechaCorta($n['prueba_hasta']))
+                ? "$hola, soy de TuSalón. Tu demo de $nombre " . ($this->diasHasta($n['prueba_hasta']) === 0 ? 'termina hoy' : 'termina el ' . self::fechaCorta($n['prueba_hasta']))
                   . '. ¿Te ayudo a elegir tu plan para que sigas usándolo?' : null,
             'recordar_renovacion' => $nat === 'activo' && $n['activo_hasta']
                 ? "$hola, soy de TuSalón. El plan de $nombre vence el " . self::fechaCorta($n['activo_hasta'])
@@ -536,6 +547,9 @@ final class TukanCentralV2
         }
         $a[] = $this->formPago($n, $datos);
         if ($this->puedeExtender($c)) $a[] = $this->formExtender($c, $datos);
+        $a[] = ['accion' => 'cambiar_modulos', 'etiqueta' => 'Módulos', 'estilo' => 'normal',
+                'confirmar' => '¿Guardar los módulos de ' . $c['nombre'] . '? Apagar un módulo no borra sus datos.', 'datos' => $datos,
+                'campos' => $this->camposModulos($n)];
         $a[] = ['accion' => 'cambiar_plan', 'etiqueta' => 'Cambiar plan', 'estilo' => 'normal', 'confirmar' => '¿Cambiar el plan de ' . $c['nombre'] . ' sin cobrar?',
                 'datos' => $datos, 'campos' => [['campo' => 'plan', 'etiqueta' => 'Plan', 'tipo' => 'opcion', 'requerido' => true, 'valor' => $c['plan']['codigo'],
                                                  'opciones' => $this->opcionesPlan()]]];
@@ -600,7 +614,7 @@ final class TukanCentralV2
         }
         $metodos = [];
         foreach (PanelTukan::METODOS as $m => $nombre) $metodos[] = ['valor' => $m, 'etiqueta' => $nombre];
-        $cot = $this->planes->cotizar((string) $n['plan_codigo'], 'mensual');
+        $cot = $this->planes->cotizar((string) $n['plan_codigo'], 'mensual', (int) $n['id']);   // con sus módulos (Anexo B)
         return ['accion' => 'registrar_pago', 'etiqueta' => 'Registrar pago', 'estilo' => 'principal',
                 'confirmar' => '¿Registrar el pago de ' . $n['nombre'] . '?', 'datos' => $datos,
                 'campos' => [
@@ -618,8 +632,8 @@ final class TukanCentralV2
 
     private function formExtender(array $c, array $datos): array
     {
-        return ['accion' => 'extender_prueba', 'etiqueta' => 'Alargar prueba', 'estilo' => 'normal',
-                'confirmar' => '¿Alargar la prueba gratis de ' . $c['nombre'] . '?', 'datos' => $datos,
+        return ['accion' => 'extender_prueba', 'etiqueta' => 'Alargar demo', 'estilo' => 'normal',
+                'confirmar' => '¿Alargar la demo de ' . $c['nombre'] . '?', 'datos' => $datos,
                 'campos' => [['campo' => 'dias', 'etiqueta' => 'Días más', 'tipo' => 'dias', 'requerido' => true, 'valor' => 7, 'min' => 1, 'max' => 90]]];
     }
 
@@ -644,11 +658,12 @@ final class TukanCentralV2
         $id = $this->idCliente($d['cliente_id'] ?? null, 'cliente_id');
         $n = $this->fila($id);
         [$plan, $periodo] = $this->planPeriodo($d, (string) $n['plan_codigo'], '');
-        $c = $this->planes->cotizar($plan, $periodo);
+        $c = $this->planes->cotizar($plan, $periodo, $id);   // plan + módulos del salón (Anexo B)
         $desde = $this->planes->inicioSugerido($id, $this->hoy);
         $hasta = $desde->modify('+' . $c['meses_recibidos'] . ' months')->modify('-1 day');
         return ['monto' => $c['monto'], 'meses' => $c['meses_recibidos'], 'desde' => $desde->format('Y-m-d'), 'hasta' => $hasta->format('Y-m-d'),
-                'detalle' => $this->detallePlan($plan, $periodo), 'incluye_dominio' => $c['incluye_dominio'], 'descuentos' => []];
+                'detalle' => $this->detallePlan($plan, $periodo), 'incluye_dominio' => $c['incluye_dominio'], 'descuentos' => [],
+                'modulos' => $this->modulosCliente($n, $plan)];
     }
 
     private function detallePlan(string $plan, string $periodo): string
@@ -688,7 +703,7 @@ final class TukanCentralV2
         $cuantos = $this->db->query('SELECT plan_codigo, count(*) FROM salones WHERE eliminado_en IS NULL GROUP BY plan_codigo')->fetchAll(PDO::FETCH_KEY_PAIR);
         return ['editable' => true, 'planes' => array_map(fn($p) => $this->plan($p, (int) ($cuantos[$p['codigo']] ?? 0)), $this->planes->lista()),
                 'ajustes' => ['dias_prueba' => (int) $a['dias_prueba'], 'dias_demo' => (int) $a['dias_prueba'], 'dias_gracia' => (int) $a['dias_gracia'],
-                              'dias_gracia_demo' => 0, 'registro_abierto' => true]];
+                              'dias_gracia_demo' => 0, 'registro_abierto' => false]];   // no hay registro abierto: todo se pide demo
     }
 
     private function plan(array $p, int $clientes): array
@@ -700,6 +715,7 @@ final class TukanCentralV2
                           'incluye_dominio' => $x['dominio']];
         }
         return ['codigo' => (string) $p['codigo'], 'nombre' => (string) $p['nombre'], 'activo' => true, 'para' => null,
+                'modulos' => $this->modulos->modulosDePlan((string) ($p['modulos'] ?? '')),
                 'descripcion' => $p['descripcion'] ?? null, 'precios' => $precios,
                 'limites' => ['Personas que atienden' => $p['max_profesionales'] === null ? 'Ilimitadas' : (string) $p['max_profesionales']],
                 'clientes' => $clientes];
@@ -734,11 +750,6 @@ final class TukanCentralV2
             if (in_array($nat, ['suspendido', 'cancelado'], true)) continue;
             $plan = ['codigo' => (string) $n['plan_codigo'], 'nombre' => (string) $n['plan_nombre']];
             $alta = substr((string) $n['creado_en'], 0, 10);
-            if (($n['origen'] ?? '') === 'registro' && $alta >= $hace(self::DIAS_REGISTRO_NUEVO)) {
-                $items[] = $this->sol($n, $c, 'registro_nuevo', "registro_nuevo:$id", 'pedido', self::momento($n['creado_en']), 'normal',
-                    'Se registró solo (prueba gratis)', 'Plan ' . $plan['nombre'] . ' · prueba hasta el ' . self::fechaTexto($n['prueba_hasta']),
-                    ['plan' => $plan, 'prueba_hasta' => $n['prueba_hasta']]);
-            }
             if ($nat === 'prueba' && $n['prueba_hasta']) {
                 $dias = $this->diasHasta($n['prueba_hasta']);
                 $etapa = $dias === 0 ? 'vence_hoy' : ($dias <= 2 ? 'faltan_2' : null);
@@ -746,15 +757,15 @@ final class TukanCentralV2
                     $desde = (new DateTimeImmutable($n['prueba_hasta']))->modify($etapa === 'vence_hoy' ? '+0 days' : '-2 days')->format('Y-m-d');
                     $items[] = $this->sol($n, $c, 'seguimiento_prueba', "seguimiento_prueba:$id:$etapa:{$n['prueba_hasta']}", 'recordatorio',
                         self::momento(max($desde, $alta)), $etapa === 'vence_hoy' ? 'alta' : 'normal',
-                        $etapa === 'vence_hoy' ? 'La prueba gratis termina hoy' : 'Prueba gratis por terminar (faltan ' . self::dias($dias) . ')',
-                        'Plan ' . $plan['nombre'] . ' · prueba hasta el ' . self::fechaTexto($n['prueba_hasta']),
+                        $etapa === 'vence_hoy' ? 'La demo termina hoy' : 'Demo por terminar (faltan ' . self::dias($dias) . ')',
+                        'Plan ' . $plan['nombre'] . ' · demo hasta el ' . self::fechaTexto($n['prueba_hasta']),
                         ['etapa' => $etapa, 'plan' => $plan, 'prueba_hasta' => $n['prueba_hasta'], 'dias' => $dias]);
                 }
             }
             if ($nat === 'prueba_vencida' && $n['prueba_hasta'] >= $hace(self::DIAS_PRUEBA_TERMINADA)) {
                 $items[] = $this->sol($n, $c, 'seguimiento_prueba', "seguimiento_prueba:$id:terminada:{$n['prueba_hasta']}", 'recordatorio',
                     self::momento((new DateTimeImmutable($n['prueba_hasta']))->modify('+1 day')->format('Y-m-d')), 'normal',
-                    'Prueba gratis terminada sin pagar', 'Plan ' . $plan['nombre'] . ' · terminó el ' . self::fechaTexto($n['prueba_hasta']),
+                    'La demo terminó sin pagar', 'Plan ' . $plan['nombre'] . ' · terminó el ' . self::fechaTexto($n['prueba_hasta']),
                     ['etapa' => 'terminada', 'plan' => $plan, 'prueba_hasta' => $n['prueba_hasta'], 'dias' => $this->diasHasta($n['prueba_hasta'])]);
             }
             $pago = (int) ($pagos[$id]['cantidad'] ?? 0) > 0;
@@ -792,7 +803,7 @@ final class TukanCentralV2
                  'desde' => $s['inicio'], 'hasta' => $s['fin'], 'forma_pago' => 'google_play'],
                 round((float) $s['monto'], 2));
         }
-        // Dominio gratis por registrar (pago anual sin dominio)
+        // Dominio incluido en el pago anual, por registrar
         foreach ($this->db->query("SELECT su.id, su.salon_id, su.pagado_en, su.monto, su.inicio, su.fin, pl.nombre AS plan_nombre, su.plan_codigo
                                      FROM suscripciones su JOIN planes pl ON pl.codigo = su.plan_codigo
                                     WHERE su.incluye_dominio AND su.dominio IS NULL AND NOT su.anulada ORDER BY su.id")->fetchAll() as $s) {
@@ -800,19 +811,22 @@ final class TukanCentralV2
             $n = $filas[(int) $s['salon_id']] ?? null;
             if (!$n) continue;
             $items[] = $this->sol($n, $this->clasificar($n), 'dominio_gratis', 'dominio_gratis:' . $s['id'], 'recordatorio', self::momento($s['pagado_en']), 'normal',
-                'Dominio gratis por registrar', 'Pago anual del ' . self::fechaTexto($s['pagado_en']) . ' · ' . self::dinero((float) $s['monto']),
+                'Dominio propio por registrar (pago anual)', 'Pago anual del ' . self::fechaTexto($s['pagado_en']) . ' · ' . self::dinero((float) $s['monto']),
                 ['pago_id' => (string) $s['id'], 'plan' => ['codigo' => $s['plan_codigo'], 'nombre' => $s['plan_nombre']], 'desde' => $s['inicio'], 'hasta' => $s['fin']],
                 round((float) $s['monto'], 2));
         }
+        // Anexo B y "todo se pide demo": pedidos con tabla propia (no van a tukan_central_atenciones)
+        $items = array_merge($items, $this->solicitudesDemo(), $this->solicitudesModulos($filas ?? $this->filas()));
         // Estado según lo que el Central ya atendió
-        if ($items) {
-            $ids = array_column($items, 'id');
+        $calculadas = array_values(array_filter($items, fn($s) => !in_array($s['tipo'], ['demo_pedida', 'cambio_modulos'], true)));
+        if ($calculadas) {
+            $ids = array_column($calculadas, 'id');
             $st = $this->db->prepare('SELECT * FROM tukan_central_atenciones WHERE solicitud_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
             $st->execute($ids);
             $at = [];
             foreach ($st->fetchAll() as $f) $at[$f['solicitud_id']] = $f;
             foreach ($items as &$s) {
-                if (!isset($at[$s['id']])) continue;
+                if (in_array($s['tipo'], ['demo_pedida', 'cambio_modulos'], true) || !isset($at[$s['id']])) continue;
                 $f = $at[$s['id']];
                 $s['estado'] = $s['estado_producto'] = (string) $f['estado'];
                 $s['actualizado'] = self::momento($f['momento']);
@@ -843,14 +857,13 @@ final class TukanCentralV2
         $datos = ['cliente_id' => (string) $n['id']];
         $a = [];
         $texto = match ($tipo) {
-            'registro_nuevo' => $m['bienvenida'],
             'seguimiento_prueba' => $m['recordar_prueba'] ?? $m['vencido'],
             'renovacion' => $m['recordar_renovacion'] ?? $m['vencido'],
             default => null,
         };
         if ($wa && $texto) $a[] = ['accion' => 'whatsapp', 'etiqueta' => 'WhatsApp', 'estilo' => 'normal', 'whatsapp' => $wa, 'texto' => $texto];
-        if (in_array($tipo, ['registro_nuevo', 'seguimiento_prueba'], true) && $this->puedeExtender($cl)) $a[] = $this->formExtender($cl, $datos);
-        if (in_array($tipo, ['registro_nuevo', 'seguimiento_prueba', 'renovacion'], true)) $a[] = $this->formPago($n, $datos);
+        if ($tipo === 'seguimiento_prueba' && $this->puedeExtender($cl)) $a[] = $this->formExtender($cl, $datos);
+        if (in_array($tipo, ['seguimiento_prueba', 'renovacion'], true)) $a[] = $this->formPago($n, $datos);
         if ($tipo === 'renovacion' && ($detalle['etapa'] ?? '') === 'vencida') {
             $a[] = ['accion' => 'suspender', 'etiqueta' => 'Suspender', 'estilo' => 'peligro', 'confirmar' => '¿Suspender ' . $n['nombre'] . '?', 'datos' => $datos,
                     'campos' => [['campo' => 'motivo', 'etiqueta' => 'Motivo', 'tipo' => 'texto', 'requerido' => true, 'valor' => 'No renovó el plan', 'min' => 5, 'max' => 200]]];
@@ -1012,10 +1025,27 @@ final class TukanCentralV2
         unset($x);
         $tot['ingresos'] = round($tot['ingresos'], 2);
         $tot['costos'] = round($tot['costos'], 2);
+        // Anexo B: ingreso mensual recurrente = lo que vale al mes cada salón que paga (plan + módulos), y por módulo extra
+        $mrr = 0.0;
+        $porModulo = [];
+        $cat = $this->modulos->catalogo();
+        foreach ($this->filas() as $n) {
+            $c = $this->cliente($n);
+            if ($c['mensual_estimado'] <= 0) continue;
+            $mrr += $c['mensual_estimado'];
+            foreach ($c['modulos']['extra'] as $mid) {
+                $porModulo[$mid] ??= ['modulo' => $mid, 'nombre' => $cat[$mid]['nombre'], 'clientes' => 0, 'monto' => 0.0];
+                $porModulo[$mid]['clientes']++;
+                $porModulo[$mid]['monto'] += $cat[$mid]['precio_mensual'];
+            }
+        }
+        $porModulo = array_map(function ($x) { $x['monto'] = round($x['monto'], 2); return $x; }, array_values($porModulo));
+        usort($porModulo, fn($a, $b) => [$b['monto'], $a['modulo']] <=> [$a['monto'], $b['modulo']]);
         return ['moneda' => 'USD',
                 'criterio' => 'Pagos de suscripción no anulados (también los de Google Play), por fecha de pago. Devengado: cada pago repartido por días entre su inicio y su fin. La comisión de Google Play es un cálculo (15 %). '
-                              . 'Un salón en la papelera no cuenta desde el día en que se borró.',
-                'mrr' => round($this->panel->ingresoMensual($this->hoy), 2),
+                              . 'Un salón en la papelera no cuenta desde el día en que se borró. MRR: lo que vale al mes cada salón que paga (plan + módulos extra − quitados, o su precio acordado). '
+                              . 'por_modulo: ingreso estimado al mes de cada módulo extra (fuera del plan) de los salones que pagan.',
+                'mrr' => round($mrr, 2), 'por_modulo' => $porModulo,
                 'meses' => array_values($r), 'totales' => $tot];
     }
 
@@ -1034,6 +1064,7 @@ final class TukanCentralV2
         }
         $datos = $d['datos'] ?? [];
         if (!is_array($datos) || ($datos !== [] && array_is_list($datos))) throw TukanCentralError::campo('datos', 'Los datos de la operación no son válidos.');
+        $this->quien = trim(($p['nombre'] ?: 'Panel Tukán Central') . ' <' . $p['email'] . '>');
         $clienteId = $d['cliente_id'] ?? ($datos['cliente_id'] ?? null);
         if ($clienteId !== null && !(is_int($clienteId) || (is_string($clienteId) && preg_match(self::ID, $clienteId)))) {
             throw TukanCentralError::campo('cliente_id', 'El cliente no es válido.');
@@ -1067,7 +1098,7 @@ final class TukanCentralV2
                 throw new TukanCentralError('no_permitido', $e->getMessage(), 403);
             }
             $id = null;
-            if (!in_array($accion, ['crear_demo', 'atender_solicitud', 'guardar_plan'], true)) {
+            if (!in_array($accion, ['crear_demo', 'atender_solicitud', 'guardar_plan', 'guardar_modulos'], true)) {
                 if ($clienteId === null) throw TukanCentralError::campo('cliente_id', 'Falta el cliente.');
                 $id = $this->bloquear($clienteId);
                 if (!in_array($accion, self::OPERACIONES_PAPELERA, true) && $this->enPapelera($id)) {
@@ -1169,6 +1200,8 @@ final class TukanCentralV2
                 'pausar' => $this->opPausar($id, $d),
                 'borrar_cliente' => $this->opBorrar($id, $d, $p),
                 'restaurar_cliente' => $this->opRestaurar($id),
+                'cambiar_modulos' => $this->opCambiarModulos($id, $d, $p),
+                'guardar_modulos' => $this->opGuardarModulos($d),
             };
         } catch (TukanCentralError | PDOException $e) {
             throw $e;
@@ -1196,31 +1229,58 @@ final class TukanCentralV2
         if (!is_string($plan) || !$this->planExiste($plan)) throw TukanCentralError::campo('datos.plan', 'Ese plan no existe en TuSalón.');
         $diasDefecto = max(1, (int) $this->planes->ajuste('dias_prueba'));
         $dias = $this->entero($d, 'dias', $diasDefecto, 1, 90, 'datos.');
-        $sol = $d['solicitud_id'] ?? null;
-        if ($sol !== null && $sol !== '') throw TukanCentralError::campo('datos.solicitud_id', 'TuSalón no tiene pedidos de demo.');
         $extra = $d['extra'] ?? [];
         if (!is_array($extra) || ($extra !== [] && array_is_list($extra))) throw TukanCentralError::campo('datos.extra', 'Los datos propios no son válidos.');
+        // Anexo B: la demo ve todos los módulos, salvo que se elijan (datos.modulos o extra.modulos: lista o "a,b")
+        $mods = $this->listaModulos(array_key_exists('modulos', $d) ? $d['modulos'] : ($extra['modulos'] ?? null), 'datos.modulos');
+        if ($mods !== null) $mods = Modulos::conDependencias($mods);
+        if ($mods === Modulos::ids()) $mods = null;
+        // Pedido de demo del formulario público
+        $sol = $d['solicitud_id'] ?? null;
+        $pedido = null;
+        if ($sol !== null && $sol !== '') {
+            if (!is_string($sol) || !preg_match('/^demo_pedida:(\d{1,10})$/', $sol, $mm)) throw TukanCentralError::campo('datos.solicitud_id', 'La solicitud debe ser un pedido de demo (demo_pedida:N).');
+            $st = $this->db->prepare('SELECT * FROM pedidos_demo WHERE id = ? FOR UPDATE');
+            $st->execute([(int) $mm[1]]);
+            $pedido = $st->fetch();
+            if (!$pedido) throw new TukanCentralError('no_encontrado', 'Ese pedido de demo ya no existe.', 404);
+            if (!in_array($pedido['estado'], ['nueva', 'contactada'], true)) {
+                throw new TukanCentralError('conflicto', 'Ese pedido de demo ya fue ' . (PedidosDemo::ESTADOS[$pedido['estado']] ?? $pedido['estado']) . '.', 409, null,
+                                            ['motivo' => 'ya_atendida', 'estado' => $pedido['estado']]);
+            }
+        }
 
         $clave = self::claveNueva();   // igual que "Nuevo salón" del panel de Tukán
-        $alta = (new Altas($this->db))->crearSalonConDueno($nombre, $contacto, $telefono, $email, $clave, $plan, 'central');
-        $st = $this->db->prepare('UPDATE salones SET prueba_hasta = ?::date + ?::int WHERE id = ? RETURNING prueba_hasta');
-        $st->execute([$this->hoy->format('Y-m-d'), $dias, $alta['salon_id']]);
+        $alta = (new Altas($this->db))->crearSalonConDueno($nombre, $contacto, $telefono, $email, $clave, $plan, $pedido ? 'demo_pedida' : 'central');
+        $st = $this->db->prepare('UPDATE salones SET prueba_hasta = ?::date + ?::int, modulos_demo = ? WHERE id = ? RETURNING prueba_hasta');
+        $st->execute([$this->hoy->format('Y-m-d'), $dias, $mods === null ? null : ($mods === [] ? Modulos::NINGUNO : implode(',', $mods)), $alta['salon_id']]);
         $hasta = (string) $st->fetchColumn();
+        if ($pedido) {
+            (new PedidosDemo($this->db))->marcar((int) $pedido['id'], 'demo_creada', trim(($this->quien ?? 'Panel Tukán Central')), 'Demo creada: ' . $nombre, $alta['salon_id']);
+            if (trim((string) $pedido['necesita']) !== '' || trim((string) $pedido['modulos']) !== '') {
+                $this->panel->guardarNotas($alta['salon_id'], trim('Pedido de demo: ' . trim((string) $pedido['necesita'])
+                    . (trim((string) $pedido['modulos']) !== '' ? ' · Módulos de interés: ' . implode(', ', array_map([$this->modulos, 'nombre'], Modulos::limpiar($pedido['modulos']))) : '')
+                    . ($pedido['ciudad'] ? ' · Ciudad: ' . $pedido['ciudad'] : '')));
+            }
+        }
         $primer = explode(' ', $contacto)[0];
         $enlace = self::urlSitio($alta['slug']);
         $msg = "¡Hola $primer! Tu salón *$nombre* ya está listo en TuSalón, con servicios de ejemplo y el horario para que pruebes todo.\n\n"
              . "🌐 Reservas en línea: $enlace\n🔐 Panel: " . self::urlLogin() . "\n👤 Usuario: $email\n🔑 Contraseña: $clave\n\n"
-             . 'Te recomendamos cambiar la contraseña al entrar (Mi cuenta). La prueba gratis dura hasta el ' . self::fechaTexto($hasta) . '.';
+             . 'Te recomendamos cambiar la contraseña al entrar (Mi cuenta). La demo dura hasta el ' . self::fechaTexto($hasta) . '.';
         $wa = WhatsApp::normalizarTelefono($telefono);
         return [
             'cliente_id' => $alta['salon_id'],
-            'mensaje' => "Demo creada: $nombre, hasta el $hasta.",
+            'mensaje' => "Demo creada: $nombre, hasta el $hasta" . ($mods === null ? ', con todos los módulos.' : ', con ' . count($mods) . ' módulos.'),
+            'solicitud' => $pedido ? $this->solicitudDe('demo_pedida:' . $pedido['id']) : null,
             'resultado' => ['cliente_id' => (string) $alta['salon_id'], 'prueba_hasta' => $hasta,
                             'acceso' => ['url_panel' => self::urlLogin(), 'usuario' => $email, 'clave' => $clave],
                             'enlace_publico' => $enlace, 'mensaje_whatsapp' => $msg,
                             'whatsapp_url' => $wa ? 'https://wa.me/' . $wa . '?text=' . rawurlencode($msg) : null,
-                            'correo_enviado' => false],   // TuSalón todavía no envía correo de bienvenida
-            'auditoria' => "Demo creada: $nombre (plan $plan, prueba hasta $hasta)",
+                            'correo_enviado' => false,   // TuSalón todavía no envía correo de bienvenida
+                            'modulos' => $mods ?? Modulos::ids()],
+            'auditoria' => "Demo creada: $nombre (plan $plan, demo hasta $hasta" . ($mods === null ? ', todos los módulos' : ', módulos: ' . implode(',', $mods)) . ')'
+                           . ($pedido ? ' · pedido de demo N.º ' . $pedido['id'] : ''),
         ];
     }
 
@@ -1229,14 +1289,14 @@ final class TukanCentralV2
         $dias = $this->entero($d, 'dias', null, 1, 90, 'datos.');
         $c = $this->cliente($this->fila($id));
         if (!$this->puedeExtender($c)) {
-            throw new TukanCentralError('no_permitido', 'Solo se alarga la prueba de quien está en prueba o la terminó sin pagar nunca.', 403, null,
+            throw new TukanCentralError('no_permitido', 'Solo se alarga la demo de quien está en demo o la terminó sin pagar nunca.', 403, null,
                                         ['motivo' => 'ya_paga', 'estado' => $c['estado']]);
         }
         $hasta = $this->panel->extenderPrueba($id, $dias, $this->hoy);
         // Reinicia los avisos de la prueba: los recordatorios viejos ya no aplican
         $this->db->prepare("DELETE FROM tukan_central_atenciones WHERE solicitud_id LIKE ?")->execute(["seguimiento_prueba:$id:%"]);
-        return ['mensaje' => "Prueba gratis de {$c['nombre']} hasta el " . self::fechaTexto($hasta) . '.',
-                'resultado' => ['prueba_hasta' => $hasta], 'auditoria' => "Prueba extendida $dias días, hasta $hasta"];
+        return ['mensaje' => "Demo de {$c['nombre']} hasta el " . self::fechaTexto($hasta) . '.',
+                'resultado' => ['prueba_hasta' => $hasta], 'auditoria' => "Demo extendida $dias días, hasta $hasta"];
     }
 
     private function opRegistrarPago(int $id, array $d): array
@@ -1443,6 +1503,7 @@ final class TukanCentralV2
         $nota = $this->texto($d, 'nota', 300, 'datos.');
         $dominio = strtolower($this->texto($d, 'dominio', 120, 'datos.'));
         $s = $this->solicitud(['id' => $sid]);
+        if (in_array($s['tipo'], ['demo_pedida', 'cambio_modulos'], true)) return $this->atenderPedido($s, $resultado, $nota, $dominio);
         $id = (int) $s['cliente_id'];
         $this->bloquear($id);
         $actual = $s['estado'];
@@ -1505,6 +1566,294 @@ final class TukanCentralV2
         $cuantos = (int) $this->db->query('SELECT count(*) FROM salones WHERE eliminado_en IS NULL AND plan_codigo = ' . $this->db->quote($codigo))->fetchColumn();
         return ['mensaje' => "Plan $nombre guardado (" . self::dinero($precio) . ' al mes).', 'resultado' => ['plan' => $this->plan($st->fetch(), $cuantos)],
                 'auditoria' => "Plan $codigo guardado: $nombre " . self::dinero($precio) . ' al mes'];
+    }
+
+    // ------------------------------------------------------------------
+    // Anexo B: módulos (lectura "modulos", cliente.modulos, cambiar_modulos, guardar_modulos, solicitudes cambio_modulos)
+    // ------------------------------------------------------------------
+
+    private function detalleModulos(array $n, ?string $plan = null): array
+    {
+        return $this->modulos->detalle($n, $plan);
+    }
+
+    /** cliente.modulos (§B.2): del_plan, extra, quitados, activos, precio_plan, precio_extra, descuento, precio_acordado, mensual (+ demo). */
+    private function modulosCliente(array $n, ?string $plan = null): array
+    {
+        $x = $this->detalleModulos($n, $plan);
+        return ['del_plan' => $x['del_plan'], 'extra' => $x['extra'], 'quitados' => $x['quitados'], 'activos' => $x['activos'],
+                'precio_plan' => $x['precio_plan'], 'precio_extra' => $x['precio_extra'], 'descuento' => $x['descuento'],
+                'precio_acordado' => $x['precio_acordado'], 'mensual' => $x['mensual'],
+                'demo' => $x['demo'], 'contratados' => $x['contratados']];
+    }
+
+    /** Acción de lectura "modulos": la base, el catálogo (con precios editables) y los módulos de cada plan. */
+    public function modulosV2(): array
+    {
+        $grupos = [];
+        foreach (Modulos::GRUPOS as $g => $nombre) $grupos[] = ['grupo' => $g, 'nombre' => $nombre];
+        $planes = [];
+        foreach ($this->modulos->planes() as $p) {
+            $planes[] = ['codigo' => (string) $p['codigo'], 'nombre' => (string) $p['nombre'], 'precio_mensual' => (float) $p['precio_mensual'],
+                         'modulos' => $p['modulos'], 'max_profesionales' => $p['max_profesionales'] === null ? null : (int) $p['max_profesionales']];
+        }
+        $mods = [];
+        foreach ($this->modulos->catalogo() as $m) {
+            $mods[] = ['id' => $m['id'], 'nombre' => $m['nombre'], 'icono' => $m['icono'], 'descripcion' => $m['descripcion'],
+                       'precio_mensual' => $m['precio_mensual'], 'descuento' => $m['descuento'], 'depende_de' => $m['depende_de'],
+                       'grupo' => $m['grupo'], 'grupo_nombre' => $m['grupo_nombre'], 'orden' => $m['orden']];
+        }
+        return ['base' => Modulos::BASE, 'grupos' => $grupos, 'modulos' => $mods, 'planes' => $planes, 'editable' => true,
+                'personas_sin_modulo' => Modulos::PERSONAS_SIN_MODULO,
+                'reglas' => 'Activos = (módulos del plan − quitados) + extra, con sus dependencias. Demo: todos (o los elegidos al crearla). '
+                          . 'Mensual = precio del plan + Σ precio de extra − Σ descuento de quitados, o el precio acordado. Apagar no borra datos.'];
+    }
+
+    private static function campoModulosDemo(): array
+    {
+        return ['campo' => 'modulos', 'etiqueta' => 'Módulos de la demo (vacío = todos)', 'tipo' => 'texto', 'requerido' => false, 'max' => 400,
+                'ayuda' => 'Ids separados por coma (o "ninguno" = solo la base): ' . implode(', ', Modulos::ids()) . '.'];
+    }
+
+    private function camposModulos(?array $n): array
+    {
+        $x = $n ? $this->detalleModulos($n) : null;
+        $ids = implode(', ', Modulos::ids());
+        return [
+            ['campo' => 'encender', 'etiqueta' => 'Encender (ids separados por coma)', 'tipo' => 'texto', 'requerido' => false, 'max' => 400,
+             'ayuda' => 'Se cobran aparte si no son del plan. Encender uno enciende lo que necesita. Ids: ' . $ids . '.'],
+            ['campo' => 'apagar', 'etiqueta' => 'Apagar (ids separados por coma)', 'tipo' => 'texto', 'requerido' => false, 'max' => 400,
+             'ayuda' => 'Apagar no borra datos. Activos hoy: ' . ($x ? (implode(', ', $x['activos']) ?: 'solo la base') : '—') . '.'],
+            ['campo' => 'precio_acordado', 'etiqueta' => 'Precio acordado al mes ($, vacío = el calculado)', 'tipo' => 'dinero', 'requerido' => false, 'min' => 0,
+             'valor' => $x['precio_acordado'] ?? null, 'ayuda' => $x ? 'Calculado: $' . number_format($x['precio_calculado'], 2, ',', '.') . ' al mes.' : null],
+            ['campo' => 'motivo', 'etiqueta' => 'Motivo', 'tipo' => 'texto', 'requerido' => false, 'max' => 300],
+        ];
+    }
+
+    /** Lista de ids de módulos (array o "a,b"). null si no vino o vino vacía como texto. Un id que no existe → 422 con $campo. */
+    private function listaModulos(mixed $v, string $campo): ?array
+    {
+        if ($v === null || (is_string($v) && trim($v) === '')) return null;
+        if (is_string($v) && strtolower(trim($v)) === Modulos::NINGUNO) return [];
+        if (is_string($v)) $v = array_values(array_filter(array_map('trim', explode(',', $v)), fn($x) => $x !== ''));
+        if (!is_array($v) || !array_is_list($v) || count($v) > 50) throw TukanCentralError::campo($campo, 'La lista de módulos no es válida.');
+        foreach ($v as $x) {
+            if (!is_string($x) || !Modulos::existe($x)) {
+                throw TukanCentralError::campo($campo, 'Ese módulo no existe en TuSalón: ' . mb_substr(is_scalar($x) ? (string) $x : '?', 0, 40) . '. Módulos: ' . implode(', ', Modulos::ids()) . '.');
+            }
+        }
+        return Modulos::limpiar($v);
+    }
+
+    private function solicitudDe(string $id): ?array
+    {
+        $this->solicitudesCache = null;
+        foreach ($this->todasLasSolicitudes() as $s) if ($s['id'] === $id) return $s;
+        return null;
+    }
+
+    /** Pedidos del formulario público "Solicitar demo" (los abiertos y los cerrados de los últimos 120 días). */
+    private function solicitudesDemo(): array
+    {
+        $r = [];
+        foreach ((new PedidosDemo($this->db))->lista(true) as $p) {
+            $wa = WhatsApp::normalizarTelefono($p['whatsapp']);
+            $mods = Modulos::limpiar($p['modulos']);
+            $nombres = array_map([$this->modulos, 'nombre'], $mods);
+            $id = 'demo_pedida:' . $p['id'];
+            $abierta = in_array($p['estado'], ['nueva', 'contactada'], true);
+            $primer = explode(' ', trim((string) $p['nombre']))[0];
+            $texto = "Hola $primer, te escribo de TuSalón por tu pedido de demo para {$p['salon']}. ¿Cuándo te viene bien que te la mostremos?";
+            $a = [];
+            if ($wa) $a[] = ['accion' => 'whatsapp', 'etiqueta' => 'WhatsApp', 'estilo' => 'normal', 'whatsapp' => $wa, 'texto' => $texto];
+            if ($abierta) {
+                $a[] = ['accion' => 'crear_demo', 'etiqueta' => 'Crear demo', 'estilo' => 'principal', 'confirmar' => '¿Crear la demo de ' . $p['salon'] . '?',
+                        'datos' => ['solicitud_id' => $id],
+                        'campos' => [
+                            ['campo' => 'nombre', 'etiqueta' => 'Nombre del salón', 'tipo' => 'texto', 'requerido' => true, 'valor' => $p['salon'], 'min' => 3, 'max' => 120],
+                            ['campo' => 'contacto_nombre', 'etiqueta' => 'Nombre del dueño', 'tipo' => 'texto', 'requerido' => true, 'valor' => $p['nombre'], 'min' => 2, 'max' => 80],
+                            ['campo' => 'email', 'etiqueta' => 'Correo (será su usuario)', 'tipo' => 'email', 'requerido' => true, 'valor' => $p['email']],
+                            ['campo' => 'telefono', 'etiqueta' => 'Teléfono', 'tipo' => 'telefono', 'requerido' => true, 'valor' => $p['whatsapp']],
+                            ['campo' => 'plan', 'etiqueta' => 'Plan', 'tipo' => 'opcion', 'requerido' => true, 'valor' => 'completa', 'opciones' => $this->opcionesPlan()],
+                            ['campo' => 'dias', 'etiqueta' => 'Días de demo', 'tipo' => 'dias', 'requerido' => true, 'valor' => max(1, (int) $this->planes->ajuste('dias_prueba')), 'min' => 1, 'max' => 90],
+                            self::campoModulosDemo(),
+                        ]];
+                $a[] = ['accion' => 'atender_solicitud', 'etiqueta' => 'Marcar', 'estilo' => 'normal', 'confirmar' => null, 'datos' => ['solicitud_id' => $id],
+                        'campos' => [['campo' => 'resultado', 'etiqueta' => 'Resultado', 'tipo' => 'opcion', 'requerido' => true, 'valor' => 'en_proceso',
+                                      'opciones' => [['valor' => 'en_proceso', 'etiqueta' => 'Contactado'], ['valor' => 'descartada', 'etiqueta' => 'Descartar']]],
+                                     ['campo' => 'nota', 'etiqueta' => 'Nota', 'tipo' => 'texto', 'requerido' => false, 'max' => 300]]];
+            }
+            if ($p['salon_creado_id']) $a[] = ['accion' => 'abrir', 'etiqueta' => 'Ver la demo en TuSalón', 'ir' => '/?r=admin_salon&id=' . (int) $p['salon_creado_id']];
+            $r[] = [
+                'id' => $id, 'tipo' => 'demo_pedida', 'categoria' => 'pedido', 'titulo' => 'Pedido de demo',
+                'fecha' => self::momento($p['creado']), 'actualizado' => self::momento($p['actualizado']),
+                'cliente_id' => $p['salon_creado_id'] ? (string) $p['salon_creado_id'] : null,
+                'quien' => ['nombre' => $p['nombre'], 'organizacion' => $p['salon'], 'telefono' => $p['whatsapp'], 'whatsapp' => $wa, 'email' => $p['email']],
+                'resumen' => trim(($p['ciudad'] ?: '') . ($nombres ? ' · Módulos: ' . implode(', ', $nombres) : '') . ($p['necesita'] ? ' · ' . mb_substr($p['necesita'], 0, 120) : ''), ' ·'),
+                'monto' => null, 'estado' => self::ESTADOS_DEMO[$p['estado']], 'estado_producto' => $p['estado'],
+                'prioridad' => $p['estado'] === 'nueva' ? 'alta' : 'normal', 'vence_el' => null,
+                'detalle' => ['ciudad' => $p['ciudad'], 'necesita' => $p['necesita'], 'modulos' => $mods, 'modulos_nombres' => $nombres,
+                              'salon_creado_id' => $p['salon_creado_id'] ? (string) $p['salon_creado_id'] : null,
+                              'atencion' => $p['atendido_por'] ? ['estado' => $p['estado'], 'nota' => $p['nota'], 'por' => $p['atendido_por'], 'momento' => self::momento($p['actualizado'])] : null],
+                'adjuntos' => [], 'acciones_posibles' => $a, 'ir' => '/?r=admin#pedidos-demo',
+            ];
+        }
+        return $r;
+    }
+
+    /** "Pedir este módulo" desde Mi plan (pedidos_modulos): aprobar = cambiar_modulos, rechazar = atender_solicitud descartada. */
+    private function solicitudesModulos(array $filas): array
+    {
+        $r = [];
+        $st = $this->db->query("SELECT p.*, u.nombre AS pedido_por FROM pedidos_modulos p LEFT JOIN usuarios u ON u.id = p.usuario_id
+                                 WHERE p.estado IN ('pendiente','en_proceso') OR p.actualizado > now() - interval '120 days' ORDER BY p.id");
+        foreach ($st->fetchAll() as $p) {
+            $n = $filas[(int) $p['salon_id']] ?? null;
+            if (!$n) continue;
+            $mods = Modulos::limpiar($p['modulos']);
+            $cat = $this->modulos->catalogo();
+            $antes = $this->detalleModulos($n);
+            $faltan = array_values(array_diff(Modulos::conDependencias($mods), $antes['contratados']));
+            $suma = round(array_sum(array_map(fn($m) => in_array($m, $antes['quitados'], true) ? $cat[$m]['descuento'] : $cat[$m]['precio_mensual'], $faltan)), 2);
+            $nuevo = $antes['precio_acordado'] ?? round($antes['precio_calculado'] + $suma, 2);
+            $nombres = array_map(fn($m) => $cat[$m]['nombre'], $mods);
+            $id = 'cambio_modulos:' . $p['id'];
+            $abierta = in_array($p['estado'], ['pendiente', 'en_proceso'], true);
+            $c = $this->clasificar($n);
+            $tel = $n['telefono'] ?: null;
+            $wa = WhatsApp::normalizarTelefono($tel);
+            $datos = ['cliente_id' => (string) $n['id'], 'solicitud_id' => $id];
+            $a = [];
+            if ($abierta) {
+                $a[] = ['accion' => 'cambiar_modulos', 'etiqueta' => 'Aprobar y encender', 'estilo' => 'principal',
+                        'confirmar' => '¿Encender ' . implode(', ', $nombres) . ' en ' . $n['nombre'] . '?' . ($antes['precio_acordado'] === null ? ' Pasa a pagar ' . self::dinero($nuevo) . ' al mes.' : ''),
+                        'datos' => $datos + ['encender' => $mods],
+                        'campos' => [['campo' => 'precio_acordado', 'etiqueta' => 'Precio acordado al mes ($, vacío = el calculado)', 'tipo' => 'dinero', 'requerido' => false, 'min' => 0,
+                                      'valor' => $antes['precio_acordado']],
+                                     ['campo' => 'motivo', 'etiqueta' => 'Nota', 'tipo' => 'texto', 'requerido' => false, 'max' => 300, 'valor' => 'Pedido desde Mi plan']]];
+                $a[] = ['accion' => 'atender_solicitud', 'etiqueta' => 'Rechazar', 'estilo' => 'peligro', 'confirmar' => null,
+                        'datos' => ['solicitud_id' => $id, 'resultado' => 'descartada'],
+                        'campos' => [['campo' => 'nota', 'etiqueta' => 'Motivo (lo verá el salón en Mi plan)', 'tipo' => 'texto', 'requerido' => false, 'max' => 300]]];
+                if ($wa) $a[] = ['accion' => 'whatsapp', 'etiqueta' => 'WhatsApp', 'estilo' => 'normal', 'whatsapp' => $wa,
+                                 'texto' => 'Hola, te escribo de TuSalón por tu pedido de ' . implode(', ', $nombres) . ' para ' . $n['nombre'] . '.'];
+            }
+            $a[] = ['accion' => 'abrir', 'etiqueta' => 'Ver en TuSalón', 'ir' => '/?r=admin_salon&id=' . (int) $n['id'] . '#modulos'];
+            $r[] = [
+                'id' => $id, 'tipo' => 'cambio_modulos', 'categoria' => 'pedido', 'titulo' => 'Pide módulos: ' . implode(', ', $nombres),
+                'fecha' => self::momento($p['creado']), 'actualizado' => self::momento($p['actualizado']), 'cliente_id' => (string) $n['id'],
+                'quien' => ['nombre' => $p['pedido_por'] ?: ($n['dueno'] ?: null), 'organizacion' => (string) $n['nombre'], 'telefono' => $tel, 'whatsapp' => $wa,
+                            'email' => $n['dueno_email'] ?: null],
+                'resumen' => implode(', ', array_map(fn($m) => $cat[$m]['nombre'] . ' (' . self::dinero($cat[$m]['precio_mensual']) . ')', $mods))
+                             . ' · hoy paga ' . self::dinero($antes['mensual']) . ', pasaría a ' . self::dinero($nuevo) . ' al mes' . ($p['nota'] ? ' · ' . $p['nota'] : ''),
+                'monto' => $suma, 'estado' => $p['estado'], 'estado_producto' => $p['estado'], 'prioridad' => 'normal', 'vence_el' => null,
+                'detalle' => ['modulos' => $mods, 'modulos_nombres' => $nombres, 'faltan' => $faltan, 'precio_actual' => $antes['mensual'], 'precio_nuevo' => $nuevo,
+                              'nota' => $p['nota'], 'pedido_por' => $p['pedido_por'], 'plan' => ['codigo' => (string) $n['plan_codigo'], 'nombre' => (string) $n['plan_nombre']],
+                              'estado_cliente' => $c['estado'],
+                              'atencion' => $p['atendido_por'] ? ['estado' => $p['estado'], 'nota' => $p['respuesta'], 'por' => $p['atendido_por'], 'momento' => self::momento($p['actualizado'])] : null],
+                'adjuntos' => [], 'acciones_posibles' => $a, 'ir' => '/?r=admin_salon&id=' . (int) $n['id'] . '#modulos',
+            ];
+        }
+        return $r;
+    }
+
+    /** atender_solicitud de un pedido de demo o de módulos (tienen su propia tabla). */
+    private function atenderPedido(array $s, string $resultado, string $nota, string $dominio): array
+    {
+        if ($dominio !== '') throw TukanCentralError::campo('datos.dominio', 'El dominio solo va en un dominio por registrar.');
+        $esDemo = $s['tipo'] === 'demo_pedida';
+        if ($resultado === 'atendida') {
+            throw TukanCentralError::campo('datos.resultado', $esDemo ? 'Para atender un pedido de demo, crea la demo (crear_demo) o descártalo.'
+                                                                    : 'Para aprobar el pedido, usa cambiar_modulos (Aprobar y encender), o descártalo.');
+        }
+        $num = (int) substr($s['id'], strpos($s['id'], ':') + 1);
+        $clienteId = null;
+        if ($esDemo) {
+            $st = $this->db->prepare('SELECT estado FROM pedidos_demo WHERE id = ? FOR UPDATE');
+        } else {
+            $clienteId = (int) $s['cliente_id'];
+            $this->bloquear($clienteId);
+            $st = $this->db->prepare('SELECT estado FROM pedidos_modulos WHERE id = ? FOR UPDATE');
+        }
+        $st->execute([$num]);
+        $actual = (string) $st->fetchColumn();
+        $nuevo = $esDemo ? ($resultado === 'en_proceso' ? 'contactada' : 'descartada') : $resultado;
+        $generico = $esDemo ? (self::ESTADOS_DEMO[$actual] ?? $actual) : $actual;
+        if ($generico === $resultado) {
+            return ['cliente_id' => $clienteId, 'mensaje' => 'La solicitud ya estaba así.', 'sin_cambios' => true, 'resultado' => ['solicitud' => $s], 'solicitud' => $s,
+                    'auditoria' => "Solicitud {$s['id']}: $resultado"];
+        }
+        if (in_array($generico, ['atendida', 'descartada'], true)) {
+            throw new TukanCentralError('conflicto', 'Esta solicitud ya fue ' . ($generico === 'atendida' ? 'atendida' : 'descartada') . '.', 409, null,
+                                        ['motivo' => 'ya_atendida', 'estado' => $generico]);
+        }
+        if ($esDemo) (new PedidosDemo($this->db))->marcar($num, $nuevo, (string) $this->quien, $nota);
+        else $this->modulos->cerrarPedido($num, $nuevo, (string) $this->quien, $nota);
+        $s2 = $this->solicitudDe($s['id']) ?? $s;
+        $texto = ['en_proceso' => $esDemo ? 'contactada' : 'en proceso', 'descartada' => 'descartada'][$resultado];
+        return ['cliente_id' => $clienteId, 'mensaje' => "Solicitud marcada como $texto.", 'resultado' => ['solicitud' => $s2], 'solicitud' => $s2,
+                'auditoria' => "Solicitud «{$s['titulo']}» marcada como $texto" . ($nota !== '' ? " · $nota" : '')];
+    }
+
+    private function opCambiarModulos(int $id, array $d, array $p): array
+    {
+        $encender = $this->listaModulos($d['encender'] ?? null, 'datos.encender') ?? [];
+        $apagar = $this->listaModulos($d['apagar'] ?? null, 'datos.apagar') ?? [];
+        $acordado = false;
+        if (array_key_exists('precio_acordado', $d)) $acordado = $this->dineroOpc($d, 'precio_acordado', 'datos.');
+        $motivo = $this->texto($d, 'motivo', 300, 'datos.');
+        $pedido = null;
+        $sol = $d['solicitud_id'] ?? null;
+        if ($sol !== null && $sol !== '') {
+            if (!is_string($sol) || !preg_match('/^cambio_modulos:(\d{1,10})$/', $sol, $mm)) throw TukanCentralError::campo('datos.solicitud_id', 'La solicitud debe ser un pedido de módulos (cambio_modulos:N).');
+            $pedido = $this->modulos->pedido((int) $mm[1]);
+            if (!$pedido || (int) $pedido['salon_id'] !== $id) throw new TukanCentralError('no_encontrado', 'Ese pedido de módulos no es de este salón.', 404);
+            if (!in_array($pedido['estado'], ['pendiente', 'en_proceso'], true)) {
+                throw new TukanCentralError('conflicto', 'Ese pedido ya fue ' . ($pedido['estado'] === 'atendida' ? 'aprobado' : 'descartado') . '.', 409, null,
+                                            ['motivo' => 'ya_atendida', 'estado' => $pedido['estado']]);
+            }
+            if (!$encender && !$apagar) $encender = Modulos::limpiar($pedido['modulos']);
+        }
+        try {
+            $r = $this->modulos->cambiar($id, $encender, $apagar, $acordado, $motivo, (string) $this->quien, 'central');
+        } catch (PDOException $e) {
+            throw $e;
+        } catch (RuntimeException $e) {
+            throw new TukanCentralError('invalido', $e->getMessage(), 422, str_contains($e->getMessage(), 'apagar') ? 'datos.apagar' : null);
+        }
+        if ($pedido) $this->modulos->cerrarPedido((int) $pedido['id'], 'atendida', (string) $this->quien, $motivo ?: 'Aprobado');
+        $n = $this->fila($id);
+        $mod = $this->modulosCliente($n);
+        $texto = $this->modulos->textoCambio($r);
+        $sinCambios = $r['sin_cambios'] && !$pedido;
+        return ['mensaje' => $sinCambios ? "Los módulos de {$n['nombre']} ya estaban así." : "Módulos de {$n['nombre']} guardados. $texto. Paga " . self::dinero($mod['mensual']) . ' al mes.',
+                'sin_cambios' => $sinCambios,
+                'resultado' => ['modulos' => $mod, 'encendidos' => $r['encendidos'], 'apagados' => $r['apagados'], 'por_dependencia' => $r['por_dependencia']],
+                'solicitud' => $pedido ? $this->solicitudDe('cambio_modulos:' . $pedido['id']) : null,
+                'auditoria' => "Módulos: $texto" . ($motivo !== '' ? " · $motivo" : '') . ($pedido ? ' · pedido N.º ' . $pedido['id'] : '')];
+    }
+
+    private function opGuardarModulos(array $d): array
+    {
+        $mods = $d['modulos'] ?? [];
+        if (!is_array($mods)) throw TukanCentralError::campo('datos.modulos', 'Los módulos no son válidos.');
+        if (array_is_list($mods)) {
+            $mapa = [];
+            foreach ($mods as $i => $m) {
+                if (!is_array($m) || !is_string($m['id'] ?? null)) throw TukanCentralError::campo("datos.modulos.$i.id", 'Falta el id del módulo.');
+                $mapa[$m['id']] = $m;
+            }
+            $mods = $mapa;
+        }
+        $planes = $d['planes'] ?? [];
+        if (!is_array($planes) || ($planes !== [] && array_is_list($planes))) throw TukanCentralError::campo('datos.planes', 'Los planes no son válidos (codigo => [ids]).');
+        foreach ($planes as $codigo => $lista) {
+            if (is_string($lista) && $lista !== '*') $planes[$codigo] = $this->listaModulos($lista, "datos.planes.$codigo") ?? [];
+            elseif (is_array($lista) && $lista !== ['*']) $planes[$codigo] = $this->listaModulos($lista, "datos.planes.$codigo") ?? [];
+        }
+        $cambios = $this->modulos->guardarCatalogo($mods, $planes);
+        return ['mensaje' => $cambios ? 'Catálogo de módulos guardado: ' . implode('; ', $cambios) . '.' : 'El catálogo no cambió.',
+                'sin_cambios' => !$cambios, 'resultado' => $this->modulosV2(),
+                'auditoria' => $cambios ? 'Catálogo de módulos: ' . implode('; ', $cambios) : 'Catálogo de módulos (sin cambios)'];
     }
 
     // ------------------------------------------------------------------

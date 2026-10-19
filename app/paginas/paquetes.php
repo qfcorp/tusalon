@@ -1,7 +1,6 @@
 <?php
 use TuSalon\Fidelidad;
 
-if (!requiere_completa($u, 'Paquetes', 'Vende paquetes como "5 cortes por $40": el cliente paga por adelantado y el sistema le descuenta una sesión cada vez que viene.')) return;
 $sid = (int) $u['salon_id'];
 $fid = new Fidelidad(db());
 $error = null;

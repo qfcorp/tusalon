@@ -32,9 +32,12 @@ require __DIR__ . '/../src/Cobro.php';
 require __DIR__ . '/../src/FichaTecnica.php';
 require __DIR__ . '/../src/Caja.php';
 require __DIR__ . '/../src/GooglePlay.php';
+require __DIR__ . '/../src/Modulos.php';
+require __DIR__ . '/../src/PedidosDemo.php';
 
-use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas, Altas, PanelTukan, Inventario, Fidelidad, Anticipos, Cobro, FichaTecnica, Caja, GooglePlay};
+use TuSalon\{Db, Planes, Profesionales, Liquidacion, FacturasRecibidas, Agenda, Notificaciones, Telegram, CuentaCliente, Fotos, Calificaciones, Automaticas, Altas, PanelTukan, Inventario, Fidelidad, Anticipos, Cobro, FichaTecnica, Caja, GooglePlay, Modulos};
 
+date_default_timezone_set('America/Guayaquil');   // como la app (bootstrap.php)
 $ok = 0;
 $fallos = [];
 function check(string $nombre, $esperado, $real): void
@@ -96,8 +99,9 @@ check('Dominio guardado en la suscripción anual', 'barberiadonpepe.com', $sub['
 check('Salón pasa a activo al pagar', 'activo', $db->query("SELECT estado FROM salones WHERE id = $salon")->fetchColumn());
 
 // ------------------------------------------------------------------
-echo "\n2. Límite del plan Básica (3 profesionales, dueño incluido)\n";
+echo "\n2. Sin el módulo «Personas ilimitadas»: hasta 3 personas (dueño incluido)\n";
 $salonB = $planes->crearSalon('Peluquería Rosita', 'rosita', 'basica', $hoy);
+$db->exec("UPDATE salones SET estado = 'activo', activo_hasta = CURRENT_DATE + 30 WHERE id = $salonB");   // pagó la Básica (en demo tendría todo)
 $prof->agregar($salonB, 'Rosa (dueña)', 'dueno');
 $prof->agregar($salonB, 'Juan', 'empleado', ['comision_servicio_pct' => 40]);
 $prof->agregar($salonB, 'Lucía', 'porcentaje', ['pct_profesional' => 50]);
@@ -107,7 +111,8 @@ try {
 } catch (RuntimeException $e) {
     $error = $e->getMessage();
 }
-check('El 4.º profesional en Básica se rechaza', true, str_contains($error, 'hasta 3'));
+check('El 4.º profesional sin «Personas ilimitadas» se rechaza', true, str_contains($error, 'hasta 3'));
+check('El aviso dice cómo agregar más', true, str_contains($error, 'Personas ilimitadas'));
 check('En Completa no hay límite', true, $planes->puedeAgregarProfesional($salon));
 
 $error = '';
@@ -779,19 +784,23 @@ check('Valor del inventario (al costo): 12 × 8,50 + 1 × 6', 108.0, $inv->valor
 
 // Cobro con producto
 $r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cliente_id' => $cli2X, 'servicios' => [$corteX => 12],
-                        'productos' => [$shampoo => 2], 'metodo_pago' => 'efectivo', 'completa' => true]);
+                        'productos' => [$shampoo => 2], 'metodo_pago' => 'efectivo']);
 check('Cobro con servicio + 2 shampoos = $48', [48.0, 48.0], [$r['total'], $r['a_cobrar']]);
 check('La venta descuenta el stock y lo anota', [10, -2], [(int) $inv->producto($sx, $shampoo)['stock'],
     (int) $db->query("SELECT cantidad FROM movimientos_inventario WHERE producto_id = $shampoo AND tipo = 'venta'")->fetchColumn()]);
 check('Vale gana 40 % del corte + 10 % de los shampoos', 8.4, (float) $db->query("SELECT sum(ganancia_profesional) FROM venta_items WHERE venta_id = {$r['venta_id']}")->fetchColumn());
 $err = '';
-try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'servicios' => [], 'productos' => [$shampoo => 50], 'completa' => true]); }
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'servicios' => [], 'productos' => [$shampoo => 50]]); }
 catch (RuntimeException $e) { $err = $e->getMessage(); }
 check('No deja vender más shampoos de los que hay', true, str_contains($err, 'Solo quedan 10'));
 $err = '';
-try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'servicios' => [$corteX => 12], 'productos' => [$shampoo => 1], 'completa' => false]); }
+$db->exec("UPDATE salones SET modulos_demo = 'reservas_linea' WHERE id = $sx");   // una demo sin el módulo de inventario
+(new Modulos($db))->olvidar();
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'servicios' => [$corteX => 12], 'productos' => [$shampoo => 1]]); }
 catch (RuntimeException $e) { $err = $e->getMessage(); }
-check('En Básica no se venden productos', true, str_contains($err, 'plan Completa'));
+check('Sin el módulo de inventario no se venden productos', true, str_contains($err, 'no está en tu plan'));
+$db->exec("UPDATE salones SET modulos_demo = NULL WHERE id = $sx");
+(new Modulos($db))->olvidar();
 
 // Paquetes
 $paq = $fid->guardarPaquete($sx, null, ['nombre' => '', 'servicio_id' => $corteX, 'sesiones' => 5, 'precio' => 50, 'vigencia_dias' => 90]);
@@ -801,12 +810,12 @@ check('Paquete vendido: 5 sesiones a $10 cada una, vence en 90 días', [1, '10.0
     [count($vig), $vig[0]['valor_sesion'], (int) $vig[0]['quedan'], $vig[0]['vence_en']]);
 check('La venta del paquete entra hoy a la caja (transferencia)', 50.0, (float) ($cajaHoy()['por_metodo']['transferencia'] ?? 0));
 $r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12],
-                        'paquetes' => [$corteX => $pc], 'metodo_pago' => 'efectivo', 'completa' => true]);
+                        'paquetes' => [$corteX => $pc], 'metodo_pago' => 'efectivo']);
 check('Usar una sesión: el corte vale $10 del paquete y no cobra nada hoy', [10.0, 10.0, 0.0], [$r['total'], $r['ya_pagado'], $r['a_cobrar']]);
 check('Le quedan 4 sesiones', 4, (int) $fid->paquetesDeCliente($sx, $cliX)[0]['quedan']);
 check('Vale gana su 40 % sobre el valor de la sesión ($4)', 4.0, (float) $db->query("SELECT ganancia_profesional FROM venta_items WHERE venta_id = {$r['venta_id']}")->fetchColumn());
 $err = '';
-try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cliente_id' => $cliX, 'servicios' => [$tinteX => 45], 'paquetes' => [$tinteX => $pc], 'completa' => true]); }
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cliente_id' => $cliX, 'servicios' => [$tinteX => 45], 'paquetes' => [$tinteX => $pc]]); }
 catch (RuntimeException $e) { $err = $e->getMessage(); }
 check('El paquete de cortes no sirve para un tinte', true, str_contains($err, 'no incluye ese servicio'));
 $err = '';
@@ -818,7 +827,7 @@ $t = $fid->venderTarjeta($sx, 30, ['de_nombre' => 'Pedro', 'para_nombre' => 'Luc
 check('Código de tarjeta tipo ABCD-EF23', 1, preg_match('/^[A-Z2-9]{4}-[A-Z2-9]{4}$/', $t['codigo']));
 check('Se encuentra escrita en minúsculas y sin guion', $t['id'], (int) $fid->tarjeta($sx, strtolower(str_replace('-', '', $t['codigo'])))['id']);
 $r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cli2X, 'servicios' => [$tinteX => 45],
-                        'tarjeta_codigo' => $t['codigo'], 'metodo_pago' => 'deuna', 'completa' => true]);
+                        'tarjeta_codigo' => $t['codigo'], 'metodo_pago' => 'deuna']);
 check('Tinte de $45 con tarjeta de $30: paga $15 hoy y la tarjeta queda en $0', [30.0, 15.0, 0.0],
     [$r['detalle']['tarjeta'], $r['a_cobrar'], (float) $fid->tarjeta($sx, $t['codigo'])['saldo']]);
 $err = '';
@@ -826,7 +835,7 @@ try { $fid->usarTarjeta($sx, $t['codigo'], 1); } catch (RuntimeException $e) { $
 check('Tarjeta sin saldo no se puede usar', true, str_contains($err, 'solo le quedan'));
 $t2 = $fid->venderTarjeta($sx, 20, [], 'efectivo');
 $r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'servicios' => [$corteX => 12],
-                        'tarjeta_codigo' => $t2['codigo'], 'tarjeta_monto' => '', 'completa' => true]);
+                        'tarjeta_codigo' => $t2['codigo'], 'tarjeta_monto' => '']);
 check('Tarjeta de $20 en un corte de $12: le quedan $8', 8.0, (float) $fid->tarjeta($sx, $t2['codigo'])['saldo']);
 $t3 = $fid->venderTarjeta($sx, 25, [], 'efectivo');
 $fid->anularTarjeta($sx, $t3['id']);
@@ -835,22 +844,22 @@ check('Anular tarjeta sin usar: sale de la caja', 0, (int) $db->query("SELECT co
 // Puntos
 $fid->guardarConfigPuntos($sx, true, 1, 0.05, 100);
 $r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$tinteX => 45],
-                        'metodo_pago' => 'efectivo', 'propina' => 5, 'completa' => true]);
+                        'metodo_pago' => 'efectivo', 'propina' => 5]);
 check('Gana 1 punto por dólar pagado (sin contar la propina): 45', [45, 45], [$r['puntos_ganados'], (int) $db->query("SELECT puntos FROM clientes WHERE id = $cliX")->fetchColumn()]);
 $fid->ajustarPuntos($sx, $cliX, 100, 'Regalo de bienvenida');
 $err = '';
-try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12], 'puntos' => 50, 'completa' => true]); }
+try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12], 'puntos' => 50]); }
 catch (RuntimeException $e) { $err = $e->getMessage(); }
 check('Menos del mínimo (100) no se canjea', true, str_contains($err, 'desde 100'));
 check('…y si falla, no se cobra nada (todo se deshace)', 145, (int) $db->query("SELECT puntos FROM clientes WHERE id = $cliX")->fetchColumn());
 $r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12],
-                        'puntos' => 145, 'completa' => true]);
+                        'puntos' => 145]);
 check('Canje: sus 145 puntos valen $7,25; paga $4,75 del corte', [145, 7.25, 4.75],
     [$r['puntos_usados'], $r['detalle']['puntos'], $r['a_cobrar']]);
 check('Por los $4,75 pagados gana 4 puntos (se redondea hacia abajo)', 4, (int) $db->query("SELECT puntos FROM clientes WHERE id = $cliX")->fetchColumn());
 $err = '';
 try { $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $duenaX, 'cliente_id' => $cliX, 'servicios' => [$corteX => 12],
-                         'puntos' => 100, 'cobrado_por' => 'profesional', 'completa' => true]); }
+                         'puntos' => 100, 'cobrado_por' => 'profesional']); }
 catch (RuntimeException $e) { $err = $e->getMessage(); }
 check('Con puntos o prepagos, el cobro va por la caja del local', true, str_contains($err, 'caja del local'));
 
@@ -896,7 +905,7 @@ check('Pago confirmado: con reservas automáticas la cita queda reservada y entr
 $ant->confirmarPago($sx, $citaA, 'deuna');
 check('Confirmar dos veces no lo suma dos veces', 1, (int) $db->query("SELECT count(*) FROM ingresos WHERE concepto = 'anticipo' AND referencia_id = $citaA")->fetchColumn());
 $r = $cobro->registrar(['salon_id' => $sx, 'profesional_id' => $empX, 'cita' => $agX->cita($sx, $citaA), 'servicios' => [$tinteX => 45],
-                        'metodo_pago' => 'efectivo', 'completa' => true]);
+                        'metodo_pago' => 'efectivo']);
 check('Al cobrar se descuenta el anticipo: paga $31,50', [13.5, 31.5, 'usado', 'atendida'],
     [$r['detalle']['anticipo'], $r['a_cobrar'], $db->query("SELECT anticipo_estado FROM citas WHERE id = $citaA")->fetchColumn(),
      $db->query("SELECT estado FROM citas WHERE id = $citaA")->fetchColumn()]);

@@ -43,7 +43,7 @@ if (es_post()) {
             case 'prueba':
                 $hasta = $panel->extenderPrueba($id, (int) ($_POST['dias'] ?? 0));
                 registrar_admin('Prueba extendida hasta ' . $hasta, $id);
-                aviso('Prueba gratis hasta el ' . date('d/m/Y', strtotime($hasta)) . '.');
+                aviso('Demo hasta el ' . date('d/m/Y', strtotime($hasta)) . '.');
                 break;
             case 'notas':
                 $panel->guardarNotas($id, (string) ($_POST['notas'] ?? ''));
@@ -56,6 +56,35 @@ if (es_post()) {
                 registrar_admin('Restaurado de la papelera', $id);
                 aviso('Salón restaurado: vuelve tal como estaba.');
                 break;
+            case 'modulos':   // Anexo B: interruptores de módulos (apagar no borra datos)
+                $mods = modulos();
+                $actual = $mods->detalle($mods->salon($id));
+                $marcados = TuSalon\Modulos::limpiar(array_map('strval', array_keys(array_filter((array) ($_POST['mod'] ?? [])))));
+                $base = $actual['demo'] ? $actual['activos'] : $actual['contratados'];
+                $acTxt = trim((string) ($_POST['precio_acordado'] ?? ''));
+                if ($acTxt !== '' && !is_numeric(str_replace(',', '.', $acTxt))) throw new RuntimeException('Escribe el precio acordado con números, por ejemplo 30,00.');
+                $r = $mods->cambiar($id, array_values(array_diff($marcados, $base)), array_values(array_diff($base, TuSalon\Modulos::conDependencias($marcados))),
+                    $acTxt === '' ? null : (float) str_replace(',', '.', $acTxt), (string) ($_POST['motivo'] ?? ''),
+                    (superadmin()['nombre'] ?? 'Tukán') . ' <' . (superadmin()['email'] ?? '') . '>', 'panel');
+                if (!$r['sin_cambios']) registrar_admin('Módulos: ' . $mods->textoCambio($r), $id);
+                aviso($r['sin_cambios'] ? 'Los módulos no cambiaron.' : 'Módulos guardados. ' . $mods->textoCambio($r) . '. Paga ' . dinero($r['detalle']['mensual']) . ' al mes.');
+                redirigir('admin_salon', ['id' => $id]);
+            case 'pedido_modulos':   // aprobar o rechazar "Pedir este módulo" (lo mismo que el Panel Tukán Central)
+                $mods = modulos();
+                $p = $mods->pedido((int) ($_POST['pedido'] ?? 0));
+                if (!$p || (int) $p['salon_id'] !== $id || !in_array($p['estado'], ['pendiente', 'en_proceso'], true)) throw new RuntimeException('Ese pedido ya no está abierto.');
+                $quien = (superadmin()['nombre'] ?? 'Tukán') . ' <' . (superadmin()['email'] ?? '') . '>';
+                if (($_POST['resultado'] ?? '') === 'aprobar') {
+                    $r = $mods->cambiar($id, TuSalon\Modulos::limpiar($p['modulos']), [], false, 'Pedido desde Mi plan', $quien, 'panel');
+                    $mods->cerrarPedido((int) $p['id'], 'atendida', $quien, 'Aprobado');
+                    registrar_admin('Pedido de módulos aprobado: ' . $mods->textoCambio($r), $id);
+                    aviso('Pedido aprobado. ' . $mods->textoCambio($r) . '.');
+                } else {
+                    $mods->cerrarPedido((int) $p['id'], 'descartada', $quien, (string) ($_POST['respuesta'] ?? ''));
+                    registrar_admin('Pedido de módulos rechazado', $id);
+                    aviso('Pedido rechazado.');
+                }
+                redirigir('admin_salon', ['id' => $id]);
             case 'clave':
                 $claveNueva = $panel->nuevaClaveDueno($id);
                 registrar_admin('Nueva contraseña para el dueño', $id);
@@ -74,7 +103,10 @@ $pagos = $panel->pagos($id);
 $registro = $panel->registro($id, 15);
 $listaPlanes = $planes->lista();
 $cotizaciones = [];
-foreach ($listaPlanes as $p) foreach (array_keys(Planes::PERIODOS_NOMBRE) as $per) $cotizaciones[$p['codigo']][$per] = $planes->cotizar($p['codigo'], $per);
+foreach ($listaPlanes as $p) foreach (array_keys(Planes::PERIODOS_NOMBRE) as $per) $cotizaciones[$p["codigo"]][$per] = $planes->cotizar($p["codigo"], $per, $id);
 $inicioSugerido = $planes->inicioSugerido($id)->format('Y-m-d');
-vista_admin('admin_salon', compact('salon', 'pagos', 'registro', 'listaPlanes', 'cotizaciones', 'inicioSugerido', 'claveNueva'),
+$modDetalle = modulos()->detalle(modulos()->salon($id));
+$modHistorial = modulos()->historial($id, 10);
+$modPedidos = modulos()->pedidos($id);
+vista_admin('admin_salon', compact('salon', 'pagos', 'registro', 'listaPlanes', 'cotizaciones', 'inicioSugerido', 'claveNueva', 'modDetalle', 'modHistorial', 'modPedidos'),
             $salon['nombre'] . ' · Panel Tukán');

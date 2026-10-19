@@ -5,12 +5,49 @@ $wa = fn(array $s, string $msg) => WhatsApp::enlace($s['telefono'], $msg);
 <div class="cabecera">
     <div><h1>Hola, <?= e(explode(' ', $admin['nombre'])[0]) ?></h1>
         <p>Así va TuSalón hoy, <?= date('d/m/Y') ?>.</p></div>
-    <a class="boton" href="<?= e(url('admin_nuevo')) ?>">+ Nuevo salón</a>
+    <a class="boton" href="<?= e(url('admin_nuevo')) ?>">+ Nueva demo</a>
 </div>
+
+<?php if ($demos): ?>
+<section class="bloque" id="pedidos-demo">
+    <h2>Pedidos de demo (<?= count($demos) ?>)</h2>
+    <p class="suave">Llegan del formulario «Solicitar demo». Tú creas cada demo.</p>
+    <ul class="lista">
+        <?php foreach ($demos as $p): $waP = WhatsApp::enlace($p['whatsapp'], 'Hola ' . explode(' ', $p['nombre'])[0] . ', te escribo de TuSalón por tu pedido de demo para ' . $p['salon'] . '.'); ?>
+        <li style="flex-wrap:wrap;gap:8px">
+            <div style="flex:1;min-width:200px"><div class="principal-linea"><?= e($p['salon']) ?> <span class="etq <?= $p['estado'] === 'nueva' ? 'etq-pendiente' : 'etq-reservada' ?>"><?= TuSalon\PedidosDemo::ESTADOS[$p['estado']] ?></span></div>
+                <div class="linea-sub"><?= e($p['nombre']) ?> · <?= e($p['ciudad']) ?> · <?= e($p['email']) ?> · <?= date('d/m/Y', strtotime($p['creado'])) ?></div>
+                <?php if ($p['modulos']): ?><div class="linea-sub">Le interesa: <?= e(implode(', ', array_map([modulos(), 'nombre'], TuSalon\Modulos::limpiar($p['modulos'])))) ?></div><?php endif; ?>
+                <?php if ($p['necesita']): ?><div class="linea-sub">«<?= e($p['necesita']) ?>»</div><?php endif; ?></div>
+            <div class="acciones">
+                <?php if ($waP): ?><a class="boton boton-wa boton-chico" href="<?= e($waP) ?>" target="_blank" rel="noopener">WhatsApp</a><?php endif; ?>
+                <a class="boton boton-chico" href="<?= e(url('admin_nuevo', ['pedido' => $p['id']])) ?>">Crear demo</a>
+                <form method="post" style="display:inline"><?= campo_csrf() ?><input type="hidden" name="pedido" value="<?= (int) $p['id'] ?>">
+                    <?php if ($p['estado'] === 'nueva'): ?><button class="boton boton-claro boton-chico" name="estado" value="contactada" type="submit">Contactado</button><?php endif; ?>
+                    <button class="boton boton-claro boton-chico" name="estado" value="descartada" type="submit" data-confirmar="¿Descartar este pedido de demo?">Descartar</button></form>
+            </div>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+</section>
+<?php endif; ?>
+
+<?php if ($pedidosModulos): ?>
+<section class="bloque" id="pedidos-modulos">
+    <h2>Salones que piden módulos (<?= count($pedidosModulos) ?>)</h2>
+    <ul class="lista">
+        <?php foreach ($pedidosModulos as $p): ?>
+        <li><span><strong><?= e($p['salon']) ?></strong> pide <?= e(implode(', ', array_map([modulos(), 'nombre'], TuSalon\Modulos::limpiar($p['modulos'])))) ?>
+            <br><small><?= date('d/m/Y', strtotime($p['creado'])) ?><?= $p['usuario'] ? ' · ' . e($p['usuario']) : '' ?></small></span>
+            <a class="boton boton-chico" href="<?= e(url('admin_salon', ['id' => $p['salon_id']])) ?>#modulos">Revisar</a></li>
+        <?php endforeach; ?>
+    </ul>
+</section>
+<?php endif; ?>
 
 <div class="rejilla rejilla-4">
     <div class="bloque"><div class="cifra"><?= $r['total'] ?></div><p class="cifra-nombre">Salones registrados</p></div>
-    <div class="bloque"><div class="cifra"><?= $r['cuenta']['activo'] + $r['cuenta']['por_vencer'] ?></div><p class="cifra-nombre">Pagando · <?= $r['cuenta']['prueba'] ?> en prueba</p></div>
+    <div class="bloque"><div class="cifra"><?= $r['cuenta']['activo'] + $r['cuenta']['por_vencer'] ?></div><p class="cifra-nombre">Pagando · <?= $r['cuenta']['prueba'] ?> en demo</p></div>
     <div class="bloque"><div class="cifra"><?= dinero($r['mensual']) ?></div><p class="cifra-nombre">Ingreso mensual (lo que vale al mes lo pagado)</p></div>
     <div class="bloque"><div class="cifra"><?= dinero($r['cobrado_mes']) ?></div><p class="cifra-nombre">Cobrado este mes · <?= dinero($r['cobrado_anio']) ?> en el año</p></div>
 </div>
@@ -26,7 +63,7 @@ $wa = fn(array $s, string $msg) => WhatsApp::enlace($s['telefono'], $msg);
 
 <div class="rejilla rejilla-2">
     <section class="bloque">
-        <h2>Pruebas que terminan en 3 días (<?= count($r['pruebas_por_terminar']) ?>)</h2>
+        <h2>Demos que terminan en 3 días (<?= count($r['pruebas_por_terminar']) ?>)</h2>
         <p class="suave">El mejor momento para escribirles y ofrecer el plan.</p>
         <?php if (!$r['pruebas_por_terminar']): ?><p class="vacio">Ninguna por ahora.</p><?php else: ?>
             <ul class="lista">

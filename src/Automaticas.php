@@ -122,7 +122,7 @@ final class Automaticas
     }
 
     /** Felicita por Telegram a quien lo conectó y avisa al dueño quién cumple hoy (una vez al año por cliente). */
-    public function saludarCumpleanos(int $salonId, DateTimeImmutable $hoy): int
+    public function saludarCumpleanos(int $salonId, DateTimeImmutable $hoy, bool $telegram = true): int
     {
         if ((int) $hoy->format('G') < self::HORA_CUMPLEANOS) return 0;
         $anio = (int) $hoy->format('Y');
@@ -133,7 +133,7 @@ final class Automaticas
             $st = $this->db->prepare('UPDATE clientes SET cumple_saludo_anio = ? WHERE id = ? AND cumple_saludo_anio IS DISTINCT FROM ?');
             $st->execute([$anio, $c['id'], $anio]);
             if ($st->rowCount() !== 1) continue;   // otro proceso ya lo saludó
-            if ($c['telegram_chat_id']) $tg->enviarACliente((int) $c['telegram_chat_id'], $c['mensaje']);
+            if ($telegram && $c['telegram_chat_id']) $tg->enviarACliente((int) $c['telegram_chat_id'], $c['mensaje']);
             $nuevos[] = $c['nombre'];
         }
         if ($nuevos) {
@@ -359,19 +359,21 @@ final class Automaticas
             error_log('TuSalón tareas papelera: ' . $e->getMessage());
         }
         // Ni los pausados (suspendidos) ni los que están en la papelera reciben tareas ni avisos
-        $st = $this->db->query("SELECT id, plan_codigo, estado, prueba_hasta, activo_hasta FROM salones WHERE estado IN ('prueba','activo') AND eliminado_en IS NULL");
+        $st = $this->db->query("SELECT id, plan_codigo, estado, prueba_hasta, activo_hasta, modulos_extra, modulos_quitados, modulos_demo
+                                  FROM salones WHERE estado IN ('prueba','activo') AND eliminado_en IS NULL");
+        $mods = new Modulos($this->db);
         foreach ($st->fetchAll() as $s) {
             if (!$planes->alDia($s, $ahora)) continue;
             $id = (int) $s['id'];
             $total['salones']++;
             try {
-                // Básica: recordatorio y cumpleaños por WhatsApp con un toque (en la página). Completa: además automático.
-                if ($s['plan_codigo'] === 'completa') {
+                // Anexo B: cada tarea es de un módulo. Sin "telegram", el recordatorio y el cumpleaños quedan con WhatsApp de un toque.
+                if ($mods->activo($s, 'telegram')) {
                     $total['recordatorios'] += $this->enviarRecordatorios($id, $ahora);
                     $total['calificaciones'] += $this->pedirCalificaciones($id, $ahora);
-                    $total['reportes'] += $this->enviarReporteMensual($id, $ahora) ? 1 : 0;
                 }
-                $total['cumpleanos'] += $this->saludarCumpleanos($id, $ahora);
+                if ($mods->activo($s, 'reportes')) $total['reportes'] += $this->enviarReporteMensual($id, $ahora) ? 1 : 0;
+                $total['cumpleanos'] += $this->saludarCumpleanos($id, $ahora, $mods->activo($s, 'telegram'));
             } catch (\Throwable $e) {
                 $total['errores']++;
                 error_log("TuSalón tareas salón $id: " . $e->getMessage());

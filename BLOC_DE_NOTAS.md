@@ -1,50 +1,58 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 14 de octubre de 2026
+Última actualización: 18 de octubre de 2026
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
 - **Dueño que atiende:** sin comisión ni licencia extra; ve por separado lo que produjo y lo que ganó el local
 - **Empleado:** sueldo, comisión o ambos
 - **Porcentaje:** 50/50, 60/40, con reparto automático
-- **Alquiler de puesto:** cobra con su propio QR; el dueño le carga el arriendo con un botón; sus clientes privados son solo suyos (Completa)
+- **Alquiler de puesto:** cobra con su propio QR; el dueño le carga el arriendo con un botón; sus clientes privados son solo suyos (módulo «Clientes privados de quien alquila»)
 
 ## Decisiones tomadas
 - [x] Nombre: TuSalón (sigue el esquema TuPass, TuVocalía)
 - [x] Se arranca con los 4 tipos de peluquero desde el inicio
 - [x] Tomar lo mejor de cada programa (tabla en el informe, sección "Nuestra propuesta")
 - [x] SRI: NO emitimos facturas. Se importan del SRI las facturas que el salón **RECIBE** de sus proveedores (tintes, shampoo, luz, agua, arriendo del local) para mostrar los gastos en el panel del dueño
-- [x] Plan Básica $25/mes: muy básico, para empujar a contratar la Completa
-- [x] Plan Completa $35/mes: todo incluido
+- [x] **Todo por módulos (18 oct 2026):** cada función se enciende o apaga por salón y tiene su precio. Plan Básica $25/mes = solo la base; Plan Completa $35/mes = todos los módulos (sueltos suman $45)
+- [x] **Nada se da gratis, todo se pide demo (18 oct 2026):** no hay registro con prueba gratis; el formulario público es "Solicitar demo" y Tukán prepara cada demo
 - [x] Semestral: paga 5, recibe 6 (Básica $125, Completa $175) — sale a $20,83 y $29,17 al mes
 - [x] Anual: paga 10, recibe 12 (Básica $250, Completa $350) + dominio propio .com del salón mientras dure el contrato (~$10,46/año en Cloudflare)
 - [x] Ahorro en ambos casos: 16,7 %. El dominio es lo que hace que el anual convenga más que el semestral
 - [x] El dominio se registra a nombre de Tukán (si el salón no renueva, se le puede transferir cobrando el año)
-- [x] Prueba gratis: 7 días
+- [x] Demo: 7 días por defecto (lo decide Tukán al crearla); ya no hay prueba gratis
 - [x] Servidor provisional: **tusalon.qfradioec.com** en el servidor qfcorp (PHP 8.3+ y PostgreSQL)
 
-## Planes
-| Función | Básica $25 | Completa $35 |
-|---|---|---|
-| Agenda | Hasta 3 personas | Ilimitado (una sola sucursal) |
-| 4 tipos de peluquero | Cálculo simple | Completo |
-| Ficha del cliente | Básica | Ficha técnica de color con fotos |
-| Caja diaria | Sí | Sí |
-| WhatsApp | Con un clic | Con un clic + avisos automáticos por Telegram (WhatsApp automático: pendiente) |
-| Reservas en línea, anticipo en línea (transferencia/DeUna con comprobante o tarjeta con Payphone) | No | Sí |
-| Reparto del porcentaje, comisiones de producto, cuentas del equipo | Cálculo simple | Sí |
-| Clientes privados del arrendatario, vista doble del dueño | No | Sí |
-| Cuenta de recepción (sin ver ganancias) | No | Sí |
-| App del peluquero, inventario, fidelidad | No | Sí |
-| Importar facturas recibidas del SRI (XML, TXT o clave) y ganancia real | No | Sí |
-| Reportes | Del día | Rentabilidad por servicio y peluquero |
+## Planes y módulos (desde el 18 oct 2026)
+**Base (todos los salones):** agenda por sillas y citas con WhatsApp de un toque, clientes (historial, cumpleaños, faltas), servicios con pago al peluquero, equipo con los 4 tipos, cuentas del equipo (comisiones, porcentaje, propinas, arriendo), cobrar, caja y cierre, horarios, enlace de la cita para el cliente, hasta 3 personas.
+
+| Módulo | $ al mes extra | Descuento si se quita de su plan | Básica | Completa |
+|---|---|---|---|---|
+| Reservas en línea | 5 | 2 | — | ✔ |
+| Anticipo en línea (necesita Reservas) | 3 | 1 | — | ✔ |
+| Ficha técnica de color | 3 | 1 | — | ✔ |
+| Clientes por recuperar | 2 | 1 | — | ✔ |
+| Personas ilimitadas | 5 | 2 | — | ✔ |
+| Portal y app del peluquero | 4 | 1,50 | — | ✔ |
+| Clientes privados de quien alquila (necesita Portal) | 2 | 1 | — | ✔ |
+| Cuenta de recepción | 3 | 1 | — | ✔ |
+| Inventario y venta de productos | 3 | 1 | — | ✔ |
+| Paquetes y tarjetas de regalo | 3 | 1 | — | ✔ |
+| Puntos para clientes fieles | 2 | 1 | — | ✔ |
+| Gastos con facturas del SRI | 4 | 1,50 | — | ✔ |
+| Reporte del mes | 3 | 1 | — | ✔ |
+| Avisos automáticos por Telegram | 3 | 1 | — | ✔ |
+
+- Precio de cada salón = plan + extra − descuento de lo que quitó, o un **precio acordado** (Panel Tukán → ficha del salón → Módulos).
+- Precios, descuentos, descripciones y qué trae cada plan: Panel Tukán → Planes y precios → Catálogo (o el Panel Tukán Central, `guardar_modulos`).
+- Apagar un módulo nunca borra datos. **Multi-sede** no es módulo todavía (no existe: ver PENDIENTE de varias sucursales).
 
 ## Decisión del 14 oct 2026: nada que no exista en los textos de venta
 - QUITADO para siempre de Mi plan, planes y registro: **rol de pagos con IESS y décimos** y **cobro automático del arriendo**. No se venden. (La lógica vieja sigue en `src/Liquidacion.php` sin pantalla; el arriendo se carga con el botón "Cargar arriendo" en Cuentas.)
 - **Varias sucursales:** QUITADO de los textos y queda PENDIENTE (ver abajo).
 
 ## Decisiones pendientes
-- [ ] Peluquería conocida para la primera prueba gratis
+- [ ] Peluquería conocida para la primera demo
 
 ## Hecho
 - [x] Investigación de mercado (21 programas mundiales, 15 de Latinoamérica, contexto Ecuador)
@@ -55,6 +63,18 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Prueba simulada "Barbería Don Pepe": 49 de 49 pruebas correctas. Se metió un error a propósito y las pruebas lo detectaron
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 - [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
+
+## Hecho (18 oct 2026) — TuSalón por módulos (Anexo B) y "todo se pide demo"
+- [x] **14 módulos** con precio, descuento, dependencias y grupo (tabla arriba). Básica = base; Completa = todos. Migración `008_modulos.sql`: los salones de hoy quedan con lo mismo que tenían (probado)
+- [x] **Una sola pregunta en todo el programa: "¿tiene el módulo?"**: menús, páginas ("No está en tu plan", con enlace a Mi plan), botones, tarjetas del inicio, páginas públicas (reservas, horas libres, cuenta del cliente: "no disponible"), cuentas de peluquero y de recepción, cobros (productos, paquetes, puntos), anticipos, tareas automáticas y avisos por Telegram. Ya no queda ninguna revisión de "plan Completa"
+- [x] **Mi plan**: lo que paga al mes, sus módulos, los que puede agregar con su precio y **Pedir este módulo** (llega al Panel Central como `cambio_modulos` y también al panel de Tukán para aprobar o rechazar)
+- [x] **Panel Tukán**: interruptores de módulos por salón con precio acordado e historial; catálogo de módulos y planes; pedidos de demo y de módulos en el Resumen; Nueva demo con módulos a elegir
+- [x] **Panel Tukán Central (protocolo v2, revisión 3)**: acción `modulos`, `cliente.modulos`, `cambiar_modulos`, `guardar_modulos`, solicitudes `cambio_modulos` y `demo_pedida`, `crear_demo` con plan y módulos (o desde un pedido de demo), `finanzas.por_modulo`; MRR = lo que vale al mes cada salón que paga
+- [x] **Nada se da gratis**: "Solicitar demo" en vez de registro (nombre, salón, ciudad, WhatsApp, correo, qué necesita, módulos de interés); ningún texto dice "prueba gratis"; "Tu demo terminó — contáctanos para contratar"; Google Play sin prueba gratis en las suscripciones
+- [x] Pruebas: `prueba_modulos.php` y `prueba_web_modulos.sh` (+ capturas a 390 px y en computadora). Totales: lógica 1006/1006 y pantallas 737/737, sin avisos de PHP
+- [ ] DIMI: actualizar el servidor con el instalador (corre la migración 008). Revisar los precios de los módulos en Panel Tukán → Planes y precios
+- [ ] DIMI: la presentación de ventas y el manual en PDF (docs/Manual_TuSalon.pdf) hay que rehacerlos con los módulos y "Solicitar demo" (guía nueva en `docs/manual/MODULOS_Y_DEMOS.md`, con capturas)
+- [ ] PENDIENTE: web tukansoftware.com (qfcorp/tukan-web): cambiar "Prueba gratis 7 días" por "Solicitar demo"
 
 ## Hecho (15 oct 2026) — Pausar y borrar salones desde el Panel Tukán Central (Anexo A)
 - [x] **Pausar** (con tipo: falta de pago, pedido del cliente, revisión, uso indebido u otro, y motivo obligatorio): el salón queda suspendido; al entrar ve "Tu cuenta está pausada" con el motivo (en revisión y uso indebido, un texto genérico) y el WhatsApp de Tukán. Su página de reservas y los enlaces de las citas dicen "temporalmente no disponible". **Reactivar** lo quita
@@ -203,5 +223,5 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 Pegar en la sesión SSH, una línea a la vez (no borra datos):
 1. `curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar.sh -o ~/instalar_tusalon.sh && bash ~/instalar_tusalon.sh`
    - Pregunta "Activar la app de Google Play esta vez?": contestar `no` mientras Dimi no decida publicar
-   - Debe mostrar las migraciones con "listo" (incluidas `006_gastos_recepcion.sql` y `007_papelera.sql`) y al final: tablas más de 25, extensiones 6, prueba de la página 200
+   - Debe mostrar las migraciones con "listo" (incluidas `006_gastos_recepcion.sql`, `007_papelera.sql` y `008_modulos.sql`) y al final: tablas más de 25, extensiones 6, prueba de la página 200
 2. `curl -s -o /dev/null -w "%{http_code}\n" -H "Host: tusalon.tukanec.com" "http://127.0.0.1/?r=login"` → debe salir 200

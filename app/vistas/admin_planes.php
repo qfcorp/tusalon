@@ -15,7 +15,7 @@
                 <div class="campo"><label for="p-<?= e($p['codigo']) ?>">Precio al mes ($)</label>
                     <input type="number" id="p-<?= e($p['codigo']) ?>" name="precio_mensual" value="<?= e($p['precio_mensual']) ?>" step="0.01" min="0" required></div>
             </div>
-            <div class="campo"><label for="m-<?= e($p['codigo']) ?>">Máximo de personas en el equipo <small>(vacío = sin límite)</small></label>
+            <div class="campo"><label for="m-<?= e($p['codigo']) ?>">Máximo de personas sin el módulo «Personas ilimitadas» <small>(vacío = 3)</small></label>
                 <input type="number" id="m-<?= e($p['codigo']) ?>" name="max_profesionales" value="<?= e($p['max_profesionales'] ?? '') ?>" min="1"></div>
             <div class="campo"><label for="d-<?= e($p['codigo']) ?>">Descripción corta <small>(opcional)</small></label>
                 <input type="text" id="d-<?= e($p['codigo']) ?>" name="descripcion" value="<?= e($p['descripcion'] ?? '') ?>" maxlength="300"></div>
@@ -30,11 +30,32 @@
     <?php endforeach; ?>
 </div>
 
+<?php $cat = modulos()->catalogo(); $pls = modulos()->planes(); ?>
+<form method="post" class="bloque" id="catalogo">
+    <?= campo_csrf() ?><input type="hidden" name="accion" value="catalogo">
+    <h2>Catálogo de módulos y planes</h2>
+    <p class="suave">Precio = lo que se cobra al mes si el salón lo agrega aparte. Descuento = lo que se le rebaja si se lo quitan de su plan. Marca qué trae cada plan.</p>
+    <div class="tabla-desliza">
+    <table class="tabla">
+        <thead><tr><th>Módulo</th><th class="der">Precio</th><th class="der">Descuento</th><th class="der">Orden</th><?php foreach ($pls as $p): ?><th><?= e($p['nombre']) ?></th><?php endforeach; ?></tr></thead>
+        <tbody><?php foreach ($cat as $m): ?>
+            <tr><td><strong><?= e($m['icono'] . ' ' . $m['nombre']) ?></strong><br><small class="suave"><?= e($m['grupo_nombre']) ?><?= $m['depende_de'] ? ' · necesita ' . e(implode(', ', $m['depende_de'])) : '' ?></small>
+                    <textarea name="m[<?= e($m['id']) ?>][descripcion]" rows="2" maxlength="400" aria-label="Descripción de <?= e($m['nombre']) ?>" style="margin-top:4px"><?= e($m['descripcion']) ?></textarea></td>
+                <td class="der"><input type="number" name="m[<?= e($m['id']) ?>][precio_mensual]" value="<?= e($m['precio_mensual']) ?>" step="0.01" min="0" style="width:84px" aria-label="Precio de <?= e($m['nombre']) ?>"></td>
+                <td class="der"><input type="number" name="m[<?= e($m['id']) ?>][descuento]" value="<?= e($m['descuento']) ?>" step="0.01" min="0" style="width:84px" aria-label="Descuento de <?= e($m['nombre']) ?>"></td>
+                <td class="der"><input type="number" name="m[<?= e($m['id']) ?>][orden]" value="<?= (int) $m['orden'] ?>" min="0" style="width:70px" aria-label="Orden de <?= e($m['nombre']) ?>"></td>
+                <?php foreach ($pls as $codigo => $p): ?><td style="text-align:center"><input type="checkbox" name="plan_mod[<?= e($codigo) ?>][<?= e($m['id']) ?>]" value="1" <?= in_array($m['id'], $p['modulos'], true) ? 'checked' : '' ?> aria-label="<?= e($m['nombre']) ?> en <?= e($p['nombre']) ?>"></td><?php endforeach; ?></tr>
+        <?php endforeach; ?></tbody>
+    </table>
+    </div>
+    <button class="boton" type="submit" style="margin-top:12px">Guardar catálogo</button>
+</form>
+
 <form method="post" class="bloque">
     <?= campo_csrf() ?><input type="hidden" name="accion" value="ajustes">
-    <h2>Prueba gratis, promociones y cobro</h2>
+    <h2>Demos, promociones y cobro</h2>
     <div class="rejilla rejilla-3" style="gap:12px">
-        <div class="campo"><label for="dias_prueba">Días de prueba gratis</label>
+        <div class="campo"><label for="dias_prueba">Días de demo (por defecto)</label>
             <input type="number" id="dias_prueba" name="dias_prueba" value="<?= e($a['dias_prueba']) ?>" min="0" max="90" required></div>
         <div class="campo"><label for="dias_gracia">Días de gracia al vencer</label>
             <input type="number" id="dias_gracia" name="dias_gracia" value="<?= e($a['dias_gracia']) ?>" min="0" max="30" required>

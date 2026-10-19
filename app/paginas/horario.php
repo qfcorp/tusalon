@@ -8,7 +8,7 @@ $error = null;
 if (es_post() && ($_POST['accion'] ?? '') === 'anticipo') {
     verificar_csrf();
     try {
-        if (!es_completa($u)) throw new RuntimeException('El anticipo en línea es del plan Completa.');
+        if (!modulo('anticipos')) throw new RuntimeException('El anticipo en línea no está en tu plan.');
         (new TuSalon\Anticipos(db()))->guardarConfig($sid, $_POST);
         aviso('Anticipo guardado.');
         header('Location: ' . url('horario') . '#anticipo');

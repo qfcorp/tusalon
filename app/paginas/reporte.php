@@ -6,7 +6,7 @@ $auto = new Automaticas(db());
 $mes = (string) ($_GET['mes'] ?? date('Y-m', strtotime('first day of last month')));
 if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes) || $mes > date('Y-m')) $mes = date('Y-m');
 
-if (es_post() && es_completa($u)) {
+if (es_post() && modulo('telegram')) {
     verificar_csrf();
     $ids = (new TuSalon\Notificaciones(db()))->alDueno($sid,
         Automaticas::textoReporte($auto->reporteMes($sid, $mes), $u['salon']), true);
@@ -15,7 +15,7 @@ if (es_post() && es_completa($u)) {
     aviso($st->fetchColumn() ? 'Reporte enviado a tu Telegram.' : 'Reporte guardado en tus avisos. Conecta tu Telegram en Solicitudes para recibirlo allí.');
     redirigir('reporte', ['mes' => $mes]);
 }
-$reporte = es_completa($u) ? $auto->reporteMes($sid, $mes) : null;
+$reporte = $auto->reporteMes($sid, $mes);
 $meses = [];
 for ($i = 0; $i < 12; $i++) {
     $m = date('Y-m', strtotime("first day of -$i month"));

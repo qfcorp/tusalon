@@ -38,7 +38,7 @@ $waSalon = $salon['telefono'] ? WhatsApp::enlace($salon['telefono'], 'Hola, te e
                     <button class="boton boton-ancho" type="submit">✅ Confirmo que voy</button></form>
             <?php endif; ?>
             <?php if ($noCancelar === null): ?>
-                <a class="boton boton-claro boton-ancho" href="/?r=reservar&amp;s=<?= e($slugUrl) ?>&amp;cambia=<?= e($token) ?>">Cambiar día u hora</a>
+                <?php if (!empty($conReservas)): ?><a class="boton boton-claro boton-ancho" href="/?r=reservar&amp;s=<?= e($slugUrl) ?>&amp;cambia=<?= e($token) ?>">Cambiar día u hora</a><?php endif; ?>
                 <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="cancelar">
                     <button class="boton boton-peligro boton-ancho" type="submit" data-confirmar="¿Seguro que quieres cancelar tu cita?">Cancelar mi cita</button></form>
                 <?php if ((int) $salon['horas_cancelacion'] > 0): ?>
@@ -126,5 +126,5 @@ $waSalon = $salon['telefono'] ? WhatsApp::enlace($salon['telefono'], 'Hola, te e
 <?php endif; ?>
 
 <div class="acciones">
-    <a class="boton boton-claro" href="/?r=reservar&amp;s=<?= e($slugUrl) ?>">Reservar otra cita</a>
+    <?php if (!empty($conReservas)): ?><a class="boton boton-claro" href="/?r=reservar&amp;s=<?= e($slugUrl) ?>">Reservar otra cita</a><?php endif; ?>
 </div>

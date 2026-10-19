@@ -8,11 +8,12 @@ use PDO;
 use RuntimeException;
 
 /**
- * Planes, prueba gratis y suscripciones de TuSalón.
- *  - Básica $25 / Completa $35 al mes
+ * Planes, demos y suscripciones de TuSalón.
+ *  - Cada plan = precio + módulos (src/Modulos.php). Básica $25 (solo la base) / Completa $35 (todos los módulos)
+ *  - Cada salón paga su plan + sus módulos extra − el descuento de los que quitó (o un precio acordado)
  *  - Semestral: paga 5, recibe 6
  *  - Anual: paga 10, recibe 12 + dominio propio (a nombre de Tukán)
- *  - Prueba gratis: 7 días
+ *  - No hay prueba gratis: Tukán crea una demo (estado "prueba", días que decide el súper usuario; por defecto 7)
  */
 final class Planes
 {
@@ -131,7 +132,7 @@ final class Planes
         return in_array($this->estadoCuenta($salon, $hoy), ['prueba', 'activo', 'por_vencer'], true);
     }
 
-    /** Crea un salón nuevo en prueba gratis. Devuelve su id. */
+    /** Crea un salón nuevo en demo (estado "prueba"). Devuelve su id. */
     public function crearSalon(string $nombre, string $slug, string $plan, ?DateTimeImmutable $hoy = null): int
     {
         $hoy ??= new DateTimeImmutable('today');
@@ -144,8 +145,11 @@ final class Planes
         return (int) $st->fetchColumn();
     }
 
-    /** Calcula lo que paga y lo que recibe un salón según plan y periodo. */
-    public function cotizar(string $plan, string $periodo): array
+    /**
+     * Calcula lo que paga y lo que recibe un salón según plan y periodo.
+     * Con $salonId el precio al mes es el de ese salón con sus módulos (Modulos::detalle: plan + extra − quitados, o el acordado).
+     */
+    public function cotizar(string $plan, string $periodo, ?int $salonId = null): array
     {
         $periodos = $this->periodos();
         if (!isset($periodos[$periodo])) {
@@ -158,6 +162,11 @@ final class Planes
             throw new RuntimeException("Plan no válido: $plan");
         }
         $p = $periodos[$periodo];
+        if ($salonId !== null) {
+            $mods = new Modulos($this->db);
+            $s = $mods->salon($salonId);
+            if ($s) $precio = $mods->detalle($s, $plan)['mensual'];
+        }
         $monto = round((float) $precio * $p['paga'], 2);
         return [
             'plan'             => $plan,
@@ -188,7 +197,7 @@ final class Planes
     public function suscribir(int $salonId, string $plan, string $periodo, DateTimeImmutable $inicio,
                               string $metodoPago, ?string $dominio = null, ?float $monto = null, ?DateTimeImmutable $pagadoEn = null): int
     {
-        $c = $this->cotizar($plan, $periodo);
+        $c = $this->cotizar($plan, $periodo, $salonId);
         if ($monto !== null) {
             if ($monto < 0) throw new RuntimeException('El monto no puede ser negativo.');
             $c['monto'] = round($monto, 2);   // descuento o precio especial
@@ -227,24 +236,13 @@ final class Planes
                  ->execute([$salonId, $salonId]);
     }
 
-    /** ¿El plan del salón permite agregar otro profesional? (Básica: hasta 3, dueño incluido) */
+    /** ¿Puede agregar otra persona que atiende? Sin el módulo "Personas ilimitadas": hasta 3 (el dueño cuenta). */
     public function puedeAgregarProfesional(int $salonId): bool
     {
-        $st = $this->db->prepare(
-            'SELECT p.max_profesionales,
-                    (SELECT count(*) FROM profesionales WHERE salon_id = s.id AND activo) AS actuales
-               FROM salones s JOIN planes p ON p.codigo = s.plan_codigo
-              WHERE s.id = ?'
-        );
+        $max = (new Modulos($this->db))->maxPersonas($salonId);
+        if ($max === null) return true;
+        $st = $this->db->prepare('SELECT count(*) FROM profesionales WHERE salon_id = ? AND activo');
         $st->execute([$salonId]);
-        $r = $st->fetch();
-        return $r['max_profesionales'] === null || (int) $r['actuales'] < (int) $r['max_profesionales'];
-    }
-
-    public function esPlanCompleta(int $salonId): bool
-    {
-        $st = $this->db->prepare('SELECT plan_codigo FROM salones WHERE id = ?');
-        $st->execute([$salonId]);
-        return $st->fetchColumn() === 'completa';
+        return (int) $st->fetchColumn() < $max;
     }
 }

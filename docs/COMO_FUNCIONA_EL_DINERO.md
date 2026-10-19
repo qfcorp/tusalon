@@ -20,14 +20,14 @@ Además:
 - **Propina:** va al peluquero del primer servicio. Si la cobró el local, se le suma; si la cobró él, ya la tiene.
 - **Arriendo:** se le resta al arrendatario cada semana, quincena o mes.
 - **Anticipos y préstamos:** se restan.
-- **Escalas (solo plan Completa):** si el empleado pasa una meta (ej. $1.000 en servicios), se le paga la diferencia del % más alto.
+- **Escalas (lógica guardada, sin pantalla: no se vende):** si el empleado pasa una meta (ej. $1.000 en servicios), se le paga la diferencia del % más alto.
 
 ## Liquidación
 Al cerrar el periodo, el sistema suma la cuenta y dice en palabras simples:
 - "El local le paga $7,20", o
 - "El profesional le paga al local $65,50".
 
-## Rol de pagos (empleados, plan Completa)
+## Rol de pagos (empleados) — lógica guardada sin pantalla: NO se vende (decisión del 14 oct 2026)
 - Sueldo + comisiones. Si no llega al básico ($482 en 2026), se completa.
 - Las comisiones **sí** suman para el IESS (9,45 % personal, 11,15 % patronal) y el décimo tercero.
 - Las propinas se entregan aparte y no aportan al IESS.

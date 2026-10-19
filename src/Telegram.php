@@ -73,6 +73,7 @@ final class Telegram
         $st = $this->db->prepare('SELECT salon_id FROM citas WHERE id = ?');
         $st->execute([$citaId]);
         $salonId = (int) $st->fetchColumn();
+        if (!(new Modulos($this->db))->activo($salonId, 'telegram')) return 0;   // Anexo B: módulo "Avisos por Telegram"
         $c = $agenda->cita($salonId, $citaId);
         if (!$c) return 0;
         $st = $this->db->prepare('SELECT acepta_reservas, nombre FROM salones WHERE id = ?');
@@ -112,10 +113,12 @@ final class Telegram
     {
         if (!self::configurado() || !$usuarioIds) return 0;
         $in = implode(',', array_fill(0, count($usuarioIds), '?'));
-        $st = $this->db->prepare("SELECT telegram_chat_id FROM usuarios WHERE id IN ($in) AND activo AND telegram_chat_id IS NOT NULL");
+        $st = $this->db->prepare("SELECT telegram_chat_id, salon_id FROM usuarios WHERE id IN ($in) AND activo AND telegram_chat_id IS NOT NULL");
         $st->execute(array_values($usuarioIds));
         $n = 0;
-        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $chat) {
+        $mods = new Modulos($this->db);
+        foreach ($st->fetchAll(PDO::FETCH_KEY_PAIR) as $chat => $salonId) {
+            if (!$mods->activo((int) $salonId, 'telegram')) continue;   // Anexo B: sin el módulo, solo la campana
             if ($this->api('sendMessage', ['chat_id' => (int) $chat, 'text' => $texto]) !== null) $n++;
         }
         return $n;
@@ -152,6 +155,7 @@ final class Telegram
     /** Cuando el salón acepta, el cliente recibe la confirmación con el valor a cancelar. */
     public function confirmacionAlCliente(int $salonId, int $citaId): bool
     {
+        if (!(new Modulos($this->db))->activo($salonId, 'telegram')) return false;
         $agenda = new Agenda($this->db);
         $c = $agenda->cita($salonId, $citaId);
         if (!$c || !$c['cliente_telegram']) return false;

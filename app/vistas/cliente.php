@@ -39,9 +39,7 @@
             <textarea id="notas" name="notas" rows="3"><?= e($cliente['notas']) ?></textarea>
         </div>
         <button class="boton boton-ancho" type="submit">Guardar cliente</button>
-        <?php if (!es_completa($u)): ?>
-            <p class="candado" style="margin-top:12px">Ficha técnica de color con fotos antes y después: <a href="<?= e(url('completa')) ?>">plan Completa</a></p>
-        <?php endif; ?>
+        <?php if (!modulo('ficha_tecnica') && !es_recepcion($u)): ?><div style="margin-top:12px"><?= aviso_modulo('ficha_tecnica') ?></div><?php endif; ?>
     </form>
 
     <?php if ($id): ?>
@@ -75,22 +73,26 @@
     <?php endif; ?>
 
     <?php if ($id && $fidelidad): ?>
+    <?php if (modulo('ficha_tecnica')): ?>
     <section class="bloque">
         <h2>Ficha técnica de color</h2>
         <p><?= $fidelidad['fichas'] ? $fidelidad['fichas'] . ($fidelidad['fichas'] === 1 ? ' ficha guardada' : ' fichas guardadas') . '.' : 'Todavía no tiene fichas.' ?>
             Fórmulas, tiempos y fotos de antes y después.</p>
         <a class="boton" href="<?= e(url('ficha', ['cliente' => $id])) ?>"><?= $fidelidad['fichas'] ? 'Ver ficha técnica' : 'Crear ficha técnica' ?></a>
     </section>
+    <?php endif; ?>
 
+    <?php if (modulo('paquetes_regalo') || modulo('puntos')): ?>
     <section class="bloque">
-        <h2>Paquetes y puntos</h2>
-        <?php if ($fidelidad['config']['activo']): ?>
+        <h2><?= modulo('paquetes_regalo') && modulo('puntos') ? 'Paquetes y puntos' : (modulo('puntos') ? 'Puntos' : 'Paquetes') ?></h2>
+        <?php if (!modulo('puntos')): ?>
+        <?php elseif ($fidelidad['config']['activo']): ?>
             <p style="font-size:1.1rem">Puntos: <strong><?= number_format($fidelidad['puntos'], 0, ',', '.') ?></strong>
                 <small>(= <?= dinero($fidelidad['puntos'] * $fidelidad['config']['valor']) ?>)</small></p>
         <?php else: ?>
             <p class="suave">Los puntos están apagados. Actívalos en <a href="<?= e(url('puntos')) ?>">Puntos</a>.</p>
         <?php endif; ?>
-        <?php if ($fidelidad['paquetes']): ?>
+        <?php if (modulo('paquetes_regalo') && $fidelidad['paquetes']): ?>
             <ul class="lista">
             <?php foreach ($fidelidad['paquetes'] as $pq): ?>
                 <li style="<?= $pq['vigente'] ? '' : 'opacity:.55' ?>"><div><div class="principal-linea"><?= e($pq['nombre']) ?></div>
@@ -99,8 +101,8 @@
             <?php endforeach; ?>
             </ul>
         <?php endif; ?>
-        <a class="boton boton-claro" href="<?= e(url('paquetes', ['cliente' => $id])) ?>">Venderle un paquete</a>
-        <?php if ($fidelidad['movs']): ?>
+        <?php if (modulo('paquetes_regalo')): ?><a class="boton boton-claro" href="<?= e(url('paquetes', ['cliente' => $id])) ?>">Venderle un paquete</a><?php endif; ?>
+        <?php if (modulo('puntos') && $fidelidad['movs']): ?>
             <h3 style="margin-top:14px">Últimos puntos</h3>
             <ul class="lista"><?php foreach ($fidelidad['movs'] as $m): ?>
                 <li><span><?= e($m['motivo']) ?><br><small><?= (new DateTimeImmutable($m['fecha']))->format('d/m/Y') ?></small></span>
@@ -108,5 +110,6 @@
             <?php endforeach; ?></ul>
         <?php endif; ?>
     </section>
+    <?php endif; ?>
     <?php endif; ?>
 </div>

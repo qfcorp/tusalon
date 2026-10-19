@@ -104,14 +104,14 @@ $nombre = explode(' ', trim($u['nombre']))[0];
             <li><span>Lo que produjiste en tu silla</span><span class="monto"><?= dinero($resumen['produccion_dueno']) ?></span></li>
             <li><span>Entró a la caja del local</span><span class="monto"><?= dinero($resumen['entro_a_caja']) ?></span></li>
             <li><span>Ganancia del local</span><span class="monto"><?= dinero($resumen['ganancia_local']) ?></span></li>
-            <?php if (es_completa($u)): ?>
+            <?php if (modulo('gastos_sri')): ?>
                 <li><a href="<?= e(url('gastos')) ?>">Gastos (facturas recibidas)</a><span class="monto monto-neg"><?= dinero(-$resumen['gastos_facturas']) ?></span></li>
                 <li><strong>Ganancia después de gastos</strong><strong class="monto"><?= dinero($resumen['ganancia_despues_de_gastos']) ?></strong></li>
             <?php else: ?>
-                <li><span class="candado">Gastos y ganancia real con tus facturas</span><a href="<?= e(url('completa')) ?>">Plan Completa</a></li>
+                <li><span class="candado">Gastos y ganancia real con tus facturas</span><a href="<?= e(url('completa', ['modulo' => 'gastos_sri'])) ?>">Ver Mi plan</a></li>
             <?php endif; ?>
         </ul>
-        <?php if (es_completa($u) && (float) $resumen['gastos_facturas'] == 0.0): ?>
+        <?php if (modulo('gastos_sri') && (float) $resumen['gastos_facturas'] == 0.0): ?>
             <p class="suave" style="margin-top:8px;font-size:.9rem">¿Te llegaron facturas de tus proveedores? <a href="<?= e(url('gastos')) ?>">Súbelas del SRI</a> para ver tu ganancia real.</p>
         <?php endif; ?>
     </section>

@@ -13,12 +13,7 @@
     </form>
 </div>
 
-<?php if (!$reporte): ?>
-    <section class="bloque">
-        <p class="candado">El reporte del mes es del plan Completa.</p>
-        <a class="boton" href="<?= e(url('completa')) ?>">Ver plan Completa</a>
-    </section>
-<?php else: $r = $reporte; ?>
+<?php $r = $reporte; ?>
     <div class="rejilla rejilla-3">
         <div class="bloque"><div class="cifra"><?= dinero($r['total']) ?></div><p class="cifra-nombre">Ventas · <?= $r['ventas'] ?> cobros</p></div>
         <div class="bloque"><div class="cifra"><?= $r['clientes_nuevos'] ?></div><p class="cifra-nombre">Clientes nuevos · <?= $r['reservas_online'] ?> reservas en línea</p></div>
@@ -63,6 +58,7 @@
             </ul>
         </section>
     </div>
+    <?php if (modulo('telegram')): ?>
     <form method="post"><?= campo_csrf() ?>
         <button class="boton" type="submit">Enviar este reporte a mi Telegram</button></form>
-<?php endif; ?>
+    <?php endif; ?>

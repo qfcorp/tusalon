@@ -64,6 +64,23 @@ if (in_array($ruta, $publicas, true) && !in_array($ruta, \TuSalon\Papelera::PUBL
         }
         exit;
     }
+    // Anexo B: la página pública de un módulo apagado (reservas en línea, anticipo…) no está disponible. Los datos se guardan.
+    $moduloPublico = \TuSalon\Modulos::RUTAS[$ruta] ?? '';
+    if ($sidPublico !== null && $moduloPublico !== '' && !modulos()->activo($sidPublico, $moduloPublico)) {
+        http_response_code(403);
+        header('Cache-Control: no-store');
+        $texto = 'Esta función no está disponible en este salón.';
+        if ($ruta === 'horas') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['horas' => [], 'en_confirmacion' => [], 'error' => $texto, 'disponible' => false], JSON_UNESCAPED_UNICODE);
+        } elseif ($ruta === 'foto') {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $texto;
+        } else {
+            vista_publica('modulo_apagado', ['salon' => null], 'No disponible · TuSalón');
+        }
+        exit;
+    }
 }
 
 if (in_array($ruta, $privadas, true)) {
@@ -74,9 +91,17 @@ if (in_array($ruta, $privadas, true)) {
     if (es_recepcion($u) && !in_array($ruta, $deRecepcion, true)) {
         redirigir('inicio');
     }
-    if (es_recepcion($u) && !es_completa($u) && $ruta !== 'salir') {
-        vista('error', ['mensaje' => 'La cuenta de recepción es del plan Completa. Pídele al dueño que active el plan Completa para volver a entrar.',
+    // Anexo B: las cuentas de recepción y de los peluqueros son módulos; apagados, esas cuentas no entran (no se borran)
+    if (es_recepcion($u) && !modulo('recepcion', $u) && $ruta !== 'salir') {
+        http_response_code(403);
+        vista('error', ['mensaje' => 'La cuenta de recepción no está en el plan de este salón. Pídele al dueño que la agregue en Mi plan para volver a entrar.',
                         'salir' => true], 'Recepción · TuSalón');
+        return;
+    }
+    if (es_peluquero($u) && !modulo('portal_peluquero', $u) && $ruta !== 'salir') {
+        http_response_code(403);
+        vista('error', ['mensaje' => 'El portal del peluquero no está en el plan de este salón. Pídele al dueño que lo agregue en Mi plan para volver a entrar.',
+                        'salir' => true], 'Mi portal · TuSalón');
         return;
     }
     if (!es_peluquero($u) && $ruta === 'mi_portal') {
@@ -87,6 +112,8 @@ if (in_array($ruta, $privadas, true)) {
         && !planes()->alDia($u) && !(!empty($_SESSION['admin_viendo']) && superadmin())) {
         redirigir('prueba_terminada');
     }
+    // Anexo B: cada página es de la base o de un módulo (Modulos::RUTAS). Apagado: "No está en tu plan" con el enlace a Mi plan.
+    if (!exigir_modulo(\TuSalon\Modulos::RUTAS[$ruta] ?? '', $u)) return;
 }
 
 try {

@@ -35,7 +35,7 @@
                 <?php endforeach; ?>
             </ul>
             <p class="suave">El mensaje lleva el valor y un enlace para que el cliente confirme o cancele con un toque.
-                <?= es_completa($u) ? 'A los clientes con Telegram conectado se les envía solo, desde las 9:00.' : '' ?></p>
+                <?= modulo('telegram') ? 'A los clientes con Telegram conectado se les envía solo, desde las 9:00.' : '' ?></p>
         <?php endif; ?>
     </section>
 
@@ -65,9 +65,8 @@
 
 <section class="bloque">
     <h2>Clientes por recuperar <small class="suave">(no vienen hace <?= $semanas ?> semanas o más)</small></h2>
-    <?php if (!es_completa($u)): ?>
-        <p class="candado">La lista de clientes por recuperar es del plan Completa.</p>
-        <a class="boton" href="<?= e(url('completa')) ?>">Ver plan Completa</a>
+    <?php if (!modulo('recuperar_clientes')): ?>
+        <?= aviso_modulo('recuperar_clientes') ?>
     <?php elseif (!$recuperar): ?>
         <p class="vacio">¡Bien! Todos tus clientes frecuentes han vuelto.</p>
     <?php else: ?>

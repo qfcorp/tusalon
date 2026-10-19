@@ -5,7 +5,15 @@ $planes = planes();
 if (es_post()) {
     verificar_csrf();
     try {
-        if (($_POST['accion'] ?? '') === 'plan') {
+        if (($_POST['accion'] ?? '') === 'catalogo') {   // Anexo B: precios y descripciones de los módulos y qué trae cada plan
+            $mods = [];
+            foreach ((array) ($_POST['m'] ?? []) as $id => $m) if (is_array($m)) $mods[(string) $id] = array_intersect_key($m, array_flip(['precio_mensual', 'descuento', 'orden', 'descripcion']));
+            $pl = [];
+            foreach (modulos()->planes() as $codigo => $_) $pl[$codigo] = array_map('strval', array_keys(array_filter((array) ($_POST['plan_mod'][$codigo] ?? []))));
+            $cambios = modulos()->guardarCatalogo($mods, $pl);
+            if ($cambios) registrar_admin('Catálogo de módulos: ' . implode('; ', $cambios));
+            aviso($cambios ? 'Catálogo guardado. Los precios nuevos se aplican a los próximos pagos.' : 'El catálogo no cambió.');
+        } elseif (($_POST['accion'] ?? '') === 'plan') {
             $max = trim((string) ($_POST['max_profesionales'] ?? ''));
             $planes->guardarPlan((string) ($_POST['codigo'] ?? ''), (string) ($_POST['nombre'] ?? ''),
                 (float) str_replace(',', '.', (string) ($_POST['precio_mensual'] ?? '0')), $max === '' ? null : (int) $max,

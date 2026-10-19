@@ -40,7 +40,7 @@ if (es_post()) {
 $avisoCliente = $_SESSION['aviso_cliente'] ?? null;
 $tgEnlace = $_SESSION['tg_cliente'] ?? null;
 unset($_SESSION['aviso_cliente'], $_SESSION['tg_cliente']);
-$tgDisponible = \TuSalon\Telegram::configurado();
+$tgDisponible = \TuSalon\Telegram::configurado() && modulos()->activo((int) $salon['id'], 'telegram');
 $historial = $cuentas->historial($sid, (int) $cliente['id']);
 $proximas = $cuentas->proximas($sid, (int) $cliente['id']);
 vista_publica('mi_cuenta', compact('salon', 'cliente', 'historial', 'proximas', 'avisoCliente', 'tgEnlace', 'tgDisponible'), 'Mi cuenta · ' . $salon['nombre']);

@@ -70,7 +70,7 @@ $st = $pdo->prepare('SELECT max_faltas FROM salones WHERE id = ?');
 $st->execute([$sid]);
 $maxFaltas = (int) $st->fetchColumn();
 $fidelidad = null;
-if ($id && es_completa($u) && !es_recepcion($u)) {
+if ($id && !es_recepcion($u) && (modulo('ficha_tecnica') || modulo('paquetes_regalo') || modulo('puntos'))) {
     $fidObj = new TuSalon\Fidelidad($pdo);
     $st = $pdo->prepare('SELECT count(*) FROM fichas_tecnicas WHERE salon_id = ? AND cliente_id = ?');
     $st->execute([$sid, $id]);

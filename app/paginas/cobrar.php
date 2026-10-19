@@ -4,7 +4,10 @@ use TuSalon\{Agenda, Anticipos, Cobro, Fidelidad, Inventario};
 $sid = (int) $u['salon_id'];
 $pdo = db();
 $error = null;
-$completa = es_completa($u);
+$conInventario = modulo('inventario');
+$conPaquetes = modulo('paquetes_regalo');
+$conPuntos = modulo('puntos');
+$completa = $conInventario || $conPaquetes || $conPuntos;   // hay algo más que servicios
 $citaId = (int) ($_REQUEST['cita'] ?? 0);
 $cita = $citaId ? (new Agenda($pdo))->cita($sid, $citaId) : null;
 if ($cita) $cita = ocultar_cliente_privado($cita, $u);
@@ -51,11 +54,11 @@ if ($clienteId) {
         else $cliente['nombre'] = $cita['cliente'];
     }
     if (!$cliente) $clienteId = 0;
-    elseif ($completa) $paquetes = $fid->paquetesDeCliente($sid, $clienteId);
+    elseif ($conPaquetes) $paquetes = $fid->paquetesDeCliente($sid, $clienteId);
 }
-$clientes = (!$cita && $completa) ? clientes_para_elegir($sid) : [];
-$productos = $completa ? (new Inventario($pdo))->paraVender($sid) : [];
-$puntos = $completa ? $fid->configPuntos($sid) : ['activo' => false];
+$clientes = (!$cita && ($conPaquetes || $conPuntos)) ? clientes_para_elegir($sid) : [];
+$productos = $conInventario ? (new Inventario($pdo))->paraVender($sid) : [];
+$puntos = $conPuntos ? $fid->configPuntos($sid) : ['activo' => false];
 $anticipo = $cita ? (new Anticipos($pdo))->disponible($cita) : 0.0;
 
 $d = ['metodo_pago' => 'efectivo', 'propina' => '0', 'tarjeta_codigo' => '', 'tarjeta_monto' => '', 'puntos' => '', 'productos' => [], 'paquetes' => []];
@@ -83,7 +86,6 @@ if (es_post()) {
             'paquetes' => array_filter((array) ($_POST['paquetes'] ?? [])),
             'tarjeta_codigo' => (string) ($_POST['tarjeta_codigo'] ?? ''), 'tarjeta_monto' => (string) ($_POST['tarjeta_monto'] ?? ''),
             'puntos' => (int) ($_POST['puntos'] ?? 0),
-            'completa' => $completa,
         ]);
         $msg = 'Cobro registrado.';
         if ($r['ya_pagado'] > 0) $msg .= ' Ya estaba pagado ' . dinero($r['ya_pagado']) . '; se cobró hoy ' . dinero($r['a_cobrar'] + $r['propina']) . '.';
@@ -98,5 +100,5 @@ if (es_post()) {
         $preciosCita = array_map('floatval', $precios);
     }
 }
-vista('cobrar', compact('cita', 'profesionales', 'servicios', 'seleccion', 'profElegido', 'error', 'preciosCita', 'completa',
+vista('cobrar', compact('cita', 'profesionales', 'servicios', 'seleccion', 'profElegido', 'error', 'preciosCita', 'completa', 'conInventario', 'conPaquetes', 'conPuntos',
                         'cliente', 'clientes', 'paquetes', 'productos', 'puntos', 'anticipo', 'd'), 'Cobrar · TuSalón');

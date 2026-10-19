@@ -10,7 +10,7 @@
 <div class="rejilla rejilla-2">
     <section class="bloque">
         <h2>Tu página de reservas</h2>
-        <?php if (es_completa($u)): ?>
+        <?php if (modulo('reservas_linea')): ?>
             <p>Comparte este enlace en tu Instagram, Facebook y estado de WhatsApp:</p>
             <p><input type="text" value="<?= e($enlace) ?>" readonly onclick="this.select()" aria-label="Enlace de reservas"></p>
             <div class="acciones">
@@ -18,8 +18,7 @@
                 <a class="boton boton-wa" href="https://wa.me/?text=<?= rawurlencode('Reserva tu cita en ' . $u['salon'] . ': ' . $enlace) ?>" target="_blank" rel="noopener">Compartir por WhatsApp</a>
             </div>
         <?php else: ?>
-            <p class="candado">Las reservas en línea son del plan Completa.</p>
-            <a class="boton" href="<?= e(url('completa')) ?>">Ver plan Completa</a>
+            <?= aviso_modulo('reservas_linea') ?>
         <?php endif; ?>
     </section>
 
@@ -114,8 +113,8 @@
 <form method="post" class="bloque" id="anticipo" style="max-width:820px">
     <?= campo_csrf() ?><input type="hidden" name="accion" value="anticipo">
     <h2>Anticipo en línea <small>(para que el cliente no falte)</small></h2>
-    <?php if (!es_completa($u)): ?>
-        <p class="candado">El anticipo en línea es del plan Completa.</p>
+    <?php if (!modulo('anticipos')): ?>
+        <?= aviso_modulo('anticipos') ?>
     <?php else: ?>
     <p class="suave">Al reservar, el cliente paga una parte. Mientras no pague, la reserva queda como solicitud.
         Cuando confirmas el pago, entra a tu caja y al cobrar la cita se descuenta solo.</p>

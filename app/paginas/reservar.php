@@ -10,7 +10,7 @@ $st = db()->prepare("SELECT id, nombre, slug, telefono, plan_codigo, estado, pru
 $st->execute([$slug]);
 $salon = $st->fetch();
 
-$disponible = $salon && $salon['plan_codigo'] === 'completa'
+$disponible = $salon && modulos()->activo((int) $salon['id'], 'reservas_linea')
     && planes()->alDia($salon);
 if (!$disponible) {
     http_response_code($salon ? 200 : 404);

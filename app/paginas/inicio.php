@@ -15,7 +15,7 @@ $auto = new TuSalon\Automaticas(db());
 $ahora = new DateTimeImmutable();
 $porRecordar = count(array_filter($auto->recordatoriosManana($sid, $ahora, false), fn($c) => !$c['recordatorio_en'] && !$c['confirmada_cliente_en']));
 $cumpleHoy = count(array_filter($auto->cumpleanosHoy($sid, $ahora), fn($c) => !$c['saludado']));
-$stockBajo = es_completa($u) && !es_recepcion($u) ? (new TuSalon\Inventario(db()))->bajos((int) $u['salon_id']) : [];
+$stockBajo = modulo('inventario') && !es_recepcion($u) ? (new TuSalon\Inventario(db()))->bajos((int) $u['salon_id']) : [];
 $st = db()->prepare("SELECT count(*) FROM citas WHERE salon_id = ? AND anticipo_estado = 'por_revisar' AND estado IN ('pendiente','reservada','confirmada')");
 $st->execute([(int) $u['salon_id']]);
 $comprobantes = (int) $st->fetchColumn();

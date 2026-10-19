@@ -42,9 +42,9 @@ registrar() { # [plan] [nombre del salón]
   local plan=${1:-completa} nombre=${2:-Salón de Prueba $RANDOM}
   rm -f "$JAR"
   EMAIL="dueno$RANDOM$RANDOM@prueba.ec"
-  post "r=registro" --data-urlencode "salon=$nombre" --data-urlencode "nombre=Dimitry Prueba" \
-       --data-urlencode "telefono=0990000000" --data-urlencode "email=$EMAIL" --data-urlencode "clave=claveSegura1" \
-       --data-urlencode "plan=$plan" > /dev/null
+  # Ya no hay registro con prueba gratis: Tukán crea la demo (tests/demo_web.php) y el dueño entra
+  TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD php "$(dirname "$0")/demo_web.php" "$nombre" "Dimitry Prueba" 0990000000 "$EMAIL" claveSegura1 "$plan" > /dev/null
+  post "r=login" --data-urlencode "email=$EMAIL" --data-urlencode "clave=claveSegura1" > /dev/null
   NID=$(sql "SELECT salon_id FROM usuarios WHERE email='$EMAIL'")
 }
 entrar() { # email clave
@@ -113,12 +113,12 @@ registrar completa "Quinta V2 Gracia $RANDOM"; NG=$NID
 sql "INSERT INTO suscripciones (salon_id, plan_codigo, periodo, meses_pagados, meses_recibidos, monto, inicio, fin, metodo_pago, pagado_en)
      VALUES ($NG, 'completa', 'mensual', 1, 1, 35, CURRENT_DATE - 31, CURRENT_DATE - 1, 'transferencia', CURRENT_DATE - 31)" > /dev/null
 sql "UPDATE salones SET estado='activo', activo_hasta=CURRENT_DATE - 1 WHERE id=$NG" > /dev/null
-registrar basica "Salón V2 Siete Días $RANDOM"; N7=$NID
+registrar basica "Salón V2 Siete Días $RANDOM"; N7=$NID; E7=$EMAIL
 sql "INSERT INTO suscripciones (salon_id, plan_codigo, periodo, meses_pagados, meses_recibidos, monto, inicio, fin, metodo_pago)
      VALUES ($N7, 'basica', 'mensual', 1, 1, 25, CURRENT_DATE - 23, CURRENT_DATE + 7, 'deuna')" > /dev/null
 sql "UPDATE salones SET estado='activo', activo_hasta=CURRENT_DATE + 7 WHERE id=$N7" > /dev/null
 registrar completa "Quinta V2 Registro $RANDOM"; NR=$NID; ER=$EMAIL
-check "Origen de los que se registran solos: registro" "registro" "$(sql "SELECT origen FROM salones WHERE id=$NR")"
+check "Origen de las demos que crea Tukán en su panel: super" "super" "$(sql "SELECT origen FROM salones WHERE id=$NR")"
 
 echo "2. Transporte y códigos (§2, §3)"
 r=$(c96_post capacidades '{}')
@@ -127,7 +127,7 @@ check "JSON" "application/json; charset=utf-8" "$(grep -i '^content-type' "$TMP/
 check "Cache-Control: no-store" "1" "$(grep -ci '^cache-control: no-store' "$TMP/c96.h")"
 check "No abre sesión (sin cookie)" "0" "$(grep -ci '^set-cookie' "$TMP/c96.h")"
 check "protocolo 2 y producto" "2 tusalon" "$(c96_json protocolo) $(c96_json producto)"
-check "Acciones" '["capacidades","estado","sso","clientes","cliente","cotizar","planes","solicitudes","solicitud","finanzas","ejecutar"]' "$(c96_json acciones)"
+check "Acciones" '["capacidades","estado","sso","clientes","cliente","cotizar","planes","solicitudes","solicitud","finanzas","ejecutar","modulos"]' "$(c96_json acciones)"
 check "sso_ir y rutas_sso" 'true ["/?r=admin"]' "$(c96_json sso_ir) $(c96_json rutas_sso)"
 printf '{}' > "$TMP/c96_body.json"; TOK=$(c96_token capacidades "$TMP/c96_body.json")
 r=$(curl -s -o "$TMP/c96.out" -D "$TMP/c96.h" -w "%{http_code}" -H "X-Tukan-Token: $TOK" "$BASE/tukan_central.php?accion=capacidades")
@@ -233,16 +233,39 @@ r=$(c96_ej registrar_pago '{"periodo":"mensual","metodo":"bitcoin"}' "$NR")
 check "Forma de pago mala: 422 con campo" "422 invalido datos.metodo" "$r $(c96_json codigo) $(c96_json campo)"
 c96_txt "… mensaje en español" "$(c96_json error)" "forma de pago"
 
-echo "6. Solicitudes: el registro nuevo se atiende y deja de salir"
-c96_post solicitudes '{"estado":"abiertas","por_pagina":200}' > /dev/null
-check "solicitudes total = estado.solicitudes_abiertas (antes de pagar)" "true" "$( [ "$(c96_json total)" -ge 1 ] && echo true )"
-c96_txt "Sale el registro nuevo" "$(c96_json solicitudes)" "\"id\":\"registro_nuevo:$NR\""
-r=$(c96_ej atender_solicitud "{\"solicitud_id\":\"registro_nuevo:$NR\",\"resultado\":\"atendida\",\"nota\":\"Bienvenida enviada\"}")
-check "Atender: 200" "200 atendida" "$r $(c96_json solicitud.estado)"
-c96_post solicitudes '{"estado":"abiertas","por_pagina":200}' > /dev/null
-no_contiene "Ya no sale en abiertas" "$TMP/c96.out" "\"id\":\"registro_nuevo:$NR\""
+echo "6. Solicitudes: pedido de demo del formulario público y pedido de módulos desde Mi plan"
+JAR_GUARDA6=$JAR; JAR="$TMP/c_pide"; rm -f "$JAR"
+EPIDE="pide$RANDOM@prueba.ec"
+post "r=registro" --data-urlencode "nombre=Lucía Pide" --data-urlencode "salon=Barbería V2 Pedida" --data-urlencode "ciudad=Ambato" \
+     -d whatsapp=0991239999 --data-urlencode "email=$EPIDE" -d "modulos[]=anticipos" > /dev/null
+PD=$(sql "SELECT id FROM pedidos_demo WHERE email='$EPIDE'")
+check "El formulario «Solicitar demo» guarda el pedido sin crear el salón" "1 0" "$(sql "SELECT count(*) FROM pedidos_demo WHERE email='$EPIDE'") $(sql "SELECT count(*) FROM usuarios WHERE email='$EPIDE'")"
+c96_post solicitudes '{"estado":"abiertas","tipos":["demo_pedida"],"por_pagina":200}' > /dev/null
+c96_txt "Llega al Central como demo_pedida" "$(c96_json solicitudes)" "\"id\":\"demo_pedida:$PD\""
+r=$(c96_ej atender_solicitud "{\"solicitud_id\":\"demo_pedida:$PD\",\"resultado\":\"en_proceso\",\"nota\":\"Le escribí\"}")
+check "Marcar contactado: 200 en_proceso" "200 en_proceso" "$r $(c96_json solicitud.estado)"
+r=$(c96_ej crear_demo "{\"nombre\":\"Barbería V2 Pedida\",\"contacto_nombre\":\"Lucía Pide\",\"email\":\"$EPIDE\",\"telefono\":\"0991239999\",\"plan\":\"basica\",\"dias\":7,\"solicitud_id\":\"demo_pedida:$PD\",\"modulos\":\"anticipos\"}")
+check "crear_demo desde el pedido: 200, origen demo_pedida" "200 demo_pedida" "$r $(c96_json cliente.origen)"
+c96_txt "… la demo ve los módulos elegidos (y lo que necesitan)" "$(c96_json cliente.modulos.activos)" '\["reservas_linea","anticipos"\]'
+check "… el pedido queda «demo creada»" "demo_creada" "$(sql "SELECT estado FROM pedidos_demo WHERE id=$PD")"
 c96_post solicitudes '{"estado":"cerradas","por_pagina":200}' > /dev/null
-contiene "Sale en cerradas" "$TMP/c96.out" "\"id\":\"registro_nuevo:$NR\""
+contiene "Sale en cerradas" "$TMP/c96.out" "\"id\":\"demo_pedida:$PD\""
+# Pedir un módulo desde Mi plan (salón Básica pagado)
+JAR="$TMP/c_e7"; rm -f "$JAR"
+post "r=login" --data-urlencode "email=$E7" --data-urlencode "clave=claveSegura1" > /dev/null
+get "r=completa" > /dev/null
+contiene "Mi plan ofrece «Pedir este módulo»" "$TMP/pag.html" "Pedir este módulo"
+post "r=completa" -d accion=pedir -d modulo=recepcion > /dev/null
+PM=$(sql "SELECT id FROM pedidos_modulos WHERE salon_id=$N7 AND modulos='recepcion'")
+check "Pedir este módulo guarda el pedido" "pendiente" "$(sql "SELECT estado FROM pedidos_modulos WHERE id=$PM")"
+c96_post solicitudes '{"estado":"abiertas","tipos":["cambio_modulos"],"por_pagina":200}' > /dev/null
+c96_txt "Llega al Central como cambio_modulos" "$(c96_json solicitudes)" "\"id\":\"cambio_modulos:$PM\""
+r=$(c96_ej cambiar_modulos "{\"solicitud_id\":\"cambio_modulos:$PM\"}" "$N7")
+check "Aprobar (cambiar_modulos): 200 y paga \$28" "200 28" "$r $(c96_json resultado.modulos.mensual)"
+get "r=recepcion" > /dev/null
+contiene "El dueño ya entra a Recepción" "$TMP/pag.html" "Recepción"
+no_contiene "… sin el aviso de «No está en tu plan»" "$TMP/pag.html" "No está en tu plan"
+JAR=$JAR_GUARDA6
 c96_post solicitud "{\"id\":\"renovacion:$N7:vence_pronto:$(date -d '+7 days' +%F)\"}" > /dev/null
 check "Renovación a 7 días todavía no (es a 5)" "no_encontrado" "$(c96_json codigo)"
 

@@ -46,8 +46,8 @@
 <?php endforeach; ?>
 </div>
 
-<?php if (!es_completa($u)): ?>
-    <p class="candado">Portal para que cada peluquero vea lo que gana y clientes privados para quien alquila el puesto: <a href="<?= e(url('completa')) ?>">plan Completa</a></p>
+<?php if (!modulo('portal_peluquero')): ?>
+    <?= aviso_modulo('portal_peluquero') ?>
 <?php endif; ?>
 
 <?php if ($historial): ?>

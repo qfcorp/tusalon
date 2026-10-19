@@ -27,7 +27,7 @@ final class Profesionales
             throw new RuntimeException("Tipo de profesional no válido: $tipo");
         }
         if (!$this->planes->puedeAgregarProfesional($salonId)) {
-            throw new RuntimeException('Tu plan Básica permite hasta 3 profesionales. Pasa al plan Completa para agregar más.');
+            throw new RuntimeException('Tu plan permite hasta ' . (new Modulos($this->db))->maxPersonas($salonId) . ' personas. Para agregar más, pide el módulo «Personas ilimitadas» en Mi plan.');
         }
         $this->validarRegla($tipo, $regla);
 

@@ -2,11 +2,13 @@
 # Corre las pruebas de pantallas de TuSalón contra sitios de prueba que levanta solo:
 #   tests/prueba_web.sh (todo el sistema), tests/prueba_web_gastos_recepcion.sh (gastos con facturas del SRI, recepción y
 #   clientes privados de quien alquila), tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
-#   Panel Tukán Central, protocolos v1 y v2) y tests/prueba_web_papelera.sh (Anexo A: pausar y papelera).
+#   Panel Tukán Central, protocolos v1 y v2), tests/prueba_web_papelera.sh (Anexo A: pausar y papelera) y
+#   tests/prueba_web_modulos.sh (Anexo B: módulos y "todo se pide demo"). Con CAPTURAS=<carpeta> también saca las capturas.
 # Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
 # Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM y PUERTO_APAGADA (si no, puertos libres al azar).
 set -u
+export PGTZ=${PGTZ:-America/Guayaquil}   # la misma zona que la app
 cd "$(dirname "$0")/.."
 export DB=${DB:-tusalon_web_prueba}
 export PGPASSWORD=${PGPASSWORD:-prueba}
@@ -64,6 +66,14 @@ echo; echo "==================== prueba_web_central_v2 ===================="
 bash tests/prueba_web_central_v2.sh || FALLO=1
 echo; echo "==================== prueba_web_papelera ===================="
 bash tests/prueba_web_papelera.sh || FALLO=1
+if [ "${1:-}" != "central" ]; then
+  echo; echo "==================== prueba_web_modulos ===================="
+  CAPTURAS_ENV="$TMPW/capturas.env" bash tests/prueba_web_modulos.sh || FALLO=1
+  # Capturas de pantalla (Mi plan, "No está en tu plan" y los interruptores del panel) a 390 px y en computadora
+  if [ -n "${CAPTURAS:-}" ] && [ -f "$TMPW/capturas.env" ]; then
+    (set -a; . "$TMPW/capturas.env"; set +a; CARPETA="$CAPTURAS" node tests/capturas_modulos.js) || FALLO=1
+  fi
+fi
 
 echo
 if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then

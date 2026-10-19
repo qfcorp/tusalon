@@ -1,7 +1,6 @@
 <?php
 use TuSalon\{Fidelidad, WhatsApp};
 
-if (!requiere_completa($u, 'Tarjetas de regalo', 'Vende tarjetas de regalo con un código. Quien la recibe la usa para pagar sus servicios, en una o varias visitas.')) return;
 $sid = (int) $u['salon_id'];
 $fid = new Fidelidad(db());
 $error = null;

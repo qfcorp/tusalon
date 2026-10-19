@@ -129,7 +129,8 @@ function usuario(): ?array
     $st = db()->prepare(
         'SELECT u.id, u.nombre, u.email, u.rol, u.profesional_id, u.salon_id,
                 s.nombre AS salon, s.slug, s.plan_codigo, s.estado, s.prueba_hasta, s.activo_hasta,
-                s.pausa_tipo, s.pausa_motivo, p.tipo AS tipo_profesional
+                s.pausa_tipo, s.pausa_motivo, s.modulos_extra, s.modulos_quitados, s.modulos_demo, s.precio_acordado,
+                p.tipo AS tipo_profesional
            FROM usuarios u JOIN salones s ON s.id = u.salon_id
       LEFT JOIN profesionales p ON p.id = u.profesional_id
           WHERE u.id = ? AND u.activo AND s.eliminado_en IS NULL'
@@ -147,12 +148,50 @@ function requiere_sesion(): array
     return $u;
 }
 
-function es_completa(array $u): bool
+function modulos(): \TuSalon\Modulos
 {
-    return $u['plan_codigo'] === 'completa';
+    static $m = null;
+    return $m ??= new \TuSalon\Modulos(db());
 }
 
-/** Días que le quedan a la prueba gratis (null si ya pagó). */
+/** Fila del salón del usuario con lo que necesita Modulos (el id del usuario no es el del salón). */
+function salon_de_usuario(array $u): array
+{
+    return ['id' => (int) $u['salon_id'], 'plan_codigo' => $u['plan_codigo'], 'estado' => $u['estado'],
+            'modulos_extra' => $u['modulos_extra'] ?? '', 'modulos_quitados' => $u['modulos_quitados'] ?? '',
+            'modulos_demo' => $u['modulos_demo'] ?? null, 'precio_acordado' => $u['precio_acordado'] ?? null];
+}
+
+/**
+ * ¿El salón tiene encendido este módulo? (Anexo B: todo se enciende o apaga por salón.) '' = base, siempre.
+ * Es la única pregunta que se hace para mostrar u ocultar menús, botones, tarjetas del inicio y partes de una página.
+ */
+function modulo(string $m, ?array $u = null): bool
+{
+    if ($m === '') return true;
+    $u ??= usuario();
+    return $u !== null && modulos()->activo(salon_de_usuario($u), $m);
+}
+
+/** Aviso corto dentro de una página: "«Módulo» no está en tu plan · Ver Mi plan" (para el dueño). */
+function aviso_modulo(string $m): string
+{
+    $c = modulos()->catalogo()[$m] ?? ['icono' => '', 'nombre' => $m];
+    $u = usuario();
+    $enlace = $u && !es_peluquero($u) && !es_recepcion($u) ? ' <a href="' . e(url('completa', ['modulo' => $m])) . '">Ver Mi plan</a>' : '';
+    return '<p class="candado" data-modulo-apagado="' . e($m) . '">' . e(trim($c['icono'] . ' ' . $c['nombre'])) . ' no está en tu plan.' . $enlace . '</p>';
+}
+
+/** Si el módulo está apagado muestra "No está en tu plan" (con el enlace a Mi plan) y devuelve false. */
+function exigir_modulo(string $m, ?array $u = null): bool
+{
+    if (modulo($m, $u)) return true;
+    http_response_code(403);
+    vista('no_en_plan', ['modulo' => $m], 'No está en tu plan · TuSalón');
+    return false;
+}
+
+/** Días que le quedan a la demo (null si ya pagó). */
 function dias_prueba(array $u): ?int
 {
     if ($u['estado'] !== 'prueba' || !$u['prueba_hasta']) {
@@ -260,15 +299,6 @@ function registrar_admin(string $accion, ?int $salonId = null): void
         ->execute([$a['id'] ?? null, $salonId, mb_substr($accion, 0, 300)]);
 }
 
-/**
- * Funciones del plan Completa: si el salón está en Básica, muestra el candado y devuelve false.
- */
-function requiere_completa(array $u, string $que, string $explicacion): bool
-{
-    if (es_completa($u)) return true;
-    vista('candado', ['que' => $que, 'explicacion' => $explicacion], "$que · TuSalón");
-    return false;
-}
 
 /** Número escrito con coma o punto -> float (o null si está vacío). */
 function numero(mixed $v): ?float

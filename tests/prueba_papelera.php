@@ -138,7 +138,7 @@ check('4 salones', 4, $cuenta('SELECT count(*) FROM salones'));
 $cap = $pedir('capacidades')[1];
 check('capacidades: operaciones nuevas', [true, true, true], [in_array('pausar', $cap['ejecutar'], true), in_array('borrar_cliente', $cap['ejecutar'], true),
                                                                in_array('restaurar_cliente', $cap['ejecutar'], true)]);
-check('capacidades: revisión 2 y tipos de pausa', [2, ['falta_pago', 'pedido_cliente', 'revision', 'abuso', 'otro']], [$cap['revision'], array_keys($cap['tipos_pausa'])]);
+check('capacidades: revisión 3 (Anexo B) y tipos de pausa', [3, ['falta_pago', 'pedido_cliente', 'revision', 'abuso', 'otro']], [$cap['revision'], array_keys($cap['tipos_pausa'])]);
 check('capacidades: formularios de pausar y borrar', [['tipo', 'motivo'], ['confirmar', 'motivo']],
       [array_column($cap['formularios']['pausar'], 'campo'), array_column($cap['formularios']['borrar_cliente'], 'campo')]);
 check('capacidades: 30 días de papelera, copia 1 año, filtro', [['dias' => 30, 'copia_dias' => 365], true], [$cap['papelera'], in_array('papelera', $cap['filtros_clientes'], true)]);
@@ -269,7 +269,7 @@ $fin = $pedir('finanzas', ['desde' => $hoy->modify('-2 months')->format('Y-m'), 
 $porMes = array_column($fin['meses'], null, 'mes');
 check('finanzas: el pago de hace 40 días sigue en su mes (4 pagaron)', 4 * 350.0, $porMes[substr($d('-40 days'), 0, 7)]['ingresos']);
 check('finanzas: devengado del mes que viene solo de los 3 vivos', true, abs($porMes[$hoy->modify('first day of next month')->format('Y-m')]['devengado'] - 3 * 350 / 12) < 3.0);
-check('finanzas: MRR sin él', round(3 * 350 / 12, 2), $fin['mrr']);
+check('finanzas: MRR sin él (3 que pagan Completa, $35 al mes cada uno)', 3 * 35.0, $fin['mrr']);
 check('estado v1: clientes, usuarios y peluqueros sin los suyos', [$cuenta("SELECT count(*) FROM clientes WHERE salon_id <> {$A['id']}"),
                                                                    $cuenta("SELECT count(*) FROM usuarios WHERE activo AND salon_id <> {$A['id']}")],
       [(new TukanCentral($db))->estado($hoy)['extra']['Clientes'], (new TukanCentral($db))->estado($hoy)['extra']['Usuarios activos']]);

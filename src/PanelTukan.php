@@ -13,12 +13,12 @@ use RuntimeException;
 final class PanelTukan
 {
     public const ESTADOS = [
-        'prueba' => 'En prueba', 'prueba_vencida' => 'Prueba terminada', 'activo' => 'Al día',
+        'prueba' => 'En demo', 'prueba_vencida' => 'Demo terminada', 'activo' => 'Al día',
         'por_vencer' => 'Venció (en gracia)', 'vencido' => 'Vencido', 'suspendido' => 'Suspendido', 'cancelado' => 'Cancelado',
     ];
     /** Formas de pago que registra el súper usuario (Google Play entra solo, con GooglePlay::aplicar()). */
     public const METODOS = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' => 'Payphone', 'plux' => 'Plux',
-                            'efectivo' => 'Efectivo', 'tarjeta' => 'Tarjeta', 'cortesia' => 'Cortesía (gratis)'];
+                            'efectivo' => 'Efectivo', 'tarjeta' => 'Tarjeta', 'cortesia' => 'Cortesía (sin cobro)'];
 
     private Planes $planes;
 
@@ -169,7 +169,7 @@ final class PanelTukan
         if ($st->rowCount() !== 1) throw new RuntimeException('Salón no encontrado.');
     }
 
-    /** Alarga la prueba gratis N días desde hoy (o desde su fin si aún no termina). */
+    /** Alarga la demo N días desde hoy (o desde su fin si aún no termina). */
     public function extenderPrueba(int $salonId, int $dias, ?DateTimeImmutable $hoy = null): string
     {
         if ($dias < 1 || $dias > 90) throw new RuntimeException('Elige de 1 a 90 días.');
@@ -227,7 +227,7 @@ final class PanelTukan
         }
         if (!$this->salon($salonId)) throw new RuntimeException('Salón no encontrado.');
         $id = $this->planes->suscribir($salonId, $plan, $periodo, $fi, $metodo, $dominio, $monto, $pagadoEn);
-        $c = $this->planes->cotizar($plan, $periodo);
+        $c = $this->planes->cotizar($plan, $periodo, $salonId);
         return ['id' => $id, 'monto' => $monto ?? $c['monto'], 'plan' => $plan, 'periodo' => $periodo, 'metodo' => $metodo];
     }
 }

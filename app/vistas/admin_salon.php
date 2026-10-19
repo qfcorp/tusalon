@@ -3,14 +3,14 @@ use TuSalon\{PanelTukan, Planes, WhatsApp};
 $s = $salon;
 $enlaceReservas = \TuSalon\Agenda::urlBase() . '/?r=reservar&s=' . rawurlencode($s['slug']);
 $waDueno = WhatsApp::enlace($s['telefono'], 'Hola ' . explode(' ', (string) $s['dueno'])[0] . ', te escribo de TuSalón.');
-$metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' => 'Payphone', 'plux' => 'Plux', 'efectivo' => 'Efectivo', 'tarjeta' => 'Tarjeta', 'cortesia' => 'Cortesía (gratis)'];
+$metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' => 'Payphone', 'plux' => 'Plux', 'efectivo' => 'Efectivo', 'tarjeta' => 'Tarjeta', 'cortesia' => 'Cortesía (sin cobro)'];
 ?>
 <p><a href="<?= e(url('admin_salones')) ?>">← Todos los salones</a></p>
 <div class="cabecera">
     <div><h1><?= e($s['nombre']) ?></h1>
         <p><span class="etq est-<?= e($s['estado_cuenta']) ?>"><?= PanelTukan::ESTADOS[$s['estado_cuenta']] ?></span>
            Plan <strong><?= e($s['plan_nombre']) ?></strong>
-           <?php if (in_array($s['estado_cuenta'], ['prueba', 'prueba_vencida'], true)): ?> · prueba hasta <?= date('d/m/Y', strtotime($s['prueba_hasta'])) ?>
+           <?php if (in_array($s['estado_cuenta'], ['prueba', 'prueba_vencida'], true)): ?> · demo hasta <?= date('d/m/Y', strtotime($s['prueba_hasta'])) ?>
            <?php elseif ($s['activo_hasta']): ?> · pagado hasta <?= date('d/m/Y', strtotime($s['activo_hasta'])) ?><?php endif; ?></p></div>
     <form method="post" action="<?= e(url('admin_ver', ['id' => $s['id']])) ?>"><?= campo_csrf() ?>
         <button class="boton boton-claro" type="submit">Entrar como el dueño (soporte)</button></form>
@@ -50,6 +50,48 @@ $metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' =
     <div class="bloque"><div class="cifra"><?= (int) $s['clientes'] ?></div><p class="cifra-nombre">Clientes</p></div>
     <div class="bloque"><div class="cifra cifra-chica"><?= $s['ultima_actividad'] ? date('d/m/Y', strtotime($s['ultima_actividad'])) : '—' ?></div><p class="cifra-nombre">Última actividad</p></div>
 </div>
+
+<?php $cat = modulos()->catalogo(); $md = $modDetalle; ?>
+<section class="bloque" id="modulos">
+    <h2>Módulos <small class="suave">(apagar no borra datos)</small></h2>
+    <?php if ($md['demo']): ?><p class="aviso">Está en demo: ve <?= count($md['activos']) === count($cat) ? 'todos los módulos' : count($md['activos']) . ' módulos' ?>. Lo que marques aquí es lo que ve la demo y lo que tendrá al pagar.</p><?php endif; ?>
+    <?php foreach ($modPedidos as $p): ?>
+        <div class="aviso franja-solicitudes" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+            <span style="flex:1">Pidió desde Mi plan: <strong><?= e(implode(', ', array_map([modulos(), 'nombre'], TuSalon\Modulos::limpiar($p['modulos'])))) ?></strong> (<?= date('d/m/Y', strtotime($p['creado'])) ?>)</span>
+            <form method="post" style="display:inline"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedido_modulos"><input type="hidden" name="pedido" value="<?= (int) $p['id'] ?>">
+                <button class="boton boton-chico" name="resultado" value="aprobar" type="submit">Aprobar y encender</button>
+                <button class="boton boton-claro boton-chico" name="resultado" value="rechazar" type="submit">Rechazar</button></form>
+        </div>
+    <?php endforeach; ?>
+    <form method="post">
+        <?= campo_csrf() ?><input type="hidden" name="accion" value="modulos">
+        <ul class="modulos">
+            <?php foreach ($cat as $m): $on = in_array($m['id'], $md['demo'] ? $md['activos'] : $md['contratados'], true); $delPlan = in_array($m['id'], $md['del_plan'], true); ?>
+            <li class="modulo <?= $on ? 'modulo-activo' : '' ?>">
+                <span class="modulo-icono" aria-hidden="true"><?= e($m['icono']) ?></span>
+                <div class="modulo-cuerpo"><label class="interruptor"><input type="checkbox" name="mod[<?= e($m['id']) ?>]" value="1" <?= $on ? 'checked' : '' ?>> <?= e($m['nombre']) ?></label>
+                    <p class="suave"><?= $delPlan ? 'Del plan' . ($on ? '' : ' · quitado (−' . dinero($m['descuento']) . ')') : ($on ? 'Extra' : 'No lo tiene') ?><?= $m['depende_de'] ? ' · necesita ' . e(implode(', ', array_map([modulos(), 'nombre'], $m['depende_de']))) : '' ?></p></div>
+                <div class="modulo-lado"><span class="modulo-precio"><?= $delPlan ? 'incluido' : '+' . dinero($m['precio_mensual']) ?></span></div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <p class="total-plan"><span>Plan <?= dinero($md['precio_plan']) ?> + extra <?= dinero($md['precio_extra']) ?> − descuento <?= dinero($md['descuento']) ?></span><span><?= dinero($md['mensual']) ?> al mes</span></p>
+        <div class="fila-campos">
+            <div class="campo"><label for="precio_acordado">Precio acordado al mes <small>(vacío = <?= dinero($md['precio_calculado']) ?>)</small></label>
+                <input type="text" inputmode="decimal" id="precio_acordado" name="precio_acordado" value="<?= $md['precio_acordado'] === null ? '' : e(number_format($md['precio_acordado'], 2, ',', '')) ?>"></div>
+            <div class="campo"><label for="motivo_mod">Motivo <small>(opcional)</small></label><input type="text" id="motivo_mod" name="motivo" maxlength="300"></div>
+        </div>
+        <button class="boton" type="submit" data-confirmar="¿Guardar los módulos de <?= e($s['nombre']) ?>? Apagar un módulo no borra sus datos.">Guardar módulos</button>
+    </form>
+    <?php if ($modHistorial): ?>
+        <details style="margin-top:12px"><summary>Cambios de módulos</summary>
+            <ul class="lista"><?php foreach ($modHistorial as $h): ?>
+                <li><span><?= date('d/m/Y H:i', strtotime($h['momento'])) ?> · <?= e($h['quien']) ?> (<?= e($h['origen']) ?>)<br>
+                    <small><?= $h['encendidos'] ? 'Encendió: ' . e($h['encendidos']) . ' ' : '' ?><?= $h['apagados'] ? 'Apagó: ' . e($h['apagados']) . ' ' : '' ?><?= $h['motivo'] ? '· ' . e($h['motivo']) : '' ?></small></span>
+                    <span class="monto"><?= dinero($h['precio_despues']) ?></span></li>
+            <?php endforeach; ?></ul></details>
+    <?php endif; ?>
+</section>
 
 <div class="rejilla rejilla-2">
     <section class="bloque">
@@ -96,13 +138,13 @@ $metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' =
     </section>
 
     <section class="bloque">
-        <h2>Plan, estado y prueba</h2>
+        <h2>Plan, estado y demo</h2>
         <form method="post" class="fila-accion"><?= campo_csrf() ?><input type="hidden" name="accion" value="plan">
             <label for="cambiar-plan">Cambiar plan</label>
             <select id="cambiar-plan" name="plan"><?php foreach ($listaPlanes as $p): ?><option value="<?= e($p['codigo']) ?>" <?= $p['codigo'] === $s['plan_codigo'] ? 'selected' : '' ?>><?= e($p['nombre']) ?> · <?= dinero($p['precio_mensual']) ?></option><?php endforeach; ?></select>
             <button class="boton boton-chico" type="submit">Cambiar</button></form>
         <form method="post" class="fila-accion"><?= campo_csrf() ?><input type="hidden" name="accion" value="prueba">
-            <label for="dias">Dar más días de prueba</label>
+            <label for="dias">Dar más días de demo</label>
             <select id="dias" name="dias"><?php foreach ([3, 7, 15, 30] as $d): ?><option value="<?= $d ?>"><?= $d ?> días</option><?php endforeach; ?></select>
             <button class="boton boton-chico" type="submit">Extender</button></form>
         <div class="acciones" style="margin-top:12px">

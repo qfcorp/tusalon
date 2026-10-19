@@ -59,5 +59,5 @@ $st->execute([$u['id']]);
 $tgConectado = (bool) $st->fetchColumn();
 $tgEnlace = $_SESSION['tg_enlace'] ?? null;
 unset($_SESSION['tg_enlace']);
-$tgDisponible = \TuSalon\Telegram::configurado();
+$tgDisponible = \TuSalon\Telegram::configurado() && modulo('telegram');
 vista('solicitudes', compact('pendientes', 'avisos', 'waCliente', 'tgConectado', 'tgEnlace', 'tgDisponible'), 'Solicitudes · TuSalón');

@@ -2,7 +2,6 @@
 use TuSalon\{Automaticas, FacturasRecibidas, Liquidacion, Sri};
 
 /** Gastos del salón con las facturas que RECIBE de sus proveedores (importadas del SRI). TuSalón no emite facturas. */
-if (!requiere_completa($u, 'Gastos y facturas', 'Sube las facturas que te dan tus proveedores (tintes, shampoo, luz, agua, arriendo del local) desde el SRI y mira tus gastos y tu ganancia real cada mes. TuSalón no hace facturas: solo lee las que recibes.')) return;
 $sid = (int) $u['salon_id'];
 $pdo = db();
 $fr = new FacturasRecibidas($pdo);

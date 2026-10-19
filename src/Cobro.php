@@ -25,7 +25,7 @@ final class Cobro
      *                 servicios [servicio_id => precio], productos [producto_id => cantidad],
      *                 metodo_pago, cobrado_por, propina,
      *                 paquetes [servicio_id => paquete_cliente_id], tarjeta_codigo, tarjeta_monto, puntos,
-     *                 completa (bool: plan Completa)
+     *                 (productos, paquetes, tarjetas y puntos solo si el salón tiene encendido su módulo: Modulos)
      * @return array venta_id, total, ya_pagado, a_cobrar, puntos_ganados, detalle
      */
     public function registrar(array $d): array
@@ -36,7 +36,8 @@ final class Cobro
         $clienteId = (int) ($cita['cliente_id'] ?? $d['cliente_id'] ?? 0) ?: null;
         $fecha = $d['fecha'] ?? date('Y-m-d H:i:s');
         $hoy = substr($fecha, 0, 10);
-        $completa = !empty($d['completa']);
+        $mods = (new Modulos($this->db))->activos($sid);
+        $tiene = fn(string $m) => in_array($m, $mods, true);
         $cobradoPor = ($d['cobrado_por'] ?? 'local') === 'profesional' ? 'profesional' : 'local';
         $metodo = in_array($d['metodo_pago'] ?? '', Fidelidad::METODOS, true) ? $d['metodo_pago'] : 'efectivo';
         $propina = max(0.0, self::r((float) ($d['propina'] ?? 0)));
@@ -45,9 +46,9 @@ final class Cobro
         $tarjetaCodigo = trim((string) ($d['tarjeta_codigo'] ?? ''));
         $puntos = max(0, (int) ($d['puntos'] ?? 0));
 
-        if (!$completa && ($usarPaquete || $productosPedidos || $tarjetaCodigo !== '' || $puntos > 0)) {
-            throw new RuntimeException('Productos, paquetes, tarjetas de regalo y puntos son del plan Completa.');
-        }
+        if ($productosPedidos && !$tiene('inventario')) throw new RuntimeException('La venta de productos no está en tu plan.');
+        if (($usarPaquete || $tarjetaCodigo !== '') && !$tiene('paquetes_regalo')) throw new RuntimeException('Los paquetes y las tarjetas de regalo no están en tu plan.');
+        if ($puntos > 0 && !$tiene('puntos')) throw new RuntimeException('Los puntos no están en tu plan.');
         if (($usarPaquete || $puntos > 0) && !$clienteId) {
             throw new RuntimeException('Para usar un paquete o puntos, elige el cliente.');
         }
@@ -160,7 +161,7 @@ final class Cobro
             }
 
             // 7) Puntos ganados por lo que pagó hoy (sin propina)
-            $ganados = $clienteId && $completa && $falta > 0 ? $fid->ganarPuntos($sid, (int) $clienteId, $falta, $ventaId) : 0;
+            $ganados = $clienteId && $tiene('puntos') && $falta > 0 ? $fid->ganarPuntos($sid, (int) $clienteId, $falta, $ventaId) : 0;
 
             if ($cita) (new Agenda($this->db))->cambiarEstado($sid, (int) $cita['id'], 'atendida');
             if ($propia) $this->db->commit();

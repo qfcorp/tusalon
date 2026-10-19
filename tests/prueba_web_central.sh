@@ -41,9 +41,9 @@ registrar() { # [plan] [nombre del salón]
   local plan=${1:-completa} nombre=${2:-Salón de Prueba $RANDOM}
   rm -f "$JAR"
   EMAIL="dueno$RANDOM$RANDOM@prueba.ec"
-  post "r=registro" --data-urlencode "salon=$nombre" --data-urlencode "nombre=Dimitry Prueba" \
-       --data-urlencode "telefono=0990000000" --data-urlencode "email=$EMAIL" --data-urlencode "clave=claveSegura1" \
-       --data-urlencode "plan=$plan" > /dev/null
+  # Ya no hay registro con prueba gratis: Tukán crea la demo (tests/demo_web.php) y el dueño entra
+  TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD php "$(dirname "$0")/demo_web.php" "$nombre" "Dimitry Prueba" 0990000000 "$EMAIL" claveSegura1 "$plan" > /dev/null
+  post "r=login" --data-urlencode "email=$EMAIL" --data-urlencode "clave=claveSegura1" > /dev/null
   NID=$(sql "SELECT salon_id FROM usuarios WHERE email='$EMAIL'")
 }
 entrar() { # email clave
@@ -163,17 +163,17 @@ c95_pedir "$BASE" estado "$(c95_token estado)" > /dev/null
 pn() { grep -o "<strong>[0-9]*</strong> $1</a>" "$TMP/pag.html" | head -1 | sed 's/<strong>\([0-9]*\)<.*/\1/'; }
 get "r=admin" > /dev/null
 contiene "Total = panel (Salones registrados)" "$TMP/pag.html" "<div class=\"cifra\">$(c95_json negocios.total)</div><p class=\"cifra-nombre\">Salones registrados"
-check "En prueba = panel" "$(pn 'En prueba')" "$(c95_json negocios.prueba)"
+check "En demo = panel" "$(pn 'En demo')" "$(c95_json negocios.prueba)"
 # Regla única del protocolo v2 (§4.2): por vencer = al día que vence en 0 a 7 días; los que están en gracia ya cuentan como vencidos
 PV=$(sql "SELECT count(*) FROM salones WHERE estado='activo' AND activo_hasta BETWEEN CURRENT_DATE AND CURRENT_DATE + 7")
 check "Por vencer = al día que vence en 7 días" "$PV" "$(c95_json negocios.por_vencer)"
 check "Activos = panel (Al día) − por vencer" "$(( $(pn 'Al día') - PV ))" "$(c95_json negocios.activos)"
-check "Vencidos = panel (Vencido + Prueba terminada + en gracia)" "$(( $(pn 'Vencido') + $(pn 'Prueba terminada') + $(pn 'Venció (en gracia)') ))" "$(c95_json negocios.vencidos)"
+check "Vencidos = panel (Vencido + Demo terminada + en gracia)" "$(( $(pn 'Vencido') + $(pn 'Demo terminada') + $(pn 'Venció (en gracia)') ))" "$(c95_json negocios.vencidos)"
 check "Suspendidos = panel (Suspendido + Cancelado)" "$(( $(pn 'Suspendido') + $(pn 'Cancelado') ))" "$(c95_json negocios.suspendidos)"
 COBRADO=$(php -r 'echo "$" . number_format((float) $argv[1], 2, ",", ".");' "$(c95_json ingresos_mes)")
 contiene "Ingresos del mes = Cobrado este mes del panel ($COBRADO)" "$TMP/pag.html" "<div class=\"cifra\">$COBRADO</div><p class=\"cifra-nombre\">Cobrado este mes"
 check "Ingresos del mes = suma de pagos no anulados" "$(sql "SELECT COALESCE(sum(monto),0)::float FROM suscripciones WHERE NOT anulada AND to_char(pagado_en,'YYYY-MM')=to_char(CURRENT_DATE,'YYYY-MM')")" "$(c95_json ingresos_mes)"
-check "Pagos vencidos = Vencido + Prueba terminada del panel" "$(( $(pn 'Vencido') + $(pn 'Prueba terminada') ))" \
+check "Pagos vencidos = Vencido + Demo terminada del panel" "$(( $(pn 'Vencido') + $(pn 'Demo terminada') ))" \
       "$(php -r 'echo count(json_decode(file_get_contents($argv[1]), true)["pagos_vencidos"]);' "$TMP/central.out")"
 # Segunda vez: reutiliza el mismo super usuario
 JAR="$TMP/c95_sso2"; rm -f "$JAR"

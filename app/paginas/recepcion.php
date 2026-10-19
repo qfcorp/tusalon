@@ -3,7 +3,6 @@
  * Cuentas de recepción (plan Completa): la persona de recepción agenda, cobra, cierra la caja y atiende las solicitudes,
  * pero no ve las ganancias, los gastos, las cuentas del equipo ni la configuración del salón.
  */
-if (!requiere_completa($u, 'Recepción', 'Crea una cuenta para la persona de recepción: agenda citas, cobra, cierra la caja y responde las solicitudes en línea, sin ver tus ganancias, tus gastos ni lo que gana cada peluquero.')) return;
 $sid = (int) $u['salon_id'];
 $pdo = db();
 $error = null;

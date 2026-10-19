@@ -28,10 +28,12 @@ postf() { local ruta=$1; shift; local t; t=$(token "$ruta")   # formulario con a
   curl -s -b "$JAR" -c "$JAR" -o "$TMP/post.html" -w "%{http_code} %{redirect_url}" -F "csrf=$t" "$@" "$BASE/?$ruta"; }
 seguir() { get "${1#*\?}" > /dev/null; }   # abre la página a la que redirigió (para leer los avisos)
 registrar() { # salón plan -> deja SID y EMAIL (y la sesión del dueño en un JAR nuevo)
+  # Ya no hay registro con prueba gratis: Tukán crea el salón. Básica = pagada con solo la base; Completa = demo con todo.
   JAR="$TMP/c_$RANDOM$RANDOM"
   EMAIL="d$RANDOM$RANDOM@prueba.ec"
-  post "r=registro" --data-urlencode "salon=$1" --data-urlencode "nombre=Dueña Prueba" -d telefono=0990002222 \
-       --data-urlencode "email=$EMAIL" -d clave=claveSegura1 -d plan=$2 > /dev/null
+  if [ "$2" = "basica" ]; then set -- "$1" basica "" pagado; else set -- "$1" completa "" ""; fi
+  TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD php tests/demo_web.php "$1" "Dueña Prueba" 0990002222 "$EMAIL" claveSegura1 "$2" "$3" "$4" > /dev/null
+  post "r=login" --data-urlencode "email=$EMAIL" -d clave=claveSegura1 > /dev/null
   SID=$(sql "SELECT salon_id FROM usuarios WHERE email='$EMAIL'")
 }
 entrar() { JAR="$TMP/c_$RANDOM$RANDOM"; post "r=login" --data-urlencode "email=$1" -d clave="$2" > /dev/null; }
@@ -53,9 +55,10 @@ get "r=completa" > /dev/null
 for t in "IESS" "décimo" "Cobro automático" "cobro automático del arriendo" "sucursal" "Rol de pagos"; do
   no_contiene "Mi plan no dice \"$t\"" "$TMP/pag.html" "$t"
 done
-contiene "Mi plan ofrece la cuenta de recepción" "$TMP/pag.html" "Cuenta de recepción"
-contiene "Mi plan ofrece los gastos con facturas del SRI" "$TMP/pag.html" "facturas que recibes del SRI"
-contiene "Mi plan ofrece los clientes privados" "$TMP/pag.html" "Clientes privados para quien alquila el puesto"
+contiene "Mi plan ofrece el módulo Cuenta de recepción" "$TMP/pag.html" "Cuenta de recepción"
+contiene "Mi plan ofrece el módulo Gastos con facturas del SRI" "$TMP/pag.html" "Gastos con facturas del SRI"
+contiene "Mi plan ofrece el módulo Clientes privados" "$TMP/pag.html" "Clientes privados de quien alquila"
+contiene "… cada uno con su precio y «Pedir este módulo»" "$TMP/pag.html" "Pedir este módulo"
 get "r=cuentas" > /dev/null
 no_contiene "Cuentas (Básica) ya no promete cobro automático del arriendo" "$TMP/pag.html" "automático del arriendo"
 no_contiene "Cuentas (Básica) ya no promete rol de pagos" "$TMP/pag.html" "rol de pagos"
@@ -63,14 +66,14 @@ get "r=equipo" > /dev/null
 no_contiene "Equipo no promete calcular el aporte al IESS" "$TMP/pag.html" "se calcula el aporte"
 JAR="$TMP/c_sin"; get "r=registro" > /dev/null
 no_contiene "El registro no promete IESS ni sucursales" "$TMP/pag.html" "IESS\|sucursal"
-contiene "El registro menciona recepción y gastos" "$TMP/pag.html" "recepción y gastos con tus facturas"
+contiene "Solicitar demo ofrece la recepción y los gastos como módulos" "$TMP/pag.html" "Gastos con facturas del SRI"
 
-echo "2. Básica: Gastos y Recepción con candado"
+echo "2. Básica (solo la base): Gastos y Recepción dicen «No está en tu plan»"
 JAR=$JAR_BASICA
 get "r=gastos" > /dev/null
-contiene "Gastos y facturas es del plan Completa" "$TMP/pag.html" "es del plan Completa"
+contiene "Gastos y facturas: no está en tu plan" "$TMP/pag.html" "No está en tu plan"
 get "r=recepcion" > /dev/null
-contiene "Recepción es del plan Completa" "$TMP/pag.html" "es del plan Completa"
+contiene "Recepción: no está en tu plan" "$TMP/pag.html" "No está en tu plan"
 r=$(postf "r=gastos" -F accion=xml -F "xml[]=@/etc/hostname")
 check "Básica no puede subir facturas" "0" "$(sql "SELECT count(*) FROM facturas_recibidas WHERE salon_id=$SID")"
 
@@ -203,10 +206,10 @@ JAR=$JAR_REC
 check "Sin acceso, recepción vuelve al login" "302 $BASE/?r=login" "$(destino "r=inicio")"
 JAR=$JAR_DUENA
 post "r=recepcion" -d accion=activar -d id=$(sql "SELECT id FROM usuarios WHERE email='$EMAIL_REC'") > /dev/null
-sql "UPDATE salones SET plan_codigo='basica' WHERE id=$SIDF" > /dev/null
+sql "UPDATE salones SET plan_codigo='basica', estado='activo', activo_hasta=CURRENT_DATE + 30 WHERE id=$SIDF" > /dev/null   # pagó la Básica (sin el módulo)
 entrar "$EMAIL_REC" claveRosa1
 get "r=inicio" > /dev/null
-contiene "Si el salón baja a Básica, recepción no entra" "$TMP/pag.html" "La cuenta de recepción es del plan Completa"
+contiene "Si el salón no tiene el módulo, recepción no entra" "$TMP/pag.html" "La cuenta de recepción no está en el plan de este salón"
 sql "UPDATE salones SET plan_codigo='completa' WHERE id=$SIDF" > /dev/null
 
 echo "9. Clientes privados de quien alquila el puesto"

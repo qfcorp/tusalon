@@ -16,7 +16,7 @@ $valorPunto = (float) ($puntos['valor'] ?? 0);
     <a class="boton boton-claro" href="<?= e($cita ? url('cita', ['id' => $cita['id']]) : url('caja')) ?>">Volver</a>
 </div>
 
-<?php if (!$cita && $completa): ?>
+<?php if (!$cita && ($conPaquetes || $conPuntos)): ?>
 <form method="get" class="bloque" style="max-width:640px">
     <input type="hidden" name="r" value="cobrar">
     <div class="campo" style="margin-bottom:0"><label for="cliente_id">Cliente <small>(para usar paquetes, puntos y sumarle puntos)</small></label>
@@ -82,24 +82,26 @@ $valorPunto = (float) ($puntos['valor'] ?? 0);
     </details>
     <?php endif; ?>
 
-    <?php if ($completa): ?>
+    <?php if ($conPaquetes || $conPuntos || $anticipo > 0): ?>
     <div class="ya-pagado">
         <h3>¿Ya pagó algo antes?</h3>
         <?php if ($anticipo > 0): ?>
             <p class="aviso aviso-ok" style="margin-bottom:10px">✅ Pagó un anticipo de <strong><?= dinero($anticipo) ?></strong>. Se descuenta solo.</p>
         <?php endif; ?>
+        <?php if ($conPaquetes): ?>
         <div class="fila-campos">
             <div class="campo"><label for="tarjeta_codigo">Tarjeta de regalo <small>(código)</small></label>
                 <input type="text" id="tarjeta_codigo" name="tarjeta_codigo" value="<?= e($d['tarjeta_codigo']) ?>" placeholder="AB12-CD34" autocomplete="off" style="text-transform:uppercase"></div>
             <div class="campo"><label for="tarjeta_monto">Usar de la tarjeta <small>(vacío = lo que alcance)</small></label>
                 <input type="number" id="tarjeta_monto" name="tarjeta_monto" value="<?= e($d['tarjeta_monto']) ?>" step="0.01" min="0"></div>
         </div>
+        <?php endif; ?>
         <?php if ($cliente && $puntos['activo']): ?>
             <div class="campo" style="margin-bottom:0"><label for="puntos">Canjear puntos <small>(tiene <?= (int) $cliente['puntos'] ?>, desde <?= (int) $puntos['minimo_canje'] ?>)</small></label>
                 <input type="number" id="puntos" name="puntos" value="<?= e($d['puntos']) ?>" min="0" max="<?= (int) $cliente['puntos'] ?>" step="1" placeholder="0"
                        <?= (int) $cliente['puntos'] < (int) $puntos['minimo_canje'] ? 'disabled' : '' ?>>
                 <small><?= (int) $cliente['puntos'] ?> puntos = <?= dinero((int) $cliente['puntos'] * $valorPunto) ?></small></div>
-        <?php elseif (!$cliente && !$cita): ?>
+        <?php elseif (!$cliente && !$cita && ($conPaquetes || $conPuntos)): ?>
             <p class="suave" style="margin:0;font-size:.9rem">Elige el cliente arriba para usar sus paquetes o puntos.</p>
         <?php endif; ?>
     </div>

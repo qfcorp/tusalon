@@ -17,7 +17,7 @@ if ($u) {
             'mi_portal'   => ['Mi día', 'M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z'],
             'solicitudes' => ['Solicitudes', 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4'],
         ];
-        if (($u['tipo_profesional'] ?? '') === 'alquiler' && es_completa($u)) {
+        if (($u['tipo_profesional'] ?? '') === 'alquiler' && modulo('clientes_privados', $u)) {
             $menu['mis_clientes'] = ['Mis clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'];
         }
     } elseif (es_recepcion($u)) {
@@ -54,7 +54,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=13">
+<link rel="stylesheet" href="/assets/app.css?v=14">
 </head>
 <body class="<?= $u ? 'con-sesion' : 'sin-sesion' ?>">
 <?php if ($u): ?>
@@ -63,7 +63,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <span class="marca-sello" aria-hidden="true">Ts</span>
         <span class="marca-texto">
             <strong><?= e($u['salon']) ?></strong>
-            <small>Plan <?= $u['plan_codigo'] === 'completa' ? 'Completa' : 'Básica' ?></small>
+            <small><?= $u['estado'] === 'prueba' ? 'Demo' : 'Plan ' . e(modulos()->planes()[$u['plan_codigo']]['nombre'] ?? $u['plan_codigo']) ?></small>
         </span>
     </a>
     <nav class="menu">
@@ -82,16 +82,16 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <?php elseif (!es_peluquero($u)): ?>
         <a href="<?= e(url('clientes')) ?>">Clientes</a>
         <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
-        <a href="<?= e(url('reporte')) ?>">Reporte del mes</a>
-        <a href="<?= e(url('gastos')) ?>">Gastos y facturas</a>
+        <?php if (modulo('reportes')): ?><a href="<?= e(url('reporte')) ?>">Reporte del mes</a><?php endif; ?>
+        <?php if (modulo('gastos_sri')): ?><a href="<?= e(url('gastos')) ?>">Gastos y facturas</a><?php endif; ?>
         <a href="<?= e(url('servicios')) ?>">Servicios y precios</a>
-        <a href="<?= e(url('inventario')) ?>">Inventario</a>
-        <a href="<?= e(url('paquetes')) ?>">Paquetes</a>
-        <a href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a>
-        <a href="<?= e(url('puntos')) ?>">Puntos</a>
+        <?php if (modulo('inventario')): ?><a href="<?= e(url('inventario')) ?>">Inventario</a><?php endif; ?>
+        <?php if (modulo('paquetes_regalo')): ?><a href="<?= e(url('paquetes')) ?>">Paquetes</a><?php endif; ?>
+        <?php if (modulo('paquetes_regalo')): ?><a href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a><?php endif; ?>
+        <?php if (modulo('puntos')): ?><a href="<?= e(url('puntos')) ?>">Puntos</a><?php endif; ?>
         <a href="<?= e(url('horario')) ?>">Horario y reservas en línea</a>
         <a href="<?= e(url('cuentas')) ?>">Cuentas del equipo</a>
-        <a href="<?= e(url('recepcion')) ?>">Recepción</a>
+        <?php if (modulo('recepcion')): ?><a href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
         <a href="<?= e(url('completa')) ?>">Mi plan</a>
         <?php endif; ?>
         <a href="<?= e(url('salir')) ?>">Cerrar sesión</a>
@@ -102,8 +102,8 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
 <main class="principal" id="contenido">
     <?php if ($diasPrueba !== null && $diasPrueba >= 0): ?>
         <p class="franja-prueba">
-            Prueba gratis: <?= $diasPrueba === 0 ? 'termina hoy' : "te quedan $diasPrueba " . ($diasPrueba === 1 ? 'día' : 'días') ?>.
-            <a href="<?= e(url('completa')) ?>">Ver planes</a>
+            Demo: <?= $diasPrueba === 0 ? 'termina hoy' : "te quedan $diasPrueba " . ($diasPrueba === 1 ? 'día' : 'días') ?>.
+            <a href="<?= e(url('completa')) ?>">Contratar mi plan</a>
         </p>
     <?php endif; ?>
     <?php if ($adminViendo): ?>

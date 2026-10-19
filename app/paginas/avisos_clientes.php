@@ -18,7 +18,7 @@ if (es_post()) {
 }
 $manana = $auto->recordatoriosManana($sid, $ahora, false);
 $cumples = $auto->cumpleanosHoy($sid, $ahora);
-$recuperar = es_completa($u) ? $auto->porRecuperar($sid, $ahora) : [];
+$recuperar = modulo('recuperar_clientes') ? $auto->porRecuperar($sid, $ahora) : [];
 $st = db()->prepare('SELECT semanas_sin_volver FROM salones WHERE id = ?');
 $st->execute([$sid]);
 $semanas = (int) $st->fetchColumn();

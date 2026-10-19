@@ -1,36 +1,31 @@
 <?php
-
+/**
+ * "Solicitar demo" (antes: registro con prueba gratis). Nada se da gratis, todo se pide demo:
+ * este formulario NO crea un salón. Guarda el pedido (PedidosDemo) y Tukán lo atiende desde el Panel Tukán Central
+ * (solicitud demo_pedida → crear_demo) o desde su propio panel (Inicio → Pedidos de demo).
+ */
 if (usuario()) {
     redirigir('inicio');
 }
 $errores = [];
-$d = ['salon' => '', 'nombre' => '', 'telefono' => '', 'email' => '', 'plan' => 'completa'];
+$enviado = !empty($_SESSION['demo_pedida']);
+unset($_SESSION['demo_pedida']);
+$d = ['nombre' => '', 'salon' => '', 'ciudad' => '', 'whatsapp' => '', 'email' => '', 'necesita' => '', 'modulos' => []];
 
 if (es_post()) {
     verificar_csrf();
-    foreach ($d as $k => $_) {
-        $d[$k] = trim((string) ($_POST[$k] ?? ''));
+    foreach (['nombre', 'salon', 'ciudad', 'whatsapp', 'email', 'necesita'] as $k) $d[$k] = trim((string) ($_POST[$k] ?? ''));
+    $d['modulos'] = \TuSalon\Modulos::limpiar(array_map('strval', (array) ($_POST['modulos'] ?? [])));
+    if (trim((string) ($_POST['sitio_web'] ?? '')) !== '') {   // trampa para robots: una persona no ve este campo
+        $_SESSION['demo_pedida'] = true;
+        redirigir('registro');
     }
-    $d['email'] = strtolower($d['email']);
-    $clave = (string) ($_POST['clave'] ?? '');
-
-    if (mb_strlen($d['salon']) < 3) $errores[] = 'Escribe el nombre de tu salón o barbería.';
-    if (mb_strlen($d['nombre']) < 2) $errores[] = 'Escribe tu nombre.';
-    if (!filter_var($d['email'], FILTER_VALIDATE_EMAIL)) $errores[] = 'El correo no es válido.';
-    if (strlen($clave) < 8) $errores[] = 'La contraseña debe tener al menos 8 caracteres.';
-    if (!in_array($d['plan'], ['basica', 'completa'], true)) $errores[] = 'Elige un plan.';
-
-    if (!$errores) {
-        try {
-            $alta = (new \TuSalon\Altas(db()))->crearSalonConDueno($d['salon'], $d['nombre'], $d['telefono'], $d['email'], $clave, $d['plan']);
-            session_regenerate_id(true);
-            $_SESSION['usuario_id'] = $alta['usuario_id'];
-            $dias = (int) (new \TuSalon\Planes(db()))->ajuste('dias_prueba');
-            aviso("¡Listo! Tu salón está creado. Tienes $dias días gratis para probar todo.");
-            redirigir('inicio');
-        } catch (RuntimeException $e) {
-            $errores[] = $e->getMessage();
-        }
+    try {
+        (new \TuSalon\PedidosDemo(db()))->crear($d, ip_visitante());
+        $_SESSION['demo_pedida'] = true;
+        redirigir('registro');
+    } catch (RuntimeException $e) {
+        $errores[] = $e->getMessage();
     }
 }
-vista('registro', ['errores' => $errores, 'd' => $d], 'Prueba gratis · TuSalón');
+vista('registro', ['errores' => $errores, 'd' => $d, 'enviado' => $enviado], 'Solicitar demo · TuSalón');

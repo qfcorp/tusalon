@@ -15,7 +15,7 @@ $fecha = (string) ($_GET['f'] ?? '');
 $prof = (int) ($_GET['p'] ?? 0);
 $serv = (int) ($_GET['serv'] ?? 0);
 
-$ok = $salon && $salon['plan_codigo'] === 'completa'
+$ok = $salon && modulos()->activo((int) $salon['id'], 'reservas_linea')
     && planes()->alDia($salon);
 if (!$ok || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) || $fecha < date('Y-m-d')
     || $fecha > date('Y-m-d', strtotime('+60 days')) || !$prof || !$serv) {

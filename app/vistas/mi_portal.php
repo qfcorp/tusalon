@@ -27,7 +27,7 @@ $diaAnterior = '';
     </nav>
 </div>
 
-<?php if ($yo['tipo'] === 'alquiler' && es_completa($u)): ?>
+<?php if ($yo['tipo'] === 'alquiler' && modulo('clientes_privados')): ?>
     <a class="aviso franja-avisos" href="<?= e(url('mis_clientes')) ?>">👤 Mis clientes: guarda a tus clientes propios (solo tú los ves) y agéndalos en tu silla · Ver</a>
 <?php endif; ?>
 
@@ -74,7 +74,7 @@ $diaAnterior = '';
                         <div style="flex:1">
                             <div class="principal-linea"><?= e($c['cliente'] ?: 'Sin cliente') ?></div>
                             <div class="linea-sub"><?= e($c['servicios']) ?></div>
-                            <?php if ($c['cliente_id'] && es_completa($u)): ?><a class="linea-sub" href="<?= e(url('ficha', ['cliente' => $c['cliente_id']])) ?>">Ficha técnica</a><?php endif; ?>
+                            <?php if ($c['cliente_id'] && modulo('ficha_tecnica')): ?><a class="linea-sub" href="<?= e(url('ficha', ['cliente' => $c['cliente_id']])) ?>">Ficha técnica</a><?php endif; ?>
                         </div>
                         <?php if ($c['estado'] === 'pendiente'): ?>
                             <a class="etq etq-pendiente" href="<?= e(url('solicitudes')) ?>">Por aceptar</a>

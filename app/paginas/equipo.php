@@ -23,7 +23,7 @@ if (es_post()) {
                 aviso("$nom ya no puede entrar a su portal.");
                 redirigir('equipo');
             }
-            if (!es_completa($u)) throw new RuntimeException('El portal del peluquero es del plan Completa.');
+            if (!modulo('portal_peluquero')) throw new RuntimeException('El portal del peluquero no está en tu plan.');
             $email = strtolower(trim((string) ($_POST['email'] ?? '')));
             $clave = (string) ($_POST['clave'] ?? '');
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('El correo no es válido.');

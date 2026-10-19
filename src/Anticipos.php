@@ -68,6 +68,7 @@ final class Anticipos
     /** Cuánto anticipo le toca a este cliente para una cita de este valor (0 = no se pide). */
     public function montoRequerido(int $salonId, ?int $clienteId, float $totalCita): float
     {
+        if (!(new Modulos($this->db))->activo($salonId, 'anticipos')) return 0.0;   // Anexo B: módulo apagado = sin anticipo
         $c = $this->config($salonId);
         if ($c['anticipo_modo'] === 'no' || $totalCita <= 0) return 0.0;
         if (!$c['transferencia_lista'] && !$c['payphone_listo']) return 0.0;

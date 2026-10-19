@@ -2,7 +2,7 @@
 <div class="cabecera">
     <div><h1>Salones (<?= count($salones) ?>)</h1>
         <p>Todos los salones y barberías que usan TuSalón.</p></div>
-    <a class="boton" href="<?= e(url('admin_nuevo')) ?>">+ Nuevo salón</a>
+    <a class="boton" href="<?= e(url('admin_nuevo')) ?>">+ Nueva demo</a>
 </div>
 
 <form method="get" class="bloque filtros-admin">

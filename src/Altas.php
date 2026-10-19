@@ -7,8 +7,8 @@ use PDO;
 use RuntimeException;
 
 /**
- * Alta de un salón nuevo con su dueño: la usan el registro público (prueba gratis)
- * y el panel del super administrador.
+ * Alta de un salón nuevo con su dueño (siempre como demo, estado "prueba"): la usan el panel del super administrador
+ * y el Panel Tukán Central (crear_demo). No hay registro público: el formulario "Solicitar demo" solo guarda el pedido.
  */
 final class Altas
 {
@@ -30,15 +30,16 @@ final class Altas
         }
     }
 
-    public const ORIGENES = ['registro', 'super', 'central'];
+    /** registro = se registró solo (solo salones viejos: ya no hay prueba gratis), super, central, demo_pedida (demo de un pedido del formulario). */
+    public const ORIGENES = ['registro', 'super', 'central', 'demo_pedida'];
 
     /**
-     * Crea el salón (en prueba gratis), su dueño como peluquero, su usuario, 5 servicios de ejemplo y el horario.
+     * Crea el salón (en demo), su dueño como peluquero, su usuario, 5 servicios de ejemplo y el horario.
      * $origen: de dónde vino el cliente (registro = se registró solo, super = panel de Tukán, central = Panel Tukán Central).
      * @return array{salon_id:int, usuario_id:int, slug:string}
      */
     public function crearSalonConDueno(string $salon, string $nombre, string $telefono, string $email,
-                                       string $clave, string $plan, string $origen = 'registro'): array
+                                       string $clave, string $plan, string $origen = 'super'): array
     {
         if (!in_array($origen, self::ORIGENES, true)) throw new RuntimeException('Origen no válido.');
         $salon = trim($salon);

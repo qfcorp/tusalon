@@ -1,7 +1,7 @@
 <?php
 /** Diseño del panel del super administrador. @var string $contenido @var string $titulo @var ?array $admin */
 $rutaActual = (string) ($_GET['r'] ?? '');
-$menuAdmin = ['admin' => 'Resumen', 'admin_salones' => 'Salones', 'admin_nuevo' => 'Nuevo salón', 'admin_planes' => 'Planes y precios'];
+$menuAdmin = ['admin' => 'Resumen', 'admin_salones' => 'Salones', 'admin_nuevo' => 'Nueva demo', 'admin_planes' => 'Planes y precios'];
 $avisos = tomar_avisos();
 // Si entró desde el Panel Tukán Central, botón para volver allá
 $volverCentral = (!empty($_SESSION['desde_central']) && \TuSalon\TukanCentral::config()) ? \TuSalon\TukanCentral::urlCentral() : null;
@@ -17,7 +17,7 @@ $volverCentral = (!empty($_SESSION['desde_central']) && \TuSalon\TukanCentral::c
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=13">
+<link rel="stylesheet" href="/assets/app.css?v=14">
 </head>
 <body class="admin">
 <?php if ($admin): ?>

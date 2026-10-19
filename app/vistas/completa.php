@@ -1,55 +1,148 @@
 <?php
-$wa = fn(string $plan, string $periodo) => 'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode(
-    "Hola, quiero contratar TuSalón plan $plan ($periodo) para mi salón \"{$u['salon']}\" ({$u['email']}).");
+/** Mi plan (Anexo B). Variables: $detalle, $catalogo, $planes, $plan, $precios, $pedidos, $resaltar. */
+$play = en_app_play();
+$esDemo = $detalle['demo'];
+$wa = fn(string $texto) => 'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode($texto);
 $filas = ['mensual' => planes()->textoPeriodo('mensual'), 'semestral' => planes()->textoPeriodo('semestral'), 'anual' => planes()->textoPeriodo('anual')];
-// Solo lo que existe y se puede usar hoy (sin promesas): cada línea tiene su pantalla.
-$completa = [
-    'Personas ilimitadas',
-    'Reservas en línea con tu propio enlace',
-    'Recordatorios por WhatsApp con un toque y avisos automáticos por Telegram',
-    'Anticipo en línea para que el cliente no falte',
-    'Comisiones por servicio y producto, reparto del porcentaje y propinas, con la cuenta de cada peluquero',
-    'Clientes privados para quien alquila el puesto',
-    'Cuenta de recepción: agenda y cobra sin ver tus ganancias',
-    'Ficha técnica de color con fotos antes y después',
-    'Inventario, paquetes, tarjetas de regalo y puntos',
-    'Gastos con las facturas que recibes del SRI y ganancia real',
-    'App para que cada peluquero vea su agenda y sus comisiones',
-];
-?>
-<?php if (en_app_play()):
-    $gp = new TuSalon\GooglePlay(db());
-    $compras = $gp->deSalon((int) $u['salon_id']);
-    $nombres = ['basica' => 'Básica', 'completa' => 'Completa'];
-    $resumenes = ['basica' => 'Agenda, clientes, caja diaria y cuentas del equipo, para hasta 3 personas.',
-                  'completa' => 'Todo, sin límite de personas: reservas en línea, anticipo, recepción, gastos con tus facturas del SRI, paquetes, tarjetas de regalo, puntos, ficha de color, inventario y reporte del mes.'];
+$abiertos = [];
+foreach ($pedidos as $p) if (in_array($p['estado'], ['pendiente', 'en_proceso'], true)) foreach (TuSalon\Modulos::limpiar($p['modulos']) as $m) $abiertos[$m] = $p;
+$etiqueta = function (string $id) use ($detalle, $catalogo, $play): string {
+    if (in_array($id, $detalle['del_plan'], true) && !in_array($id, $detalle['quitados'], true)) return 'Incluido en tu plan';
+    if (in_array($id, $detalle['extra'], true)) return $play ? 'Extra' : 'Extra · ' . dinero($catalogo[$id]['precio_mensual']) . ' al mes';
+    return $play ? 'Para agregar' : '+' . dinero($catalogo[$id]['precio_mensual']) . ' al mes';
+};
+$activos = array_values(array_filter($catalogo, fn($m) => in_array($m['id'], $detalle['activos'], true)));
+$disponibles = array_values(array_filter($catalogo, fn($m) => !in_array($m['id'], $detalle['contratados'], true)));
+$vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 ?>
 <div class="cabecera">
     <div>
-        <h1>Planes de TuSalón</h1>
-        <p>Tu plan actual: <strong><?= $u['plan_codigo'] === 'completa' ? 'Completa' : 'Básica' ?></strong><?= $u['estado'] === 'prueba' ? ' (en prueba gratis)' : '' ?><?= !empty($u['activo_hasta']) ? ' · pagado hasta el ' . (new DateTimeImmutable($u['activo_hasta']))->format('d/m/Y') : '' ?></p>
+        <h1>Mi plan</h1>
+        <p>Plan <strong><?= e($plan['nombre']) ?></strong><?= $esDemo ? ' · <strong>Demo</strong> con todos los módulos encendidos para que pruebes' : '' ?>
+            <?= $vence ? ' · ' . ($esDemo ? 'hasta el ' : 'pagado hasta el ') . (new DateTimeImmutable($vence))->format('d/m/Y') : '' ?></p>
     </div>
 </div>
-<div id="pago-play" data-csrf="<?= e(token_csrf()) ?>" data-volver="<?= e(url('inicio')) ?>">
+
+<?php if (!$play): ?>
+<section class="bloque" id="total">
+    <h2><?= $esDemo ? 'Lo que pagarías al contratar' : 'Lo que pagas al mes' ?></h2>
+    <ul class="lista">
+        <li><span>Plan <?= e($plan['nombre']) ?></span><span class="monto"><?= dinero($detalle['precio_plan']) ?></span></li>
+        <?php foreach ($detalle['extra'] as $id): ?>
+            <li><span><?= e($catalogo[$id]['icono'] . ' ' . $catalogo[$id]['nombre']) ?> <small>(extra)</small></span><span class="monto"><?= dinero($catalogo[$id]['precio_mensual']) ?></span></li>
+        <?php endforeach; ?>
+        <?php foreach ($detalle['quitados'] as $id): ?>
+            <li><span><?= e($catalogo[$id]['nombre']) ?> <small>(lo quitaste del plan)</small></span><span class="monto monto-neg"><?= dinero(-$catalogo[$id]['descuento']) ?></span></li>
+        <?php endforeach; ?>
+        <?php if ($detalle['precio_acordado'] !== null): ?>
+            <li><span>Precio acordado con Tukán</span><span class="monto"><?= dinero($detalle['precio_acordado']) ?></span></li>
+        <?php endif; ?>
+    </ul>
+    <p class="total-plan"><span>Total al mes</span><span data-total-mensual><?= dinero($detalle['mensual']) ?></span></p>
+    <table class="tabla" style="margin-top:12px">
+        <?php foreach ($filas as $per => $txt): $c = $precios[$per]; ?>
+            <tr><td><?= e($txt) ?></td><td class="der"><strong><?= dinero($c['monto']) ?></strong><br><small><?= dinero($c['precio_por_mes']) ?> al mes</small></td>
+                <td class="der"><a class="boton boton-chico <?= $per === 'mensual' ? 'boton-claro' : '' ?>" href="<?= e($wa("Hola, quiero " . ($esDemo ? 'contratar' : 'renovar') . " TuSalón ($txt) para mi salón \"{$u['salon']}\" ({$u['email']}).")) ?>" target="_blank" rel="noopener"><?= $esDemo ? 'Contratar' : 'Renovar' ?></a></td></tr>
+        <?php endforeach; ?>
+    </table>
+    <p class="suave">Pagas por transferencia, DeUna o tarjeta. Tukán te activa el plan el mismo día.</p>
+</section>
+<?php endif; ?>
+
+<?php if ($pedidos): ?>
+<section class="bloque" id="pedidos">
+    <h2>Tus pedidos de módulos</h2>
+    <ul class="lista">
+        <?php foreach (array_slice($pedidos, 0, 8) as $p):
+            $txt = ['pendiente' => 'Tukán lo está revisando', 'en_proceso' => 'Tukán lo está revisando', 'atendida' => 'Encendido', 'descartada' => 'No se aprobó'][$p['estado']]; ?>
+            <li><span><?= e(implode(', ', array_map([modulos(), 'nombre'], TuSalon\Modulos::limpiar($p['modulos'])))) ?>
+                <br><small>Pedido el <?= (new DateTimeImmutable($p['creado']))->format('d/m/Y') ?><?= $p['respuesta'] && $p['estado'] === 'descartada' ? ' · ' . e($p['respuesta']) : '' ?></small></span>
+                <span class="etq <?= $p['estado'] === 'atendida' ? 'etq-confirmada' : ($p['estado'] === 'descartada' ? 'etq-cancelada' : 'etq-pendiente') ?>"><?= $txt ?></span></li>
+        <?php endforeach; ?>
+    </ul>
+</section>
+<?php endif; ?>
+
+<section class="bloque">
+    <h2><?= $esDemo ? 'Todo lo que tiene tu demo' : 'Tus módulos encendidos' ?></h2>
+    <?php if (!$activos): ?>
+        <p class="vacio">Tu plan trae solo la base (abajo). Agrega los módulos que necesites.</p>
+    <?php else: ?>
+    <ul class="modulos">
+        <?php foreach ($activos as $m): ?>
+        <li class="modulo modulo-activo" id="modulo-<?= e($m['id']) ?>" data-modulo="<?= e($m['id']) ?>">
+            <span class="modulo-icono" aria-hidden="true"><?= e($m['icono']) ?></span>
+            <div class="modulo-cuerpo"><strong><?= e($m['nombre']) ?></strong><p><?= e($m['descripcion']) ?></p></div>
+            <div class="modulo-lado"><span class="etq etq-confirmada"><?= e($esDemo && !in_array($m['id'], $detalle['contratados'], true) ? 'Solo en la demo' : $etiqueta($m['id'])) ?></span>
+                <?php if ($esDemo && !in_array($m['id'], $detalle['contratados'], true) && !$play): ?>
+                    <?php if (isset($abiertos[$m['id']])): ?><small>Ya lo pediste</small><?php else: ?>
+                    <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
+                        <button class="boton boton-claro boton-chico" type="submit">Lo quiero · +<?= dinero($m['precio_mensual']) ?></button></form>
+                    <?php endif; ?>
+                <?php endif; ?></div>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+    <?php endif; ?>
+</section>
+
+<?php if (!$esDemo && $disponibles): ?>
+<section class="bloque" id="agregar">
+    <h2>Módulos que puedes agregar</h2>
+    <p class="suave">Si lo usaste antes, tus datos están guardados: al encenderlo vuelve todo como estaba.</p>
+    <ul class="modulos">
+        <?php foreach ($disponibles as $m): $pedido = isset($abiertos[$m['id']]); ?>
+        <li class="modulo <?= $resaltar === $m['id'] ? 'modulo-activo' : '' ?>" id="modulo-<?= e($m['id']) ?>" data-modulo="<?= e($m['id']) ?>">
+            <span class="modulo-icono" aria-hidden="true"><?= e($m['icono']) ?></span>
+            <div class="modulo-cuerpo"><strong><?= e($m['nombre']) ?></strong><p><?= e($m['descripcion']) ?></p>
+                <?php if ($m['depende_de']): ?><p class="suave">Necesita: <?= e(implode(', ', array_map([modulos(), 'nombre'], $m['depende_de']))) ?> (se agrega solo).</p><?php endif; ?></div>
+            <div class="modulo-lado">
+                <?php if (!$play): ?><span class="modulo-precio"><?= e($etiqueta($m['id'])) ?></span><?php endif; ?>
+                <?php if ($pedido): ?><span class="etq etq-pendiente">Pedido</span>
+                <?php elseif (!$play): ?>
+                    <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
+                        <button class="boton boton-chico" type="submit">Pedir este módulo</button></form>
+                <?php endif; ?>
+            </div>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+</section>
+<?php endif; ?>
+
+<section class="bloque">
+    <h2>Lo que siempre tienes</h2>
+    <ul style="margin:0;padding-left:20px">
+        <?php foreach (TuSalon\Modulos::BASE as $b): ?><li><?= e($b) ?></li><?php endforeach; ?>
+    </ul>
+</section>
+
+<?php if ($play):
+    $gp = new TuSalon\GooglePlay(db());
+    $compras = $gp->deSalon((int) $u['salon_id']);
+    $nombres = array_map(fn($p) => $p['nombre'], $planes);
+?>
+<section class="bloque" id="pago-play" data-csrf="<?= e(token_csrf()) ?>" data-volver="<?= e(url('inicio')) ?>">
+    <h2>Paga tu plan con Google Play</h2>
     <p class="aviso" id="play-estado" role="status">Cargando los precios de Google Play…</p>
     <div class="rejilla rejilla-2">
-        <?php foreach (['basica', 'completa'] as $plan): ?>
-        <section class="bloque" style="<?= $plan === 'completa' ? 'border-color:var(--verde);box-shadow:0 0 0 2px var(--verde-claro)' : '' ?>">
-            <h2><?= $nombres[$plan] ?></h2>
-            <p><?= e($resumenes[$plan]) ?></p>
+        <?php foreach (['basica', 'completa'] as $pc): if (!isset($planes[$pc])) continue; ?>
+        <div class="bloque" style="<?= $pc === 'completa' ? 'border-color:var(--verde);box-shadow:0 0 0 2px var(--verde-claro)' : '' ?>">
+            <h3><?= e($planes[$pc]['nombre']) ?></h3>
+            <p class="suave"><?= $planes[$pc]['modulos'] ? count($planes[$pc]['modulos']) . ' módulos incluidos' : 'Solo la base' ?></p>
             <div class="opciones">
                 <?php foreach (['mensual' => 'Cada mes', 'semestral' => 'Cada 6 meses', 'anual' => 'Cada año'] as $per => $txt):
-                    $prod = TuSalon\GooglePlay::producto($plan, $per); ?>
+                    $prod = TuSalon\GooglePlay::producto($pc, $per); ?>
                     <button type="button" class="opcion boton-play" data-producto="<?= e($prod) ?>" disabled style="justify-content:space-between;width:100%;text-align:left;cursor:pointer">
                         <span><strong><?= $txt ?></strong></span><span class="monto" data-precio="<?= e($prod) ?>">—</span>
                     </button>
                 <?php endforeach; ?>
             </div>
-        </section>
+        </div>
         <?php endforeach; ?>
     </div>
     <p class="suave">El pago lo hace Google Play con tu cuenta de Google. Se renueva solo; lo cancelas cuando quieras en Play Store → Pagos y suscripciones.</p>
-</div>
+</section>
 <?php if ($compras): ?>
 <section class="bloque">
     <h2>Tus pagos con Google Play</h2>
@@ -60,38 +153,4 @@ $completa = [
 </section>
 <?php endif; ?>
 <script src="/assets/play.js?v=1" defer></script>
-<?php return; endif; ?>
-<div class="cabecera">
-    <div>
-        <h1>Planes de TuSalón</h1>
-        <p>Tu plan actual: <strong><?= $u['plan_codigo'] === 'completa' ? 'Completa' : 'Básica' ?></strong><?= $u['estado'] === 'prueba' ? ' (en prueba gratis)' : '' ?></p>
-    </div>
-</div>
-
-<div class="rejilla rejilla-2">
-    <section class="bloque">
-        <h2>Básica · <?= dinero($precios['basica']['mensual']['monto']) ?> al mes</h2>
-        <p>Agenda, clientes, caja diaria y cuentas del equipo para hasta 3 personas. Recordatorios por WhatsApp con un toque.</p>
-        <table class="tabla">
-            <?php foreach ($filas as $per => $txt): $c = $precios['basica'][$per]; ?>
-                <tr><td><?= $txt ?></td><td class="der"><strong><?= dinero($c['monto']) ?></strong><br><small><?= dinero($c['precio_por_mes']) ?> al mes</small></td>
-                    <td class="der"><a class="boton boton-claro boton-chico" href="<?= e($wa('Básica', $txt)) ?>" target="_blank" rel="noopener">Contratar</a></td></tr>
-            <?php endforeach; ?>
-        </table>
-    </section>
-
-    <section class="bloque" style="border-color:var(--verde);box-shadow:0 0 0 2px var(--verde-claro)">
-        <h2>Completa · <?= dinero($precios['completa']['mensual']['monto']) ?> al mes</h2>
-        <p>Todo lo de Básica, más:</p>
-        <ul style="margin:0 0 12px;padding-left:20px">
-            <?php foreach ($completa as $item): ?><li><?= e($item) ?></li><?php endforeach; ?>
-        </ul>
-        <table class="tabla">
-            <?php foreach ($filas as $per => $txt): $c = $precios['completa'][$per]; ?>
-                <tr><td><?= $txt ?></td><td class="der"><strong><?= dinero($c['monto']) ?></strong><br><small><?= dinero($c['precio_por_mes']) ?> al mes</small></td>
-                    <td class="der"><a class="boton boton-chico" href="<?= e($wa('Completa', $txt)) ?>" target="_blank" rel="noopener">Contratar</a></td></tr>
-            <?php endforeach; ?>
-        </table>
-    </section>
-</div>
-<p class="suave">Pagas por transferencia, DeUna o tarjeta. Te activamos el plan el mismo día.</p>
+<?php endif; ?>
