@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 18 de octubre de 2026
+Última actualización: 20 de octubre de 2026
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -16,7 +16,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] SRI: NO emitimos facturas. Se importan del SRI las facturas que el salón **RECIBE** de sus proveedores (tintes, shampoo, luz, agua, arriendo del local) para mostrar los gastos en el panel del dueño
 - [x] **Todo por módulos (18 oct 2026):** cada función se enciende o apaga por salón y tiene su precio. Plan Básica $25/mes = solo la base; Plan Completa $35/mes = todos los módulos (sueltos suman $45)
 - [x] **Precios del software solo por cotización (20 oct 2026):** Mi plan ya no muestra el precio de los módulos que el salón no tiene («Precio por cotización» + **Pedir cotización**, mismo pedido `cambio_modulos` al Panel Tukán Central); en la demo el botón es «Lo quiero · Pedir cotización»; «No está en tu plan» ya no dice «$X al mes más tu plan» y trae **Pedir cotización** y **Ver Mi plan**. Lo que paga por su propio plan y su renovación se sigue viendo. README y guía `docs/manual/MODULOS_Y_DEMOS.md` sin precios, capturas 40–45 nuevas. Ningún texto, guía ni manual usa la palabra prohibida (solo demos; en ventas: «meses de regalo»). Pruebas: `prueba_modulos.php` §10–11 y `prueba_web_modulos.sh`.
-- [ ] DIMI: el manual viejo `docs/Manual_TuSalon.pdf` (48 páginas) todavía promete 7 días de prueba y muestra los precios de los planes; su fuente no está en este repo: hay que rehacerlo.
+- [x] **Manual nuevo y regenerable (20 oct 2026):** `docs/Manual_TuSalon.pdf` rehecho desde `docs/manual/manual.html` con capturas reales del salón de ejemplo (`docs/manual/capturas/`), sin la palabra prohibida ni precios del software, todo por módulos y con «Pedir cotización». Se regenera con `bash docs/manual/generar/generar.sh` (avisa y falla si aparece la palabra prohibida o un precio del software). Explicación en `docs/MANUAL.md`.
 - [x] **Nada se da gratis, todo se pide demo (18 oct 2026):** no hay registro con prueba gratis; el formulario público es "Solicitar demo" y Tukán prepara cada demo
 - [x] Semestral: paga 5, recibe 6 (Básica $125, Completa $175) — sale a $20,83 y $29,17 al mes
 - [x] Anual: paga 10, recibe 12 (Básica $250, Completa $350) + dominio propio .com del salón mientras dure el contrato (~$10,46/año en Cloudflare)
@@ -75,7 +75,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] **Nada se da gratis**: "Solicitar demo" en vez de registro (nombre, salón, ciudad, WhatsApp, correo, qué necesita, módulos de interés); ningún texto dice "prueba gratis"; "Tu demo terminó — contáctanos para contratar"; Google Play sin prueba gratis en las suscripciones
 - [x] Pruebas: `prueba_modulos.php` y `prueba_web_modulos.sh` (+ capturas a 390 px y en computadora). Totales: lógica 1006/1006 y pantallas 737/737, sin avisos de PHP
 - [ ] DIMI: actualizar el servidor con el instalador (corre la migración 008). Revisar los precios de los módulos en Panel Tukán → Planes y precios
-- [ ] DIMI: la presentación de ventas y el manual en PDF (docs/Manual_TuSalon.pdf) hay que rehacerlos con los módulos y "Solicitar demo" (guía nueva en `docs/manual/MODULOS_Y_DEMOS.md`, con capturas)
+- [ ] DIMI: la presentación de ventas hay que rehacerla con los módulos y "Solicitar demo" (guía en `docs/manual/MODULOS_Y_DEMOS.md`; el manual ya está rehecho, ver `docs/MANUAL.md`)
 - [ ] PENDIENTE: web tukansoftware.com (qfcorp/tukan-web): cambiar "Prueba gratis 7 días" por "Solicitar demo"
 
 ## Hecho (15 oct 2026) — Pausar y borrar salones desde el Panel Tukán Central (Anexo A)

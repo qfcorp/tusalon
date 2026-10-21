@@ -31,6 +31,7 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 
 Planes: **Básica** = solo la base · **Completa** = todos los módulos. Precio de cada salón = plan + módulos extra − descuento de los que quitó (o un **precio acordado** fijo); lo ve y lo cambia solo Tukán (Panel Tukán → Planes y precios, o el Panel Tukán Central). Semestral paga 5 y recibe 6; anual paga 10, recibe 12 (meses de regalo) y trae dominio propio.
 
+- **Manual para los clientes: [docs/Manual_TuSalon.pdf](docs/Manual_TuSalon.pdf)** (cómo se arma y se regenera: [docs/MANUAL.md](docs/MANUAL.md))
 - Plan y avance del proyecto: [BLOC_DE_NOTAS.md](BLOC_DE_NOTAS.md)
 - Cómo se reparte el dinero: [docs/COMO_FUNCIONA_EL_DINERO.md](docs/COMO_FUNCIONA_EL_DINERO.md)
 

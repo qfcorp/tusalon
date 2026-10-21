@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="es-EC">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual de TuSalón</title>
+<!-- Se convierte en docs/Manual_TuSalon.pdf con docs/manual/generar/generar.sh (capturas reales del salón de ejemplo). -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root { --marino: #14213D; --marino-2: #22315A; --amarillo: #FFC93C; --naranja: #FF8A1F; --agua: #2A9D8F; --tinta: #1C2333; --suave: #5B6478;
+        --linea: #DDE1EA; --fondo: #F4F5F8; --consejo: #EAF6EE; --consejo-borde: #2E9B57; --ojo: #FFF2E6; }
+@page { size: A4; margin: 16mm 15mm 18mm 15mm; }
+@page portada { margin: 0; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font-family: "DM Sans", system-ui, sans-serif; font-size: 10.4pt; line-height: 1.5; color: var(--tinta); background: #fff; }
+h1, h2, h3 { font-family: "Space Grotesk", "DM Sans", sans-serif; color: var(--marino); line-height: 1.2; }
+p { margin: 0 0 7px; }
+.portada { page: portada; width: 210mm; height: 297mm; background: var(--marino); color: #fff; position: relative; overflow: hidden; padding: 26mm 20mm; display: flex; flex-direction: column; break-after: page; }
+.portada .marca { font-family: "Space Grotesk"; font-size: 15pt; font-weight: 700; letter-spacing: .5px; }
+.portada .marca i { color: var(--amarillo); font-style: normal; }
+.portada .marca small { display: block; font-family: "DM Sans"; font-weight: 400; font-size: 9.5pt; opacity: .75; }
+.portada h1 { color: #fff; font-size: 48pt; margin: 30mm 0 4mm; letter-spacing: -1px; }
+.portada h1 em { font-style: normal; color: var(--amarillo); }
+.portada .raya { width: 46mm; height: 5px; background: var(--amarillo); border-radius: 3px; margin-bottom: 8mm; }
+.portada .bajada { font-size: 14pt; max-width: 96mm; opacity: .92; line-height: 1.45; }
+.portada .lema { max-width: 92mm; margin-top: 6mm; color: var(--amarillo); font-weight: 700; font-size: 12pt; }
+.portada .telefonos { position: absolute; right: 14mm; bottom: 30mm; display: flex; gap: 6mm; align-items: flex-end; }
+.portada .telefonos img { width: 52mm; height: 112mm; object-fit: cover; object-position: top; border: 7px solid #0A1530; border-radius: 26px; box-shadow: 0 14px 40px rgba(0,0,0,.45); background: #fff; }
+.portada .telefonos img + img { width: 46mm; height: 99mm; margin-bottom: 14mm; }
+.portada .pie { margin-top: auto; font-size: 9.5pt; opacity: .85; line-height: 1.6; max-width: 72mm; }
+.portada .pie b { color: var(--amarillo); }
+.portada .franja { position: absolute; left: 0; right: 0; bottom: 0; height: 9mm; background: linear-gradient(90deg, var(--amarillo) 0 70%, var(--naranja) 70%); }
+.indice { break-after: page; }
+.indice h1 { font-size: 22pt; margin: 0 0 4mm; }
+.intro-caja { background: var(--fondo); border-radius: 10px; padding: 10px 14px; margin-bottom: 6mm; font-size: 10pt; }
+.indice ol { list-style: none; padding: 0; margin: 0; }
+.indice li { display: flex; align-items: baseline; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--linea); }
+.indice li .n { font-family: "Space Grotesk"; font-weight: 700; color: #fff; background: var(--marino); border-radius: 6px; padding: 1px 7px; font-size: 9pt; min-width: 26px; text-align: center; }
+.indice li a { text-decoration: none; color: var(--tinta); font-weight: 700; flex: 1; }
+.indice li small { display: block; font-weight: 400; color: var(--suave); font-size: 8.8pt; }
+.indice li .pag { font-family: "Space Grotesk"; color: var(--marino); font-weight: 700; min-width: 18px; text-align: right; }
+section.cap { break-before: page; }
+section.cap > h1 { font-size: 21pt; margin: 0 0 3mm; padding-bottom: 3mm; border-bottom: 4px solid var(--amarillo); display: flex; align-items: center; gap: 10px; }
+section.cap > h1 .num { background: var(--marino); color: var(--amarillo); border-radius: 8px; padding: 2px 9px; font-size: 15pt; }
+.plan { display: inline-block; font-size: 8.6pt; color: var(--marino); background: #E8ECF5; border-radius: 999px; padding: 2px 10px; margin: 0 0 4mm; }
+.plan::before { content: "◆ "; color: var(--naranja); }
+h2 { font-size: 13.5pt; margin: 6mm 0 2.5mm; break-after: avoid; }
+h3 { font-size: 11pt; margin: 4mm 0 2mm; break-after: avoid; }
+.tarea { display: grid; grid-template-columns: 1fr 50mm; gap: 7mm; align-items: start; break-inside: avoid; margin-bottom: 4mm; }
+ol.pasos { list-style: none; counter-reset: paso; padding: 0; margin: 0 0 3mm; }
+ol.pasos > li { counter-increment: paso; position: relative; padding: 0 0 0 30px; margin: 0 0 6px; min-height: 22px; }
+ol.pasos > li::before { content: counter(paso); position: absolute; left: 0; top: 0; width: 21px; height: 21px; border-radius: 50%; background: var(--amarillo); color: var(--marino); font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+ul.lista { margin: 0 0 3mm; padding-left: 18px; } ul.lista.dos-col { columns: 2; column-gap: 8mm; font-size: 9.6pt; } ul.lista.dos-col li { break-inside: avoid; } ul.lista li { margin-bottom: 3px; }
+figure { margin: 0 0 4mm; break-inside: avoid; }
+figcaption { font-size: 8.4pt; color: var(--suave); text-align: center; margin-top: 2mm; }
+figure.cel img { width: 100%; max-height: 100mm; object-fit: cover; object-position: top; display: block; border: 6px solid #10192F; border-radius: 22px; box-shadow: 0 6px 16px rgba(20,33,61,.18); background: #fff; }
+figure.pc img { width: 100%; max-height: 92mm; object-fit: cover; object-position: top; display: block; border: 1px solid var(--linea); border-radius: 8px; box-shadow: 0 6px 18px rgba(20,33,61,.12); }
+figure.pc.alta img { width: 62%; margin: 0 auto; max-height: 150mm; }
+figure.pc.media img { width: 80%; margin: 0 auto; }
+.dos-cel { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; break-inside: avoid; margin-bottom: 4mm; }
+.consejo, .ojo, .nota { border-radius: 9px; padding: 8px 12px; margin: 0 0 4mm; font-size: 9.8pt; break-inside: avoid; }
+.consejo { background: var(--consejo); border-left: 5px solid var(--consejo-borde); }
+.ojo { background: var(--ojo); border-left: 5px solid var(--naranja); }
+.nota { background: var(--fondo); border-left: 5px solid var(--marino); }
+.consejo > b:first-child, .ojo > b:first-child, .nota > b:first-child { display: block; font-family: "Space Grotesk"; font-size: 9.5pt; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 2px; }
+.consejo > b:first-child { color: var(--consejo-borde); } .ojo > b:first-child { color: #C25A0C; } .nota > b:first-child { color: var(--marino); }
+table.t { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 9.3pt; break-inside: avoid; }
+table.t.partible { break-inside: auto; font-size: 8.5pt; line-height: 1.35; } table.t.partible td { padding: 2px 8px; } table.t tr { break-inside: avoid; }
+table.t th { background: var(--marino); color: #fff; text-align: left; padding: 5px 8px; font-weight: 700; }
+table.t td { padding: 5px 8px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+table.t tr:nth-child(even) td { background: #FAFBFD; }
+.si { color: #2E9B57; font-weight: 700; }
+.contacto { background: var(--marino); color: #fff; border-radius: 12px; padding: 12px 16px; margin-top: 6mm; break-inside: avoid; }
+.contacto b { color: var(--amarillo); }
+</style>
+</head>
+<body>
+
+<div class="portada">
+  <div class="marca">tukán<i>.</i><small>Sistemas que trabajan por tu negocio</small></div>
+  <h1>Manual de <em>TuSalón</em></h1>
+  <div class="raya"></div>
+  <p class="bajada">La agenda de tu peluquería o barbería, las citas en línea, los cobros, la caja y lo que gana cada peluquero, desde el celular o la computadora.</p>
+  <p class="lema">Todo es por módulos: eliges lo que tu salón necesita.</p>
+  <div class="telefonos"><img src="capturas/03_inicio_celular.png" alt=""><img src="capturas/19_reservar_hora.png" alt=""></div>
+  <p class="pie">Capturas reales del salón de ejemplo <b>Salón Demo Tukán</b>.<br>tusalon.tukanec.com<br>WhatsApp 099 640 8397 · info@tukansoftware.com · tukansoftware.com</p>
+  <div class="franja"></div>
+</div>
+
+<div class="indice">
+  <h1>Contenido</h1>
+  <div class="intro-caja"><b>Cómo leer este manual.</b> Cada capítulo es una parte de TuSalón. Arriba de cada uno dice si es de la <b>base</b> (la tienen todos los salones) o de un <b>módulo</b> (se enciende para tu salón). Si un módulo no está en tu plan, su pantalla dice «No está en tu plan» y te deja pedir cotización. Los precios que ves en las capturas son los de los servicios del salón de ejemplo.</div>
+  <ol>
+    <li><span class="n">1</span><a href="#c1">Qué es TuSalón<small>Para quién es y qué resuelve</small></a><span class="pag" data-pag="c1"></span></li>
+    <li><span class="n">2</span><a href="#c2">Entrar e inicio<small>Solicitar demo, entrar, la pantalla Hoy y el menú</small></a><span class="pag" data-pag="c2"></span></li>
+    <li><span class="n">3</span><a href="#c3">Quién entra: dueño, peluquero y recepción<small>Qué ve y qué no ve cada uno</small></a><span class="pag" data-pag="c3"></span></li>
+    <li><span class="n">4</span><a href="#c4">Los 4 tipos de peluquero<small>Dueño, empleado, porcentaje y alquiler de puesto</small></a><span class="pag" data-pag="c4"></span></li>
+    <li><span class="n">5</span><a href="#c5">Planes y módulos<small>La base, los 14 módulos y los planes Básica y Completa</small></a><span class="pag" data-pag="c5"></span></li>
+    <li><span class="n">6</span><a href="#c6">Configuración<small>Horario, reglas de las citas en línea, anticipo y Telegram</small></a><span class="pag" data-pag="c6"></span></li>
+    <li><span class="n">7</span><a href="#c7">Servicios y precios del salón<small>Lo que cobras y lo que pagas al peluquero</small></a><span class="pag" data-pag="c7"></span></li>
+    <li><span class="n">8</span><a href="#c8">Personal y comisiones<small>Agregar peluqueros, accesos, horarios y cuentas del equipo</small></a><span class="pag" data-pag="c8"></span></li>
+    <li><span class="n">9</span><a href="#c9">Agenda y citas<small>Agendar, recordar, confirmar y marcar faltas</small></a><span class="pag" data-pag="c9"></span></li>
+    <li><span class="n">10</span><a href="#c10">Citas en línea<small>Módulo · solicitudes, lo que ve el cliente y el anticipo</small></a><span class="pag" data-pag="c10"></span></li>
+    <li><span class="n">11</span><a href="#c11">Cobro y caja<small>Cobrar, propinas, paquetes, puntos y cierre de caja</small></a><span class="pag" data-pag="c11"></span></li>
+    <li><span class="n">12</span><a href="#c12">Clientes, inventario, paquetes y reportes<small>Ficha del cliente, ficha técnica, avisos, inventario, paquetes, tarjetas, puntos y reporte del mes</small></a><span class="pag" data-pag="c12"></span></li>
+    <li><span class="n">13</span><a href="#c13">Mi plan<small>Tus módulos y «Pedir cotización»</small></a><span class="pag" data-pag="c13"></span></li>
+    <li><span class="n">14</span><a href="#c14">Preguntas frecuentes<small>Y cómo contactar a Tukán</small></a><span class="pag" data-pag="c14"></span></li>
+  </ol>
+</div>
+
+<section class="cap" id="c1">
+  <h1><span class="num">1</span> Qué es TuSalón</h1>
+  <p>TuSalón es el sistema para <b>peluquerías y barberías</b> de Ecuador, de la marca <b>Tukán Software</b>. Reemplaza el cuaderno de citas, la calculadora y los mensajes sueltos de WhatsApp. Funciona en el celular, la tablet y la computadora, sin instalar nada: entras a <b>tusalon.tukanec.com</b> con tu correo y tu contraseña. Todo queda guardado en internet: si se te daña el celular, no pierdes nada.</p>
+  <h2>Lo que resuelve</h2>
+  <ul class="lista">
+    <li><b>La agenda por silla</b>: una columna por peluquero; nadie queda con dos citas a la vez.</li>
+    <li><b>Lo que gana cada uno</b>: en un mismo salón conviven el dueño que atiende, empleados con sueldo o comisión, peluqueros a porcentaje (50/50, 60/40) y quien alquila el puesto. Con cada cobro, TuSalón calcula solo cuánto le toca a cada uno.</li>
+    <li><b>La caja del día</b>: cuánto entró, por qué forma de pago, cuánto efectivo debe haber y el cierre.</li>
+    <li><b>Tus clientes</b>: historial, cumpleaños, alergias y faltas; recordatorios por WhatsApp con un toque.</li>
+    <li><b>Las citas en línea</b> (módulo): tu propio enlace para que los clientes reserven solos a una hora libre.</li>
+  </ul>
+  <h2>Quién lo usa</h2>
+  <table class="t">
+    <tr><th>Quién</th><th>Cómo entra</th><th>Qué hace</th></tr>
+    <tr><td>El dueño</td><td>Con su correo y contraseña</td><td>Todo: agenda, cobros, caja, equipo, servicios, reportes y su plan</td></tr>
+    <tr><td>Recepción (módulo)</td><td>Con la cuenta que le crea el dueño</td><td>Agenda, cobra y cierra la caja sin ver las ganancias</td></tr>
+    <tr><td>El peluquero (módulo)</td><td>Con el acceso que le crea el dueño</td><td>Ve sus citas, lo que hizo y lo que le toca</td></tr>
+    <tr><td>El cliente</td><td>Con el enlace del salón, sin descargar nada</td><td>Reserva, confirma, cambia o cancela su cita y califica</td></tr>
+  </table>
+  <div class="nota"><b>Todo se pide como demo</b>No hay registro abierto ni periodo de prueba. Pides una <b>demo</b>, Tukán te la prepara con los módulos que te interesan y, cuando decides, contratas tu plan. Tus datos de la demo se quedan guardados.</div>
+  <div class="contacto">¿Dudas o quieres tu demo? <b>WhatsApp 099 640 8397</b> · <b>info@tukansoftware.com</b> · <b>tukansoftware.com</b></div>
+</section>
+
+<section class="cap" id="c2">
+  <h1><span class="num">2</span> Entrar e inicio</h1>
+  <span class="plan">Base</span>
+  <h2>Pedir tu demo</h2>
+  <p>En la pantalla de entrada toca <b>Solicitar demo</b>. Llena tu nombre, el nombre de tu salón o barbería, la ciudad, tu WhatsApp, tu correo, qué necesitas y los módulos que te interesan, y toca <b>Solicitar demo</b>. Tukán te escribe por WhatsApp, prepara tu salón y te manda tu correo y contraseña.</p>
+  <figure class="pc"><img src="capturas/02_solicitar_demo.png" alt=""><figcaption>«Solicita tu demo de TuSalón»: el pedido llega a Tukán; no crea el salón solo.</figcaption></figure>
+  <div class="tarea">
+    <div>
+      <h2 style="margin-top:0">Entrar</h2>
+      <ol class="pasos">
+        <li>Abre <b>tusalon.tukanec.com</b> en Chrome o Safari.</li>
+        <li>Escribe tu <b>Correo</b> y tu <b>Contraseña</b>.</li>
+        <li>Toca <b>Entrar</b>. El dueño, la recepción y los peluqueros entran por la misma página; cada uno ve lo suyo.</li>
+      </ol>
+      <div class="consejo"><b>Consejo: úsalo como app</b>En Android (Chrome): menú ⋮ → «Agregar a la pantalla principal». En iPhone (Safari): botón Compartir → «Agregar a inicio». Si tu celular lo permite, en <b>Hoy</b> aparece el recuadro «Instala TuSalón en tu celular» con el botón <b>Instalar</b>.</div>
+      <div class="ojo"><b>Cuando termina la demo</b>Al entrar verás «Tu demo terminó» con los botones <b>Ver Mi plan</b> y <b>Escribir por WhatsApp</b>. Tus citas, clientes y cobros están guardados.</div>
+    </div>
+    <figure class="cel"><img src="capturas/01_entrar_celular.png" alt=""><figcaption>Entrar.</figcaption></figure>
+  </div>
+  <h2>La pantalla Hoy</h2>
+  <div class="tarea">
+    <div>
+      <ul class="lista">
+        <li><b>Nueva cita</b> y <b>Cobrar</b>, arriba.</li>
+        <li><b>Franjas de aviso</b>: solicitudes de cita por aceptar, comprobantes de anticipo por revisar, productos que se acaban, citas de mañana por recordar y cumpleaños de hoy. Tócalas para ir directo.</li>
+        <li><b>Tus números de hoy</b>: lo que entró a la caja, las citas por atender y la ganancia del local.</li>
+        <li><b>Próximas citas</b>, cada una con su botón <b>WhatsApp</b> para recordarle al cliente.</li>
+        <li><b>Tu día como dueño</b>: lo que produjiste en tu silla, lo que entró a la caja y la ganancia del local. Con el módulo «Gastos con facturas del SRI» subes en <b>Más → Gastos y facturas</b> las facturas que te dan tus proveedores (XML, el reporte TXT del SRI o la clave de acceso) y ves la ganancia después de gastos. TuSalón no hace facturas: solo lee las que recibes.</li>
+      </ul>
+      <p>En el celular el menú está abajo: <b>Hoy, Agenda, Solicitudes, Caja y Más</b>. En <b>Más</b> están Clientes, Avisos a clientes, Servicios, Horario y reservas, Cuentas, Mi plan y los módulos que tengas.</p>
+    </div>
+    <figure class="cel"><img src="capturas/03_inicio_celular.png" alt=""><figcaption>Hoy en el celular.</figcaption></figure>
+  </div>
+  <figure class="pc"><img src="capturas/04_inicio_compu.png" alt=""><figcaption>En la computadora el menú está a la izquierda, con los accesos a todo lo demás debajo.</figcaption></figure>
+</section>
+
+<section class="cap" id="c3">
+  <h1><span class="num">3</span> Quién entra: dueño, peluquero y recepción</h1>
+  <span class="plan">Base · Recepción y Portal del peluquero son módulos</span>
+  <table class="t">
+    <tr><th></th><th>Dueño</th><th>Recepción</th><th>Peluquero</th></tr>
+    <tr><td>Agenda, nuevas citas y solicitudes</td><td class="si">Sí</td><td class="si">Sí</td><td>Solo las suyas</td></tr>
+    <tr><td>Cobrar y cerrar la caja</td><td class="si">Sí</td><td class="si">Sí</td><td>No</td></tr>
+    <tr><td>Clientes y recordatorios por WhatsApp</td><td class="si">Sí</td><td class="si">Sí</td><td>Sus clientes privados (si alquila el puesto)</td></tr>
+    <tr><td>Ganancia del local, gastos y reporte del mes</td><td class="si">Sí</td><td>No</td><td>No</td></tr>
+    <tr><td>Cuentas del equipo</td><td class="si">Sí</td><td>No</td><td>Solo lo que gana él</td></tr>
+    <tr><td>Servicios, precios, horario, equipo, inventario y Mi plan</td><td class="si">Sí</td><td>No</td><td>No</td></tr>
+  </table>
+  <h2>Recepción</h2>
+  <p>En <b>Más → Recepción</b> el dueño crea la cuenta: nombre, <b>Correo con el que entra</b> y una contraseña, y toca <b>Crear cuenta de recepción</b>. Puede <b>Cambiar contraseña</b>, <b>Quitar acceso</b> y <b>Devolver acceso</b>. Los avisos de reservas que le llegan al dueño también le llegan a recepción.</p>
+  <figure class="pc"><img src="capturas/35_recepcion.png" alt=""><figcaption>Más → Recepción: quién entra, qué puede hacer y qué no ve.</figcaption></figure>
+  <div class="dos-cel">
+    <figure class="cel"><img src="capturas/36_recepcion_inicio_celular.png" alt=""><figcaption>Hoy de recepción: sin la ganancia del local; su menú trae Clientes.</figcaption></figure>
+    <figure class="cel"><img src="capturas/37_portal_peluquero_celular.png" alt=""><figcaption>Mi día del peluquero: lo que ganó, sus servicios y lo que el local le debe.</figcaption></figure>
+    <figure class="cel"><img src="capturas/38_mis_clientes_celular.png" alt=""><figcaption>Mis clientes de quien alquila el puesto: solo él los ve.</figcaption></figure>
+  </div>
+  <h2>El portal del peluquero</h2>
+  <p>Con el módulo <b>Portal y app del peluquero</b>, cada peluquero entra con su propio acceso y ve <b>Mi día</b>: lo que ganó (<b>Hoy</b>, <b>Esta semana</b> o <b>Este mes</b>), los servicios hechos y las propinas, cuánto le debe el local o cuánto debe él, sus próximas citas (con el enlace a la <b>Ficha técnica</b> del cliente, si tienes ese módulo), lo que hizo y <b>Tus servicios y lo que te toca</b>. No ve la caja ni lo que ganan los demás. Si tú lo permites, acepta sus solicitudes desde <b>Solicitudes</b>.</p>
+  <p>Con el módulo <b>Clientes privados de quien alquila</b>, quien alquila el puesto tiene <b>Mis clientes</b>: guarda a sus clientes propios y los agenda en su silla. Tú ves la hora ocupada, pero no el nombre ni el celular.</p>
+</section>
+
+<section class="cap" id="c4">
+  <h1><span class="num">4</span> Los 4 tipos de peluquero</h1>
+  <span class="plan">Base</span>
+  <p>En un mismo salón puedes tener los cuatro tipos a la vez. Al agregar a alguien eliges <b>¿Cómo trabaja?</b> y TuSalón hace las cuentas solo con cada cobro.</p>
+  <table class="t">
+    <tr><th>Tipo</th><th>Cómo gana</th><th>Qué calcula TuSalón</th></tr>
+    <tr><td><b>Dueño</b> que atiende</td><td>Atiende en su silla. No cobra comisión.</td><td>Separa lo que produjiste en tu silla de la ganancia del local.</td></tr>
+    <tr><td><b>Empleado</b></td><td>Sueldo, comisión o las dos cosas. Puede estar afiliado al IESS.</td><td>Su comisión por cada servicio (o el pago fijo del servicio) y por cada producto, más sus propinas.</td></tr>
+    <tr><td><b>Por porcentaje</b></td><td>Se reparten cada corte: 50/50, 60/40…</td><td>La parte de cada uno en cada cobro. Si cobra la caja del local, el local le paga su parte; si cobra él directamente, él le paga al local la suya.</td></tr>
+    <tr><td><b>Alquila el puesto</b></td><td>Te paga un arriendo fijo (semanal, quincenal o mensual) y cobra a sus clientes con su propio QR.</td><td>Sus servicios son todos suyos; tú le cargas el arriendo con <b>Cargar arriendo</b>.</td></tr>
+  </table>
+  <figure class="pc"><img src="capturas/05_equipo.png" alt=""><figcaption>Equipo del salón de ejemplo: la dueña, Ana a porcentaje, Carlos empleado y Jorge que alquila el puesto, con lo que se le debe a cada uno.</figcaption></figure>
+  <div class="nota"><b>Junto al nombre</b>Cada persona muestra su regla de pago y su saldo: «le debes» (el local le debe) o «te debe» (por ejemplo, el arriendo de quien alquila).</div>
+</section>
+
+<section class="cap" id="c5">
+  <h1><span class="num">5</span> Planes y módulos</h1>
+  <p>TuSalón se arma por módulos. Todos los salones tienen la <b>base</b>; los <b>módulos</b> se encienden o se apagan para cada salón según lo que necesita. <b>Apagar un módulo nunca borra datos</b>: si lo vuelves a encender, todo sigue como estaba.</p>
+  <h2>La base (la tienen todos)</h2>
+  <ul class="lista dos-col">
+    <li>Agenda por sillas y citas (con WhatsApp de un toque para recordar).</li>
+    <li>Clientes con su historial, cumpleaños y faltas.</li>
+    <li>Servicios con precio al cliente y pago al peluquero.</li>
+    <li>Equipo con los 4 tipos de peluquero, y las cuentas del equipo: comisiones, reparto del porcentaje, propinas y arriendo.</li>
+    <li>Cobrar, caja del día y cierre de caja.</li>
+    <li>Horario del salón y de cada peluquero, almuerzo y vacaciones.</li>
+    <li>Enlace de cada cita para que el cliente confirme, cancele o califique.</li>
+    <li>Hasta 3 personas que atienden (el dueño cuenta).</li>
+  </ul>
+  <h2>Los planes</h2>
+  <ul class="lista">
+    <li><b>Básica</b>: la base.</li>
+    <li><b>Completa</b>: la base con todos los módulos.</li>
+    <li>A cualquier plan se le puede <b>sumar o quitar un módulo</b>. El valor es <b>por cotización</b>: lo pides en <b>Mi plan</b> con <b>Pedir cotización</b> y Tukán te escribe (capítulo 13).</li>
+    <li>Si un módulo no está en tu plan, su página dice «No está en tu plan» y sus menús y botones se esconden.</li>
+  </ul>
+  <h2>Los módulos</h2>
+  <table class="t partible">
+    <tr><th>Módulo</th><th>Para qué sirve</th></tr>
+    <tr><td>🗓️ Reservas en línea</td><td>Tu enlace para que los clientes reserven solos; cuenta del cliente, cambiar la hora y fotos</td></tr>
+    <tr><td>💳 Anticipo en línea</td><td>El cliente paga una parte al reservar (necesita Reservas en línea)</td></tr>
+    <tr><td>🎨 Ficha técnica de color</td><td>La fórmula de cada tinte con fotos de antes y después</td></tr>
+    <tr><td>🔁 Clientes por recuperar</td><td>Quién dejó de venir, con el WhatsApp listo</td></tr>
+    <tr><td>👥 Personas ilimitadas</td><td>Más de 3 personas que atienden</td></tr>
+    <tr><td>📱 Portal y app del peluquero</td><td>Cada peluquero ve sus citas y lo que gana en su celular</td></tr>
+    <tr><td>🔒 Clientes privados de quien alquila</td><td>Los clientes propios de quien alquila el puesto (necesita el Portal)</td></tr>
+    <tr><td>🛎️ Cuenta de recepción</td><td>Agenda, cobra y cierra la caja sin ver tus ganancias</td></tr>
+    <tr><td>📦 Inventario y venta de productos</td><td>Stock, aviso de que se acaba y venta al cobrar</td></tr>
+    <tr><td>🎁 Paquetes y tarjetas de regalo</td><td>Varias sesiones pagadas por adelantado y tarjetas con código y saldo</td></tr>
+    <tr><td>⭐ Puntos para clientes fieles</td><td>Ganan puntos al pagar y los cambian por descuentos</td></tr>
+    <tr><td>🧾 Gastos con facturas del SRI</td><td>Sube las facturas que recibes y mira tu ganancia real (TuSalón no hace facturas)</td></tr>
+    <tr><td>📊 Reporte del mes</td><td>Lo más vendido, el mejor peluquero y las horas vacías</td></tr>
+    <tr><td>📲 Avisos automáticos por Telegram</td><td>Recordatorios, calificación, cumpleaños y avisos al equipo</td></tr>
+  </table>
+</section>
+
+<section class="cap" id="c6">
+  <h1><span class="num">6</span> Configuración</h1>
+  <span class="plan">Base · las reglas en línea y el anticipo son de sus módulos</span>
+  <p>Todo se configura en <b>Más → Horario y reservas en línea</b> (en la computadora, en la columna de la izquierda). Toca <b>Guardar</b> al final de cada parte.</p>
+  <h2>Tu página de reservas y los días de atención</h2>
+  <ul class="lista">
+    <li><b>Tu página de reservas</b> (módulo Reservas en línea): el enlace para pegar en Instagram, Facebook y tu estado de WhatsApp, con <b>Ver mi página</b> y <b>Compartir por WhatsApp</b>.</li>
+    <li><b>Días y horas de atención</b>: marca los días que abres y la hora de apertura y cierre.</li>
+    <li><b>Ofrecer horas cada</b> 10, 15, 20, 30 o 60 minutos, y <b>Reservar con al menos</b> cierta anticipación.</li>
+  </ul>
+  <figure class="pc"><img src="capturas/09_horario_reservas.png" alt=""><figcaption>Horario y reservas en línea: el enlace del salón y los días de atención.</figcaption></figure>
+  <h2>Cuando un cliente reserva en línea</h2>
+  <ul class="lista">
+    <li><b>¿Quién acepta la cita?</b> Solo el dueño, el peluquero de la cita, el dueño o el peluquero, o nadie: se reserva sola.</li>
+    <li><b>Avisar a</b>: al dueño y al peluquero, solo al dueño o solo al peluquero.</li>
+    <li><b>Si nadie responde, liberar la hora en</b> 30 minutos a 1 día. Mientras espera, esa hora sale «en confirmación» para los demás.</li>
+  </ul>
+  <h2>Reglas para tus clientes</h2>
+  <ul class="lista">
+    <li><b>El cliente puede cancelar o cambiar hasta</b> cierto tiempo antes (por ejemplo, 2 horas antes).</li>
+    <li><b>Bloquear reservas en línea tras</b> 1, 2, 3 o 5 faltas (falta = no llegó y no avisó). Se perdonan en la ficha del cliente.</li>
+    <li><b>Avisarme de clientes que no vuelven en</b> 3 a 12 semanas (módulo Clientes por recuperar).</li>
+    <li><b>Enlace para reseñas en Google</b> (opcional): a quien te califique con 4 o 5 estrellas se le invita a dejar su reseña.</li>
+  </ul>
+  <figure class="pc media"><img src="capturas/10_reglas_reservas.png" alt=""><figcaption>Quién acepta las citas en línea, a quién se avisa y las reglas para tus clientes.</figcaption></figure>
+  <h2>Avisos por Telegram</h2>
+  <span class="plan">Módulo «Avisos automáticos por Telegram»</span>
+  <p>En <b>Solicitudes</b>, baja a <b>Avisos por Telegram</b>: toca <b>Conectar mi Telegram</b>, luego <b>Abrir Telegram</b> y en Telegram toca <b>Iniciar</b>. Desde ahí te llega cada solicitud con botones para aceptar o rechazar, y el reporte del mes. Cada persona con acceso puede conectar el suyo; tus clientes con cuenta también. Para dejarlo, toca <b>Dejar de recibir avisos</b>.</p>
+  <h2>Anticipo en línea</h2>
+  <span class="plan">Módulo «Anticipo en línea»</span>
+  <p>Al final de la misma página: <b>¿A quién pedir anticipo?</b> (a todos, solo a clientes nuevos o solo a quienes ya faltaron), <b>¿Cuánto?</b> (un % del servicio o dólares fijos), tus <b>Datos para transferencia</b>, tu <b>Celular de DeUna</b> y, si quieres cobrar con tarjeta, el <b>Token de Payphone</b> y el <b>Store ID</b> (los pasos están en «Cómo activarlo»). Toca <b>Guardar anticipo</b>.</p>
+  <figure class="pc media"><img src="capturas/11_anticipo.png" alt=""><figcaption>Anticipo del 30 % solo a clientes nuevos, con transferencia y DeUna.</figcaption></figure>
+</section>
+
+<section class="cap" id="c7">
+  <h1><span class="num">7</span> Servicios y precios del salón</h1>
+  <span class="plan">Base</span>
+  <p>En <b>Más → Servicios</b> (en la computadora, «Servicios y precios») creas todos los servicios que ofreces, sin límite, con <b>Agregar servicio</b>:</p>
+  <ul class="lista">
+    <li><b>Nombre del servicio</b> y <b>Precio al cliente</b>. Al agendar o cobrar puedes cambiar el precio solo para un cliente.</li>
+    <li><b>Pago al peluquero</b>: lo que le pagas a un <b>empleado</b> por hacerlo. Vacío = usa su % de comisión. Quien trabaja por porcentaje se lleva su % y quien alquila se queda con todo.</li>
+    <li><b>Duración (minutos)</b>: con esto TuSalón sabe qué horas quedan libres.</li>
+    <li><b>Se puede reservar en línea</b> y la <b>Explicación para el cliente</b>, que el cliente ve al reservar, junto con la duración.</li>
+    <li><b>¿Quién lo hace?</b>: desmarca a quien no lo hace; si alguien lo cobra a otro precio, escríbelo al lado.</li>
+  </ul>
+  <figure class="pc"><img src="capturas/07_servicios.png" alt=""><figcaption>Lo que paga el cliente, lo que gana el peluquero y lo que queda al local, servicio por servicio.</figcaption></figure>
+  <figure class="pc"><img src="capturas/08_servicio_quien.png" alt=""><figcaption>Toca el nombre de un servicio para editarlo: la keratina solo la hace Ana, y ella la cobra $45 en vez de $40.</figcaption></figure>
+  <p>Para cambiar un servicio, toca su nombre en la lista y toca <b>Guardar cambios</b>. <b>Ocultar</b> lo saca de la lista sin borrar su historial; <b>Mostrar</b> lo devuelve.</p>
+  <div class="nota"><b>Precios del salón</b>Los precios de este capítulo son los de tus servicios: los pones y los cambias tú cuando quieras.</div>
+</section>
+
+<section class="cap" id="c8">
+  <h1><span class="num">8</span> Personal y comisiones</h1>
+  <span class="plan">Base · más de 3 personas con el módulo «Personas ilimitadas»</span>
+  <h2>Agregar a un peluquero</h2>
+  <ol class="pasos">
+    <li>Ve a <b>Equipo</b> (en el celular, <b>Más</b>). Tú ya estás en la lista como dueño.</li>
+    <li>En <b>Agregar peluquero</b> escribe su nombre y su celular.</li>
+    <li>Elige <b>¿Cómo trabaja?</b>: <b>Empleado</b> (sueldo al mes, comisión de servicios y de productos, y si está afiliado al IESS), <b>Por porcentaje</b> (su % y ¿quién recibe el dinero del cliente?) o <b>Alquila el puesto</b> (valor del arriendo y cada cuánto).</li>
+    <li>Toca <b>Agregar al equipo</b>.</li>
+  </ol>
+  <div class="ojo"><b>Hasta 3 personas</b>Sin el módulo «Personas ilimitadas», el salón tiene hasta 3 personas que atienden, contándote a ti. Al llegar al límite, el formulario lo dice y te lleva a Mi plan.</div>
+  <h2>Darle acceso a su portal</h2>
+  <p>Debajo del nombre de cada peluquero toca <b>Darle acceso a su portal</b>, escribe <b>Su correo</b> y una contraseña y toca <b>Crear acceso</b> (módulo Portal y app del peluquero). Después puedes <b>Cambiar contraseña</b> o <b>Quitar acceso</b>.</p>
+  <h2>Horario, almuerzo y vacaciones</h2>
+  <p>Debajo de cada nombre toca <b>🗓 Horario, almuerzo y vacaciones</b>. Elige <b>Usa el horario del salón</b> o <b>Tiene su propio horario</b> (sus días, hora de entrada y salida, y almuerzo) y toca <b>Guardar horario</b>. Para vacaciones o un permiso, llena <b>Desde</b> y <b>Hasta (incluido)</b>; si es por unas horas, abre <b>Solo unas horas (ej. cita médica)</b>. Toca <b>Bloquear esas fechas</b>. En esas horas nadie le puede reservar.</p>
+  <figure class="pc"><img src="capturas/06_horario_peluquero.png" alt=""><figcaption>Carlos descansa los lunes y almuerza de 13:00 a 14:00.</figcaption></figure>
+  <h2>Cuentas del equipo</h2>
+  <p>En <b>Más → Cuentas</b> (en la computadora, «Cuentas del equipo») ves, por persona, cuánto <b>Le pagas tú</b> o cuánto <b>Te paga a ti</b>, con <b>Ver detalle</b> de cada servicio, comisión, propina y arriendo. La propina es del peluquero que atendió: si la recibió la caja del local, se le suma a su cuenta.</p>
+  <ul class="lista">
+    <li><b>Cargar arriendo</b>: a quien alquila el puesto, le carga su arriendo.</li>
+    <li><b>Pagado, cerrar cuenta</b>: cuando le pagas (o te paga). Su cuenta vuelve a cero y queda en <b>Cuentas cerradas</b>.</li>
+  </ul>
+  <figure class="pc media"><img src="capturas/25_cuentas.png" alt=""><figcaption>Cuentas del equipo: a Ana y a Carlos se les debe; Jorge debe sus arriendos.</figcaption></figure>
+</section>
+
+<section class="cap" id="c9">
+  <h1><span class="num">9</span> Agenda y citas</h1>
+  <span class="plan">Base</span>
+  <p>En <b>Agenda</b> ves el día con una columna por peluquero, cada uno con su color y su tipo. Usa ‹ y › para cambiar de día, <b>Hoy</b> para volver, o toca un espacio libre para agendar ahí.</p>
+  <figure class="pc media"><img src="capturas/12_agenda_compu.png" alt=""><figcaption>La agenda de mañana del salón de ejemplo.</figcaption></figure>
+  <h2>Agendar una cita</h2>
+  <div class="tarea">
+    <div>
+      <ol class="pasos">
+        <li>Toca <b>Nueva cita</b> (en Hoy o en Agenda) o un espacio libre.</li>
+        <li>Elige <b>Día</b>, <b>Hora</b> y <b>Con quién</b>.</li>
+        <li>Elige el <b>Cliente</b>. Si es nuevo, escribe su nombre y su celular (para el WhatsApp).</li>
+        <li>Marca uno o varios <b>Servicios</b>. El precio se puede cambiar solo para este cliente.</li>
+        <li>Toca <b>Agendar cita</b>.</li>
+      </ol>
+      <div class="nota"><b>Sin choques</b>Si la hora ya está ocupada, TuSalón te avisa con qué choca y no deja que se crucen dos citas del mismo peluquero.</div>
+    </div>
+    <figure class="cel"><img src="capturas/14_cita_nueva_celular.png" alt=""><figcaption>Nueva cita en el celular.</figcaption></figure>
+  </div>
+  <h2>Lo que haces con una cita</h2>
+  <p>Toca una cita para abrirla. Ahí ves los servicios, el total y las notas, y en <b>Qué hacer</b>:</p>
+  <ul class="lista">
+    <li><b>Cobrar</b> (capítulo 11).</li>
+    <li><b>Enviar recordatorio por WhatsApp</b>: se abre WhatsApp con el día, la hora, el valor y el enlace para que el cliente confirme o cancele.</li>
+    <li><b>Marcar como confirmada</b>, <b>No asistió</b> (cuenta como falta y libera la hora) o <b>Cancelar cita</b>.</li>
+    <li>Ya cobrada: <b>Fotos del servicio</b> y <b>Pedir calificación por WhatsApp</b>. Una cancelada se puede <b>Volver a abrir la cita</b>.</li>
+  </ul>
+  <figure class="pc media"><img src="capturas/15_cita.png" alt=""><figcaption>Una cita reservada con todo lo que puedes hacer.</figcaption></figure>
+  <div class="tarea">
+    <div>
+      <h2 style="margin-top:0">En el celular</h2>
+      <p>La agenda se desliza a los lados para ver a todos los peluqueros. Cuando el cliente confirma desde su enlace, la cita dice que confirmó y te llega un aviso.</p>
+      <h2>Recordar las citas de mañana</h2>
+      <p>En <b>Hoy</b> aparece la franja «citas de mañana por recordar»; tócala o ve a <b>Más → Avisos a clientes</b>. Toca <b>WhatsApp</b> en cada cita y luego <b>Ya lo envié</b> (capítulo 12).</p>
+    </div>
+    <figure class="cel"><img src="capturas/13_agenda_celular.png" alt=""><figcaption>Agenda en el celular.</figcaption></figure>
+  </div>
+</section>
+
+<section class="cap" id="c10">
+  <h1><span class="num">10</span> Citas en línea</h1>
+  <span class="plan">Módulo «Reservas en línea» · el anticipo es el módulo «Anticipo en línea»</span>
+  <h2>Lo que ve tu cliente</h2>
+  <p>Tu cliente abre tu enlace, sin descargar nada ni crear cuenta, y sigue 5 pasos: <b>¿Con quién?</b>, <b>¿Qué te vas a hacer?</b>, <b>¿Qué día?</b>, <b>¿A qué hora?</b> y <b>Tus datos</b>.</p>
+  <div class="dos-cel">
+    <figure class="cel"><img src="capturas/18_reservar_servicio.png" alt=""><figcaption>Los servicios con su duración y su precio; ⓘ muestra la explicación. Solo se pueden elegir los que hace ese peluquero.</figcaption></figure>
+    <figure class="cel"><img src="capturas/19_reservar_hora.png" alt=""><figcaption>Solo las horas libres de verdad. Las que otro cliente está pidiendo salen «en confirmación».</figcaption></figure>
+    <figure class="cel"><img src="capturas/20_reservar_listo.png" alt=""><figcaption>Listo. A un cliente nuevo le toca anticipo: «¡Ya casi! Paga el anticipo».</figcaption></figure>
+  </div>
+  <p>En <b>Tus datos</b> elige <b>Como invitado</b> (solo nombre y celular) o <b>Crear mi cuenta</b> (correo, contraseña, cumpleaños sin el año y permiso para guardar fotos de sus cortes), y toca <b>Reservar cita</b>. En la computadora, si deja el mouse sobre un servicio, se abre solo su detalle.</p>
+  <h2>Responder las solicitudes</h2>
+  <p>Cada reserva llega a <b>Solicitudes</b> (y a la franja amarilla de Hoy). Si quien acepta eres tú:</p>
+  <ol class="pasos">
+    <li>Revisa el <b>Valor a cobrar</b>: puedes cambiarlo; ese valor es el que le llega al cliente en la confirmación.</li>
+    <li>Toca <b>Aceptar</b>: la cita entra a tu agenda y aparece <b>Enviar WhatsApp al cliente</b> para avisarle con un toque.</li>
+    <li>O toca <b>Rechazar</b>: la hora queda libre.</li>
+  </ol>
+  <figure class="pc"><img src="capturas/16_solicitudes.png" alt=""><figcaption>Dos solicitudes: la de Camila trae el comprobante del anticipo por revisar.</figcaption></figure>
+  <h2>Revisar el anticipo</h2>
+  <p>Cuando el cliente sube el comprobante te llega un aviso. Abre la cita (<b>Revisar comprobante</b>): ves el valor, el estado y la foto. Compárala con tu banco y toca <b>Recibí el anticipo</b> (entra a la caja de hoy y se descuenta solo al cobrar) o <b>Comprobante no válido</b> (el cliente puede subir otro). Con Payphone, el pago con tarjeta se confirma solo.</p>
+  <figure class="pc"><img src="capturas/17_revisar_anticipo.png" alt=""><figcaption>El comprobante del anticipo, listo para revisar, y la solicitud para aceptar.</figcaption></figure>
+  <h2>El enlace de su cita</h2>
+  <p>Al cliente le llega por WhatsApp (o Telegram) el enlace de su cita. Desde ahí: <b>Confirmo que voy</b>, <b>Cambiar día u hora</b>, <b>Cancelar mi cita</b> (hasta las horas antes que permitiste) y <b>Escribir al salón</b>. Si le tocó anticipo, ahí ve tus datos y sube la foto con <b>Enviar comprobante</b> (o paga con <b>Pagar con tarjeta</b>). Después de atenderlo, el mismo enlace le pide calificarte de 1 a 5 estrellas; con 4 o 5 se le invita a <b>Dejar mi reseña en Google</b>.</p>
+  <div class="dos-cel">
+    <figure class="cel"><img src="capturas/21_cita_del_cliente.png" alt=""><figcaption>La cita de Andrea: valor, confirmar, cambiar o cancelar.</figcaption></figure>
+    <figure class="cel"><img src="capturas/22_calificar.png" alt=""><figcaption>Después del servicio: «¿Cómo te fue con…?» y <b>Enviar calificación</b>.</figcaption></figure>
+    <figure class="cel"><img src="capturas/26_clientes_celular.png" alt=""><figcaption>Quien reserva en línea se agrega solo a tus Clientes.</figcaption></figure>
+  </div>
+</section>
+
+<section class="cap" id="c11">
+  <h1><span class="num">11</span> Cobro y caja</h1>
+  <span class="plan">Base · paquetes, productos, tarjetas y puntos son de sus módulos</span>
+  <h2>Cobrar</h2>
+  <p>Abre la cita y toca <b>Cobrar</b>, o usa <b>Cobrar</b> en Hoy o en Caja para alguien sin cita.</p>
+  <ol class="pasos">
+    <li><b>Quién atendió</b>.</li>
+    <li><b>Servicios</b>: vienen marcados los de la cita; puedes agregar otro o cambiar el precio. Si el cliente tiene un paquete de ese servicio, marca <b>Usar sesión del paquete</b>.</li>
+    <li><b>Productos vendidos</b> (opcional): cuántos lleva de cada uno.</li>
+    <li><b>¿Ya pagó algo antes?</b>: el código de su <b>Tarjeta de regalo</b>, los puntos que quiere <b>Canjear</b> y el anticipo, que se descuenta solo.</li>
+    <li><b>Cómo pagó lo que falta</b> (efectivo, transferencia, DeUna, tarjeta, Payphone o Plux) y la <b>Propina</b>.</li>
+    <li><b>¿Quién recibió el dinero?</b>: <b>La caja del local</b> o <b>El peluquero directamente</b> (por ejemplo, quien alquila y cobra con su propio QR).</li>
+    <li>Revisa <b>A cobrar hoy</b> y toca <b>Registrar cobro</b>.</li>
+  </ol>
+  <figure class="pc alta"><img src="capturas/23_cobrar.png" alt=""><figcaption>Pedro usa una sesión de su paquete de cortes y compra un shampoo: solo paga el producto.</figcaption></figure>
+  <h2>La caja del día</h2>
+  <p>En <b>Caja</b> ves lo que entró a la caja del local, cuánto <b>Debe haber en efectivo</b> y lo que <b>Cobraron los peluqueros directo</b>; los <b>Cobros del día</b> uno por uno; los paquetes, tarjetas y anticipos vendidos; y el total <b>Por forma de pago</b>. Lo que ya estaba pagado (paquete, tarjeta, anticipo o puntos) se ve en cada cobro pero no se suma de nuevo. Usa <b>Día anterior</b> para ver otros días.</p>
+  <p><b>Cierre de caja</b>: al final del día cuenta el efectivo, escríbelo en <b>¿Cuánto efectivo hay en la caja?</b> y toca <b>Cerrar caja</b>. TuSalón te dice si sobra o falta. Un día cerrado ya no se puede cambiar.</p>
+  <figure class="pc alta"><img src="capturas/24_caja.png" alt=""><figcaption>La caja de hoy del salón de ejemplo, con el cierre por hacer.</figcaption></figure>
+</section>
+
+<section class="cap" id="c12">
+  <h1><span class="num">12</span> Clientes, inventario, paquetes y reportes</h1>
+  <h2>Clientes</h2>
+  <span class="plan">Base</span>
+  <p>En <b>Clientes</b> buscas por nombre o celular; cada uno tiene su botón <b>WhatsApp</b>. Con <b>Nuevo cliente</b> lo creas a mano (también se crean solos al agendar o reservar). En su ficha guardas cumpleaños (día y mes), correo, <b>Alergias</b> y notas, y ves sus <b>Visitas</b> y el botón <b>Agendar cita</b>. Si tiene faltas, la ficha lo dice arriba; con <b>Perdonar faltas</b> puede volver a reservar en línea.</p>
+  <figure class="pc"><img src="capturas/27_cliente.png" alt=""><figcaption>La ficha de María José: alergia anotada y sus visitas.</figcaption></figure>
+  <h2>Ficha técnica de color</h2>
+  <span class="plan">Módulo «Ficha técnica de color»</span>
+  <p>Desde la ficha del cliente toca <b>Ver ficha técnica</b> (o <b>Crear ficha técnica</b>). Arriba siempre sale el aviso de alergias. En <b>Nueva ficha</b> anotas el trabajo, la marca, el tono, el oxidante, el tiempo, la <b>Fórmula exacta</b>, quién lo hizo y el resultado; si el cliente lo permite, marca <b>El cliente autorizó las fotos</b> y sube la de antes y la de después. Toca <b>Guardar ficha</b>. Las fotos solo las ve el personal del salón.</p>
+  <figure class="pc"><img src="capturas/28_ficha_tecnica.png" alt=""><figcaption>El historial de color con la fórmula y las fotos de antes y después.</figcaption></figure>
+  <h2>Avisos a clientes</h2>
+  <span class="plan">Base · «Clientes por recuperar» es un módulo</span>
+  <p>En <b>Más → Avisos a clientes</b>: <b>Recordar las citas de mañana</b> (toca <b>WhatsApp</b> y luego <b>Ya lo envié</b>), <b>Cumpleaños de hoy</b> (<b>Saludar</b> y <b>Listo</b>) y <b>Clientes por recuperar</b> (<b>Invitar a volver</b> manda tu enlace de reservas). Con el módulo de Telegram, a los clientes con Telegram conectado el recordatorio se les envía solo.</p>
+  <figure class="pc alta"><img src="capturas/29_avisos_clientes.png" alt=""><figcaption>Las citas de mañana por recordar, el cumpleaños de hoy y los clientes que no vuelven.</figcaption></figure>
+  <h2>Inventario</h2>
+  <span class="plan">Módulo «Inventario y venta de productos»</span>
+  <p>En <b>Más → Inventario</b> anotas lo que vendes (<b>Lo vendo al cliente</b>: aparece al cobrar) y lo que usas en el salón (<b>Lo uso en el salón</b>: tintes, oxidantes, ampollas). Arriba ves cuántos productos tienes, cuánto dinero hay en el estante y cuántos se están acabando. Con <b>Agregar producto</b> pones nombre, marca, precio al cliente, lo que te cuesta, cuántos tienes hoy y <b>Avisarme cuando queden</b>. Con <b>Abrir</b> registras <b>Llegó mercadería</b> (<b>Sumar al stock</b>), <b>Se usó en el salón</b> (<b>Descontar</b>) o <b>Corregir conteo</b>, y ves el historial. Al vender al cobrar se descuenta solo, y no deja vender más de lo que hay.</p>
+  <figure class="pc"><img src="capturas/30_inventario.png" alt=""><figcaption>Inventario con el aviso de lo que se acaba.</figcaption></figure>
+  <h2>Paquetes y tarjetas de regalo</h2>
+  <span class="plan">Módulo «Paquetes y tarjetas de regalo»</span>
+  <p><b>Paquetes</b>: el cliente paga varias sesiones por adelantado. En <b>Crear paquete</b> eliges el servicio, las sesiones, el precio y en cuántos días vence; en <b>Vender un paquete</b> eliges paquete, cliente y cómo pagó, y tocas <b>Vender paquete</b> (el dinero entra hoy a la caja). Cuando el cliente vuelve, al cobrar marcas «Usar sesión del paquete». Un paquete vendido por error y sin usar se puede <b>Anular</b>.</p>
+  <figure class="pc alta"><img src="capturas/31_paquetes.png" alt=""><figcaption>Los paquetes del salón y a quién se vendieron.</figcaption></figure>
+  <p><b>Tarjetas de regalo</b>: en <b>Vender una tarjeta de regalo</b> pones el valor, cómo pagó, de parte de quién, para quién, su celular y un mensaje, y tocas <b>Crear tarjeta</b>. TuSalón crea un código único; la puedes <b>Enviar por WhatsApp</b> o <b>Imprimir</b>. Para ver cuánto le queda, escribe el código y toca <b>Ver saldo</b>. Al cobrar, se escribe el código y se descuenta solo.</p>
+  <figure class="pc"><img src="capturas/32_tarjeta_regalo.png" alt=""><figcaption>Una tarjeta de regalo con su código y su saldo.</figcaption></figure>
+  <h2>Puntos</h2>
+  <span class="plan">Módulo «Puntos para clientes fieles»</span>
+  <p>En <b>Más → Puntos</b> marca <b>Dar puntos a mis clientes</b>, elige los <b>Puntos por cada $1 pagado</b>, cuánto valen 100 puntos y desde cuántos se canjean; el ejemplo te muestra cómo queda. Los puntos se suman solos al cobrar si eliges el cliente (sin propina; lo pagado con paquete, tarjeta o puntos no suma). También puedes <b>Regalar o quitar puntos</b>.</p>
+  <figure class="pc"><img src="capturas/33_puntos.png" alt=""><figcaption>Puntos: cómo funcionan y los clientes con más puntos.</figcaption></figure>
+  <h2>Reporte del mes</h2>
+  <span class="plan">Módulo «Reporte del mes»</span>
+  <p>En <b>Más → Reporte del mes</b> eliges el mes y ves las ventas, los clientes nuevos y las reservas en línea, tu calificación, <b>Lo más vendido</b>, cuánto vendió cada peluquero con sus estrellas, las <b>Horas más vacías</b> y el día más flojo (buenos para una promoción), y las faltas, cancelaciones y propinas. Con Telegram, te llega solo cada día 1 o con <b>Enviar este reporte a mi Telegram</b>.</p>
+  <figure class="pc"><img src="capturas/34_reporte.png" alt=""><figcaption>El reporte del mes del salón de ejemplo.</figcaption></figure>
+</section>
+
+<section class="cap" id="c13">
+  <h1><span class="num">13</span> Mi plan</h1>
+  <span class="plan">Para el dueño</span>
+  <p>En <b>Más → Mi plan</b> ves tu plan y hasta cuándo está pagado, lo que pagas por él y su renovación, <b>Tus módulos encendidos</b>, los <b>Módulos que puedes agregar</b> y <b>Lo que siempre tienes</b> (la base).</p>
+  <figure class="pc alta"><img src="capturas/39_mi_plan_compu.png" alt=""><figcaption>Mi plan de un salón con plan Básica: cada módulo que no tiene dice «Precio por cotización».</figcaption></figure>
+  <h2>Pedir cotización</h2>
+  <div class="tarea">
+    <div>
+      <ol class="pasos">
+        <li>En <b>Módulos que puedes agregar</b>, busca el que necesitas. Si necesita otro, lo dice («Necesita: … (se agrega solo)»).</li>
+        <li>Toca <b>Pedir cotización</b>.</li>
+        <li>El pedido llega a Tukán y aparece en <b>Tus pedidos de módulos</b> con «Tukán lo está revisando».</li>
+        <li>Tukán te escribe con el valor y, cuando lo apruebas, lo enciende. El pedido pasa a «Encendido».</li>
+      </ol>
+      <p>Desde la página «No está en tu plan» de un módulo también puedes tocar <b>Pedir cotización</b> o <b>Ver Mi plan</b>.</p>
+      <div class="consejo"><b>En la demo</b>Tu demo trae los módulos encendidos para que los pruebes. En Mi plan, cada uno dice «Solo en la demo» y trae <b>Lo quiero · Pedir cotización</b> para elegir los que quieres al contratar.</div>
+    </div>
+    <figure class="cel"><img src="capturas/40_mi_plan_celular.png" alt=""><figcaption>Módulos que puedes agregar.</figcaption></figure>
+  </div>
+  <div class="tarea">
+    <div>
+      <h2 style="margin-top:0">Renovar</h2>
+      <p>Unos días antes de que venza tu plan aparece arriba «Tu plan vence…» con <b>Renovar</b>. Si se vence, tienes unos días de gracia; después, al entrar verás «Tu plan venció» con <b>Ver Mi plan</b> y <b>Escribir por WhatsApp</b>. Tus datos nunca se borran.</p>
+      <div class="nota"><b>Apagar no borra</b>Si quitas un módulo, sus datos quedan guardados. Al encenderlo de nuevo, vuelve todo como estaba.</div>
+    </div>
+    <figure class="cel"><img src="capturas/41_no_en_plan_celular.png" alt=""><figcaption>«No está en tu plan».</figcaption></figure>
+  </div>
+</section>
+
+<section class="cap" id="c14">
+  <h1><span class="num">14</span> Preguntas frecuentes</h1>
+  <table class="t">
+    <tr><th>Pregunta o problema</th><th>Qué hacer</th></tr>
+    <tr><td>Olvidé mi contraseña</td><td>Escríbele a Tukán por WhatsApp. Si es un peluquero o recepción, el dueño le pone una nueva en Equipo o en Recepción con <b>Cambiar contraseña</b>.</td></tr>
+    <tr><td>Un cliente dice que no ve horas libres</td><td>Revisa que ese día el peluquero trabaje (su horario y sus vacaciones), que haga ese servicio y que el servicio tenga marcado «Se puede reservar en línea».</td></tr>
+    <tr><td>Un cliente no puede reservar en línea</td><td>Puede tener faltas. Ábrelo en Clientes y toca <b>Perdonar faltas</b>.</td></tr>
+    <tr><td>Me equivoqué de precio al agendar</td><td>Al cobrar puedes cambiar el precio de cada servicio.</td></tr>
+    <tr><td>Un cliente no llegó</td><td>Abre su cita y toca <b>No asistió</b>. La hora queda libre y se cuenta su falta.</td></tr>
+    <tr><td>Dice que pagó el anticipo</td><td>Abre su cita: si subió el comprobante, lo ves ahí. Compáralo con tu banco y toca <b>Recibí el anticipo</b>.</td></tr>
+    <tr><td>¿Cuánto le queda a una tarjeta de regalo?</td><td>Más → Tarjetas de regalo, escribe el código y toca <b>Ver saldo</b>.</td></tr>
+    <tr><td>Vendí un paquete o una tarjeta por error</td><td>Si todavía no se usó, ábrelo y toca <b>Anular</b>. Se quita de la caja.</td></tr>
+    <tr><td>No me deja agregar otro peluquero</td><td>Sin el módulo «Personas ilimitadas», el salón tiene hasta 3 personas. Pídelo en Mi plan con <b>Pedir cotización</b>.</td></tr>
+    <tr><td>Una página dice «No está en tu plan»</td><td>Ese módulo no está encendido para tu salón. Toca <b>Pedir cotización</b>; tus datos de antes siguen guardados.</td></tr>
+    <tr><td>¿Cuánto cuesta un módulo?</td><td>Es por cotización: pídelo en Mi plan y Tukán te escribe con el valor.</td></tr>
+    <tr><td>¿Mis datos están seguros?</td><td>Sí. Cada salón solo ve lo suyo y se hace una copia de seguridad cada día.</td></tr>
+    <tr><td>¿Funciona sin internet?</td><td>No. Necesitas datos móviles o wifi; gasta muy poco.</td></tr>
+    <tr><td>La pantalla se ve rara</td><td>Recarga la página (desliza hacia abajo en el celular). Si sigue igual, escríbenos.</td></tr>
+  </table>
+  <div class="contacto"><b>¿Necesitas ayuda?</b><br>WhatsApp <b>099 640 8397</b> · <b>info@tukansoftware.com</b> · <b>tukansoftware.com</b><br>TuSalón es un producto de Tukán Software.</div>
+</section>
+
+</body>
+</html>

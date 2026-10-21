@@ -1,6 +1,6 @@
 # TuSalón: módulos, Mi plan y demos (guía para el manual y la presentación)
 
-Esta guía se suma al manual (`docs/Manual_TuSalon.pdf`). Explica lo nuevo del 18 de octubre de 2026 en palabras sencillas.
+Esta guía se suma al manual (`docs/Manual_TuSalon.pdf`, ver `docs/MANUAL.md`). Explica lo nuevo del 18 de octubre de 2026 en palabras sencillas.
 
 ## 1. TuSalón se arma por módulos
 Todos los salones tienen la **base**: agenda por sillas y citas, clientes con su historial y cumpleaños, servicios con lo que gana el peluquero,
