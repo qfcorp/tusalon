@@ -121,6 +121,18 @@ check('Ia::TOPE_CON_MODULO = 4,00 y TOPE_SIN_MODULO = 0,50', [4.0, 0.5], [Ia::TO
 $db->exec("UPDATE salones SET estado = 'cancelado' WHERE id = $SC");   // fuera del resto de esta prueba
 Ia::guardarTope($db, $SB, 1.25);
 check('Tope propio (lo pone Tukán) gana; null vuelve al sugerido', [1.25, 0.5], [Ia::tope($db, $SB), (Ia::guardarTope($db, $SB, null) ?? Ia::tope($db, $SB))]);
+// Demos: $0,50 al mes en total aunque tengan todos los módulos (decisión del dueño, 21 oct 2026)
+$SD = $alta('Salón En Demo')['salon_id'];
+$db->exec("UPDATE salones SET plan_codigo = 'completa', estado = 'prueba', prueba_hasta = CURRENT_DATE + 7 WHERE id = $SD");
+$mods->olvidar();
+check('Demo con el módulo Asistente IA: tope $0,50 (TOPE_DEMO)', [true, true, 0.5, 0.5], [Ia::esDemo($db, $SD), Ia::conModulo($db, $SD), Ia::tope($db, $SD), Ia::TOPE_DEMO]);
+Ia::guardarTope($db, $SD, 2.5);
+check('Demo con tope propio de Tukán: manda el propio', 2.5, Ia::tope($db, $SD));
+Ia::guardarTope($db, $SD, null);
+(new \TuSalon\Planes($db))->suscribir($SD, 'completa', 'mensual', new DateTimeImmutable('today'), 'transferencia');
+$mods->olvidar();
+check('La demo pasa a cliente pagado con el módulo: vuelve sola a $4,00', [false, 4.0], [Ia::esDemo($db, $SD), Ia::tope($db, $SD)]);
+$db->exec("UPDATE salones SET estado = 'cancelado' WHERE id = $SD");   // fuera del resto de esta prueba
 
 // ---------------------------------------------------------------------------------------------
 titulo('2. Sin /etc/tukan-ia.env: IA apagada, la Ayuda sigue con el manual');

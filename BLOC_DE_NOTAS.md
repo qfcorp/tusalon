@@ -66,6 +66,9 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 - [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
 
+## Hecho (21 oct 2026) — Tope de IA de las demos: $0,50 (decisión de Dimitry)
+- [x] Una demo (estado `prueba`) sin tope propio gasta como máximo **$0,50 al mes en total** (IA y Ayuda), aunque tenga todos los módulos (`Ia::TOPE_DEMO`, `Ia::esDemo()`). El tope propio de Tukán sigue mandando; al registrar el pago (estado `activo`) vuelve sola a $4,00 / $0,50. Pruebas en `prueba_ia.php`.
+
 ## Hecho (21 oct 2026) — Asistente IA incluido en Completa y tope de IA de $4 (decisión de Dimitry)
 - [x] El módulo **Asistente IA** (`asistente_ia`) viene **incluido en Completa** (el plan más caro). En Básica sigue como extra por cotización (`modulos_extra`). `Modulos::FUERA_DE_PLANES` quedó vacío: `'*'` ya trae el Asistente IA.
 - [x] Migración `010_ia_en_completa.sql` (se puede repetir; también al final de `db/schema.sql`): si Completa se guardó como lista, le agrega `asistente_ia`; `'*'` queda igual; Básica no se toca.

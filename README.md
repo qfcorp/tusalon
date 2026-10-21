@@ -118,7 +118,7 @@ Las dos piezas son del Panel Tukán Central (`compartido/` del repo `qfcorp/tuka
   (escribe `/etc/tukan-ia.env`) y `bash deploy/configurar_correo.sh` (escribe `/etc/tukan-correo.env`). TuSalón **no** guarda claves.
   Sin `/etc/tukan-ia.env` la IA queda apagada y la Ayuda responde con las preguntas frecuentes y el manual; sin `/etc/tukan-correo.env` la
   pantalla de la demo muestra «Configure el correo de Tukán». `www-data` debe poder leer los dos archivos (el instalador lo revisa: puntos 9 y 10).
-- **Gasto controlado por salón** (tabla `tukan_ia_gasto`, migración 009): tope del mes **$0,50** sin el módulo y **$4,00** con el módulo (venga en Completa o comprado aparte en Básica), o el
+- **Gasto controlado por salón** (tabla `tukan_ia_gasto`, migración 009): tope del mes **$0,50** sin el módulo y **$4,00** con el módulo (venga en Completa o comprado aparte en Básica); una **demo** (estado `prueba`) **$0,50 en total** aunque tenga todos los módulos (al pagar vuelve sola a lo normal); o el
   que ponga Tukán (`salones.ia_tope_usd`: ficha del salón → **IA de Tukán**, o `ejecutar ia_tope` desde el Panel Central). Al llegar al tope, o con
   `TUKAN_IA_PAUSA=1`, no se llama a la IA y el salón no ve ningún aviso. El tope de todo TuSalón va en `TUKAN_IA_TOPE_PROGRAMA_TUSALON`.
 - **Panel Tukán Central:** la acción v2 `ia_uso` (Anexo C) le da el gasto del mes por salón, los totales y el resumen de las preguntas

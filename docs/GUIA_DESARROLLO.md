@@ -22,7 +22,7 @@ Notas para quien cambia el código (Claude o un programador). Lo de uso diario e
 ## IA de Tukán y correo de la demo (21 oct 2026, migración 009)
 - **Librerías comunes**: `src/tukan_ia.php` y `src/tukan_correo.php` son copias SIN cambios de `compartido/` del Panel Tukán Central
   (guías `compartido/LEEME_IA.md` y `LEEME_CORREO.md`). No se editan aquí: si sale una versión nueva (`TUKAN_IA_VERSION`, `TUKAN_CORREO_VERSION`), se copian otra vez.
-- `src/Ia.php`: tope del salón (`Ia::tope()`: `salones.ia_tope_usd` o $0,50 sin el módulo / $4,00 con él, venga en Completa o comprado aparte), guardián (`TukanIaGuardianPdo`,
+- `src/Ia.php`: tope del salón (`Ia::tope()`: `salones.ia_tope_usd`, o $0,50 si está en demo, o $0,50 sin el módulo / $4,00 con él, venga en Completa o comprado aparte), guardián (`TukanIaGuardianPdo`,
   `negocio_id` = id del salón), FAQ (`TukanIaFaqPdo`), la Ayuda (`Ia::ayuda()`, 30 respuestas nuevas al mes sin el módulo), el manual
   (`docs/manual/manual.html` → texto), `Ia::sinPalabras()` (nunca «límite», «cupo» ni «saldo» en la Ayuda), `Ia::neutroHtml()` (el mensaje neutro
   con el enlace para hacerlo a mano) e `Ia::uso()` (acción v2 `ia_uso`).

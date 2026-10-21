@@ -16,7 +16,7 @@ require_once __DIR__ . '/tukan_ia.php';
  *  - Módulo «Asistente IA» (asistente_ia), incluido en Completa y extra por cotización en Básica: agendar desde un mensaje y mensaje para clientes que no vuelven (src/Asistente.php).
  *  - Guardián por salón (tabla tukan_ia_gasto, negocio_id = id del salón) con el tope del mes:
  *    sin el módulo $0,50 y 30 respuestas nuevas de la Ayuda; con el módulo (venga en el plan o comprado aparte) $4,00 al mes,
- *    salvo que Tukán ponga otro en salones.ia_tope_usd.
+ *    salvo que Tukán ponga otro en salones.ia_tope_usd. Una demo (estado "prueba") sin tope propio: $0,50 al mes en total (TOPE_DEMO).
  *  - La configuración (clave, modelos, pausa, tope del programa) está en /etc/tukan-ia.env; sin ese archivo la IA queda
  *    apagada y la Ayuda responde solo con las FAQ y el manual. Al cliente nunca se le dice por qué (mensajes neutros).
  */
@@ -27,17 +27,27 @@ final class Ia
     public const MODULO = 'asistente_ia';
     public const TOPE_SIN_MODULO = 0.50;
     public const TOPE_CON_MODULO = 4.00;
+    public const TOPE_DEMO = 0.50;   // (decisión del dueño, 21 oct 2026) una demo gasta como máximo $0,50 al mes en total, aunque tenga todos los módulos
     public const NUEVAS_SIN_MODULO = 30;
     public const PREGUNTAS_POR_MINUTO = 10;
 
-    /** Tope del mes del salón en USD: el que puso Tukán (ia_tope_usd) o el sugerido según tenga o no el módulo. */
+    /** Tope del mes del salón en USD: el que puso Tukán (ia_tope_usd); si no, $0,50 en demo; si no, el sugerido según tenga o no el módulo. */
     public static function tope(PDO $db, int $salonId): float
     {
         $st = $db->prepare('SELECT ia_tope_usd FROM salones WHERE id = ?');
         $st->execute([$salonId]);
         $t = $st->fetchColumn();
         if ($t !== false && $t !== null) return round((float) $t, 4);
+        if (self::esDemo($db, $salonId)) return self::TOPE_DEMO;
         return self::conModulo($db, $salonId) ? self::TOPE_CON_MODULO : self::TOPE_SIN_MODULO;
+    }
+
+    /** ¿El salón está en demo (estado "prueba", la crea Tukán con crear_demo)? Al registrar el pago pasa a "activo" y vuelve solo al tope normal. */
+    public static function esDemo(PDO $db, int $salonId): bool
+    {
+        $st = $db->prepare('SELECT estado FROM salones WHERE id = ?');
+        $st->execute([$salonId]);
+        return $st->fetchColumn() === 'prueba';
     }
 
     /** ¿Tiene encendido el módulo «Asistente IA»? */
