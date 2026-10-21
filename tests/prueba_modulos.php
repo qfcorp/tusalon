@@ -347,20 +347,37 @@ check('… y ya no se puede crear su demo', 409, $ej('crear_demo', ['nombre' => 
 check('No hay registros solos: el tipo registro_nuevo ya no existe', [], array_values(array_filter(array_column($pedir('solicitudes', ['estado' => 'todas', 'por_pagina' => 200])[1]['solicitudes'], 'tipo'), fn($t) => $t === 'registro_nuevo')));
 
 // ---------------------------------------------------------------------------------------------
-titulo('10. Nada se da gratis: ningún texto promete prueba gratis');
-$archivos = array_merge(glob(RAIZ . '/app/vistas/*.php'), glob(RAIZ . '/app/paginas/*.php'), glob(RAIZ . '/src/*.php'), glob(RAIZ . '/public/assets/*.js'),
-                        [RAIZ . '/README.md', RAIZ . '/docs/GOOGLE_PLAY.md', RAIZ . '/docs/GUIA_DESARROLLO.md'], glob(RAIZ . '/docs/*.html') ?: []);
+titulo('10. Todo se pide demo: ningún texto dice «gratis» (solo demos; en ventas, «meses de regalo»)');
+// En el código PHP se revisa el texto sin los comentarios; README, guías, manuales y JavaScript completos.
+// dominio_gratis y meses_gratis son ids del protocolo con el Panel Tukán Central (no se muestran).
+$archivos = array_merge(glob(RAIZ . '/app/vistas/*.php'), glob(RAIZ . '/app/paginas/*.php'), glob(RAIZ . '/src/*.php'), [RAIZ . '/app/bootstrap.php'],
+                        glob(RAIZ . '/public/assets/*.js'), [RAIZ . '/README.md'], glob(RAIZ . '/docs/*.md') ?: [], glob(RAIZ . '/docs/manual/*.md') ?: [],
+                        glob(RAIZ . '/docs/*.html') ?: [], glob(RAIZ . '/docs/*/*.html') ?: []);
 $malos = [];
 foreach ($archivos as $f) {
-    foreach (file($f) as $n => $linea) {
-        // Se permiten las líneas que explican la regla ("ya no hay prueba gratis", "sin prueba gratis") y los ids del protocolo
-        if (preg_match('/prueba gratis|prueba gratuita|d[ií]as gratis|gratis por|free trial|sin tarjeta/iu', $linea)
-            && !preg_match('/(no|ya no|sin|nada se da) (hay )?(registro con |una )?(prueba gratis|prueba gratuita)|antes:|busca|NO pongas|no se ofrece|Nada se da gratis|ninguna promesa/iu', $linea)) {
-            $malos[] = basename($f) . ':' . ($n + 1);
+    $txt = (string) file_get_contents($f);
+    if (str_ends_with($f, '.php')) {
+        $sin = '';
+        foreach (token_get_all($txt) as $tk) {
+            if (is_array($tk) && in_array($tk[0], [T_COMMENT, T_DOC_COMMENT], true)) $sin .= str_repeat("\n", substr_count($tk[1], "\n"));
+            else $sin .= is_array($tk) ? $tk[1] : $tk;
         }
+        $txt = $sin;
+    }
+    foreach (explode("\n", str_replace(['dominio_gratis', 'meses_gratis'], '', $txt)) as $n => $linea) {
+        if (preg_match('/gratis|gratuit|\bfree\b|sin tarjeta/iu', $linea)) $malos[] = basename($f) . ':' . ($n + 1);
     }
 }
-check('Sin "prueba gratis", "días gratis" ni "sin tarjeta" en pantallas, código ni documentos', [], $malos);
+check('Sin «gratis», «gratuito», «free» ni «sin tarjeta» en pantallas, código, guías ni manuales', [], $malos);
+
+titulo('11. Precios del software solo por cotización (regla del dueño)');
+$vPlan = (string) file_get_contents(RAIZ . '/app/vistas/completa.php');
+$vNo = (string) file_get_contents(RAIZ . '/app/vistas/no_en_plan.php');
+check('Mi plan: lo que no tiene dice «Precio por cotización» y «Pedir cotización»', [true, true, false],
+      [str_contains($vPlan, "'Precio por cotización'"), str_contains($vPlan, 'Pedir cotización'), str_contains($vPlan, 'Pedir este módulo')]);
+check('Mi plan: el botón de la demo no lleva precio', false, (bool) preg_match('/Lo quiero · \+<\?= dinero/u', $vPlan));
+check('«No está en tu plan»: sin precio y con «Pedir cotización»', [false, false, true],
+      [str_contains($vNo, 'precio_mensual'), str_contains($vNo, 'al mes'), str_contains($vNo, 'Pedir cotización')]);
 check('El registro público es "Solicitar demo" y no crea salones', [true, false], [str_contains((string) file_get_contents(RAIZ . '/app/vistas/registro.php'), 'Solicitar demo'),
       str_contains((string) file_get_contents(RAIZ . '/app/paginas/registro.php'), 'crearSalonConDueno')]);
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * "Solicitar demo" (antes: registro con prueba gratis). Nada se da gratis, todo se pide demo:
+ * "Solicitar demo" (antes: registro abierto con periodo de prueba). Todo se pide demo:
  * este formulario NO crea un salón. Guarda el pedido (PedidosDemo) y Tukán lo atiende desde el Panel Tukán Central
  * (solicitud demo_pedida → crear_demo) o desde su propio panel (Inicio → Pedidos de demo).
  */

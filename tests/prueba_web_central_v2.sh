@@ -254,10 +254,10 @@ contiene "Sale en cerradas" "$TMP/c96.out" "\"id\":\"demo_pedida:$PD\""
 JAR="$TMP/c_e7"; rm -f "$JAR"
 post "r=login" --data-urlencode "email=$E7" --data-urlencode "clave=claveSegura1" > /dev/null
 get "r=completa" > /dev/null
-contiene "Mi plan ofrece «Pedir este módulo»" "$TMP/pag.html" "Pedir este módulo"
+contiene "Mi plan ofrece «Pedir cotización»" "$TMP/pag.html" "Pedir cotización"
 post "r=completa" -d accion=pedir -d modulo=recepcion > /dev/null
 PM=$(sql "SELECT id FROM pedidos_modulos WHERE salon_id=$N7 AND modulos='recepcion'")
-check "Pedir este módulo guarda el pedido" "pendiente" "$(sql "SELECT estado FROM pedidos_modulos WHERE id=$PM")"
+check "Pedir cotización guarda el pedido" "pendiente" "$(sql "SELECT estado FROM pedidos_modulos WHERE id=$PM")"
 c96_post solicitudes '{"estado":"abiertas","tipos":["cambio_modulos"],"por_pagina":200}' > /dev/null
 c96_txt "Llega al Central como cambio_modulos" "$(c96_json solicitudes)" "\"id\":\"cambio_modulos:$PM\""
 r=$(c96_ej cambiar_modulos "{\"solicitud_id\":\"cambio_modulos:$PM\"}" "$N7")

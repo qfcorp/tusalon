@@ -1,8 +1,9 @@
 <?php
 /**
- * Mi plan (Anexo B): lo que siempre tiene el salón (base), sus módulos encendidos con su precio, los que puede agregar
- * y el total al mes. "Pedir este módulo" crea un pedido (cambio_modulos) que Tukán aprueba o rechaza desde el Panel
- * Tukán Central o desde su propio panel. En la app de Google Play no se muestran precios ni pedidos de módulos
+ * Mi plan (Anexo B): lo que siempre tiene el salón (base), sus módulos encendidos, los que puede agregar y lo que paga
+ * al mes por su plan (su contrato). Regla del dueño de Tukán: el precio de lo que el salón NO tiene nunca se muestra:
+ * "Pedir cotización" crea un pedido (cambio_modulos) que llega al Panel Tukán Central (o al panel de Tukán), que cotiza,
+ * aprueba o rechaza. En la app de Google Play no se muestran precios ni pedidos de módulos
  * (ahí solo se paga el plan con Google; ver docs/GOOGLE_PLAY.md).
  */
 $mods = modulos();
@@ -15,7 +16,7 @@ if (es_post()) {
         $m = (string) ($_POST['modulo'] ?? '');
         if (!\TuSalon\Modulos::existe($m)) throw new RuntimeException('Ese módulo no existe.');
         $mods->pedir($sid, (int) $u['id'], [$m], (string) ($_POST['nota'] ?? ''));
-        aviso('Listo. Pediste «' . $mods->nombre($m) . '». Tukán revisa tu pedido y te escribe para encenderlo.');
+        aviso('Listo. Pediste la cotización de «' . $mods->nombre($m) . '». Tukán te escribe con el valor y para encenderlo.');
     } catch (RuntimeException $e) {
         aviso($e->getMessage(), 'error');
     }

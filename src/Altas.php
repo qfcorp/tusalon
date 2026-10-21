@@ -30,7 +30,7 @@ final class Altas
         }
     }
 
-    /** registro = se registró solo (solo salones viejos: ya no hay prueba gratis), super, central, demo_pedida (demo de un pedido del formulario). */
+    /** registro = se registró solo (solo salones viejos: ya no hay registro abierto), super, central, demo_pedida (demo de un pedido del formulario). */
     public const ORIGENES = ['registro', 'super', 'central', 'demo_pedida'];
 
     /**

@@ -21,7 +21,7 @@ use Throwable;
  *            y del Anexo B: cambiar_modulos, guardar_modulos — ver Modulos). Lectura del Anexo B: modulos.
  * Las reglas del negocio son las de TuSalón (Planes, PanelTukan, Altas); aquí solo se validan los datos,
  * se arma la respuesta y se garantiza que una operación repetida no se haga dos veces (tukan_central_operaciones).
- * Solicitudes: pedidos de demo (el formulario "Solicitar demo": ya no hay prueba gratis), pedidos de módulos desde
+ * Solicitudes: pedidos de demo (el formulario "Solicitar demo": ya no hay registro abierto), pedidos de módulos desde
  * Mi plan (cambio_modulos), pagos automáticos de Google Play y los recordatorios que se arman al momento (demos por
  * terminar, renovaciones, dominios incluidos en el pago anual). TuSalón no tiene comprobantes ni soporte. Las "solicitudes" de reservas de cada salón son del salón, no de Tukán: no se mandan.
  */
@@ -1516,7 +1516,7 @@ final class TukanCentralV2
             throw new TukanCentralError('conflicto', 'Esta solicitud ya fue ' . ($actual === 'atendida' ? 'atendida' : 'descartada') . '.', 409, null,
                                         ['motivo' => 'ya_atendida', 'estado' => $actual]);
         }
-        if ($dominio !== '' && $s['tipo'] !== 'dominio_gratis') throw TukanCentralError::campo('datos.dominio', 'El dominio solo va en un dominio gratis.');
+        if ($dominio !== '' && $s['tipo'] !== 'dominio_gratis') throw TukanCentralError::campo('datos.dominio', 'El dominio solo va en un dominio incluido.');
         if ($guardarDominio) {
             if (!preg_match('/^[a-z0-9-]+(\.[a-z0-9-]+)+$/', $dominio)) throw TukanCentralError::campo('datos.dominio', 'El dominio no es válido (ej. barberiaelcorte.com).');
             $this->db->prepare('UPDATE suscripciones SET dominio = ? WHERE id = ? AND dominio IS NULL')->execute([$dominio, (int) $s['detalle']['pago_id']]);

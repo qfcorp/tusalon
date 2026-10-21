@@ -5,29 +5,31 @@ Dirección: **tusalon.tukanec.com** (servidor qfcorp). Web de la marca: tukansof
 
 Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, empleado (sueldo y/o comisión), porcentaje (50/50, 60/40) y alquiler de puesto.
 
-**Todo es por módulos** y **nada se da gratis, todo se pide demo**:
-- Cada salón tiene la **base** (agenda, clientes, servicios, equipo con los 4 tipos, cuentas del equipo, cobros y caja, horarios, hasta 3 personas) y los **módulos** que contrate. Cada módulo se enciende o se apaga por salón y tiene su precio al mes; **apagar nunca borra datos**.
-- No hay registro con prueba gratis: el formulario público es **Solicitar demo**. Tukán prepara la demo (con todos los módulos o los que elija) desde el Panel Tukán Central o desde su propio panel.
+**Todo es por módulos** y **todo se pide demo**:
+- Cada salón tiene la **base** (agenda, clientes, servicios, equipo con los 4 tipos, cuentas del equipo, cobros y caja, horarios, hasta 3 personas) y los **módulos** que contrate. Cada módulo se enciende o se apaga por salón y su precio es por cotización; **apagar nunca borra datos**.
+- No hay registro abierto ni periodo de prueba: el formulario público es **Solicitar demo**. Tukán prepara la demo (con todos los módulos o los que elija) desde el Panel Tukán Central o desde su propio panel.
 
-### Módulos y precios (USD al mes, se cambian en Panel Tukán → Planes y precios)
-| Módulo | Precio extra | Descuento si se quita del plan | Necesita |
-|---|---|---|---|
-| 🗓️ Reservas en línea (enlace propio, cuenta del cliente, cambiar la hora, fotos) | $5 | $2 | — |
-| 💳 Anticipo en línea (transferencia/DeUna o Payphone) | $3 | $1 | Reservas en línea |
-| 🎨 Ficha técnica de color | $3 | $1 | — |
-| 🔁 Clientes por recuperar | $2 | $1 | — |
-| 👥 Personas ilimitadas (sin él: hasta 3) | $5 | $2 | — |
-| 📱 Portal y app del peluquero | $4 | $1,50 | — |
-| 🔒 Clientes privados de quien alquila | $2 | $1 | Portal del peluquero |
-| 🛎️ Cuenta de recepción | $3 | $1 | — |
-| 📦 Inventario y venta de productos | $3 | $1 | — |
-| 🎁 Paquetes y tarjetas de regalo | $3 | $1 | — |
-| ⭐ Puntos para clientes fieles | $2 | $1 | — |
-| 🧾 Gastos con facturas del SRI | $4 | $1,50 | — |
-| 📊 Reporte del mes | $3 | $1 | — |
-| 📲 Avisos automáticos por Telegram | $3 | $1 | — |
+### Módulos y planes
+**Precios: por cotización (se definen en el Panel Tukán Central).** Nunca se publican; el salón pide cotización.
 
-Planes: **Básica $25** = solo la base · **Completa $35** = todos los módulos (sumados valen $45). Precio de cada salón = plan + módulos extra − descuento de los que quitó (o un **precio acordado** fijo). Semestral paga 5 y recibe 6; anual paga 10, recibe 12 y trae dominio propio.
+| Módulo | Necesita |
+|---|---|
+| 🗓️ Reservas en línea (enlace propio, cuenta del cliente, cambiar la hora, fotos) | — |
+| 💳 Anticipo en línea (transferencia/DeUna o Payphone) | Reservas en línea |
+| 🎨 Ficha técnica de color | — |
+| 🔁 Clientes por recuperar | — |
+| 👥 Personas ilimitadas (sin él: hasta 3) | — |
+| 📱 Portal y app del peluquero | — |
+| 🔒 Clientes privados de quien alquila | Portal del peluquero |
+| 🛎️ Cuenta de recepción | — |
+| 📦 Inventario y venta de productos | — |
+| 🎁 Paquetes y tarjetas de regalo | — |
+| ⭐ Puntos para clientes fieles | — |
+| 🧾 Gastos con facturas del SRI | — |
+| 📊 Reporte del mes | — |
+| 📲 Avisos automáticos por Telegram | — |
+
+Planes: **Básica** = solo la base · **Completa** = todos los módulos. Precio de cada salón = plan + módulos extra − descuento de los que quitó (o un **precio acordado** fijo); lo ve y lo cambia solo Tukán (Panel Tukán → Planes y precios, o el Panel Tukán Central). Semestral paga 5 y recibe 6; anual paga 10, recibe 12 (meses de regalo) y trae dominio propio.
 
 - Plan y avance del proyecto: [BLOC_DE_NOTAS.md](BLOC_DE_NOTAS.md)
 - Cómo se reparte el dinero: [docs/COMO_FUNCIONA_EL_DINERO.md](docs/COMO_FUNCIONA_EL_DINERO.md)
@@ -38,7 +40,7 @@ Planes: **Básica $25** = solo la base · **Completa $35** = todos los módulos 
 | Dueño y recepción | `/` (entrar con correo y contraseña; la cuenta de recepción la crea el dueño en Más → Recepción, módulo «Cuenta de recepción») |
 | Quien alquila el puesto | Su portal → **Mis clientes** (módulo «Clientes privados de quien alquila») |
 | Quien quiere TuSalón | `/?r=registro` → **Solicitar demo** (nombre, salón, ciudad, WhatsApp, correo, qué necesita y módulos de interés). No crea el salón: llega a Tukán como pedido de demo |
-| Dueño: su plan | Más → **Mi plan** (`/?r=completa`): sus módulos, lo que puede agregar con su precio y «Pedir este módulo» |
+| Dueño: su plan | Más → **Mi plan** (`/?r=completa`): sus módulos, lo que paga por su plan y los que puede agregar («Precio por cotización» y «Pedir cotización», que llega al Panel Tukán Central como `cambio_modulos`) |
 | Peluquero | `/` con el acceso que le crea el dueño → su portal |
 | Clientes (reservas) | `/?r=reservar&s=<nombre-del-salón>` |
 | Tukán (super administrador) | `/?r=admin_entrar` · cuenta creada con `php bin/crear_admin.php` en el servidor · o con un clic desde el Panel Tukán Central |

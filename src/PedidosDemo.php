@@ -7,7 +7,7 @@ use PDO;
 use RuntimeException;
 
 /**
- * "Nada se da gratis, todo se pide demo": el formulario público "Solicitar demo" (?r=registro) ya no crea un salón.
+ * "Todo se pide demo": el formulario público "Solicitar demo" (?r=registro) ya no crea un salón.
  * Guarda el pedido (nombre, salón, ciudad, WhatsApp, correo, qué necesita y los módulos que le interesan), que llega
  * al Panel Tukán Central como solicitud `demo_pedida`. Tukán lo atiende y crea la demo (`crear_demo` con
  * `solicitud_id`) o lo descarta. Estados: nueva → contactada → demo_creada | descartada.

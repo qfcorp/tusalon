@@ -3,7 +3,7 @@
 #   - "No está en tu plan" (403) en cada página de un módulo apagado, con el enlace a Mi plan; menús y botones escondidos
 #   - páginas públicas (reservas, horas libres) de un módulo apagado: "no disponible" (403) sin borrar nada
 #   - cuentas de peluquero y de recepción sin su módulo: no entran
-#   - Mi plan: módulos encendidos, los que puede agregar con su precio y "Pedir este módulo"
+#   - Mi plan: módulos encendidos, los que puede agregar SIN su precio («Precio por cotización») y "Pedir cotización"
 #   - Panel Tukán: interruptores por salón (con precio acordado), aprobar el pedido y el catálogo de módulos y planes
 #   - pedidos de demo en el panel de Tukán → crear la demo con los módulos elegidos
 # Uso suelto: BASE=http://127.0.0.1:8099 DB=tusalon_web_prueba bash tests/prueba_web_modulos.sh
@@ -48,7 +48,9 @@ for par in inventario:inventario paquetes:paquetes_regalo tarjetas:paquetes_rega
   contiene "… $ruta enlaza a Mi plan con su módulo" "$TMP/pag.html" "r=completa&amp;modulo=$mod"
 done
 get "r=gastos" > /dev/null
-contiene "La página dice el precio del módulo" "$TMP/pag.html" "al mes"
+no_contiene "La página ya no dice el precio del módulo (regla del dueño)" "$TMP/pag.html" "al mes"
+no_contiene "… ni ningún monto" "$TMP/pag.html" '\$[0-9]'
+contiene "… y ofrece «Pedir cotización»" "$TMP/pag.html" "Pedir cotización"
 contiene "… y que los datos se guardan" "$TMP/pag.html" "tus datos están guardados"
 get "r=inicio" > /dev/null
 for r in inventario paquetes tarjetas puntos gastos reporte recepcion; do
@@ -87,17 +89,21 @@ sql "INSERT INTO usuarios (salon_id, nombre, email, password_hash, rol) VALUES (
 entrar "$ERB" claveLuis1
 check "Recepción sin su módulo no entra (403)" "403" "$(get "r=inicio")"
 
-echo "4. Mi plan: lo que tiene, lo que puede agregar y «Pedir este módulo»"
+echo "4. Mi plan: lo que tiene, lo que puede agregar y «Pedir cotización»"
 JAR=$JAR_B
 check "Mi plan abre" "200" "$(get "r=completa")"
 contiene "Muestra lo que paga al mes" "$TMP/pag.html" 'data-total-mensual>\$25,00'
 contiene "Lista la base" "$TMP/pag.html" "Lo que siempre tienes"
-contiene "Ofrece módulos con su precio" "$TMP/pag.html" '+\$5,00 al mes'
-contiene "… y «Pedir este módulo»" "$TMP/pag.html" "Pedir este módulo"
+no_contiene "Los módulos que no tiene no muestran precio" "$TMP/pag.html" '+\$'
+contiene "… dicen «Precio por cotización»" "$TMP/pag.html" "Precio por cotización"
+contiene "… y «Pedir cotización»" "$TMP/pag.html" "Pedir cotización"
+no_contiene "Ya no dice «Pedir este módulo»" "$TMP/pag.html" "Pedir este módulo"
+no_contiene "Sin el precio del plan Completa" "$TMP/pag.html" "\$$(sql "SELECT to_char(precio_mensual,'FM999990.00') FROM planes WHERE codigo='completa'" | sed 's/\./,/')"
+no_contiene "Sin la palabra prohibida en Mi plan" "$TMP/pag.html" "gratis"
 r=$(post "r=completa" -d accion=pedir -d modulo=inventario)
 check "Pedir vuelve a Mi plan" "302 $BASE/?r=completa" "$r"
 get "r=completa" > /dev/null
-contiene "Dice que Tukán lo revisa" "$TMP/pag.html" "Tukán revisa tu pedido"
+contiene "Dice que Tukán escribe con el valor" "$TMP/pag.html" "Tukán te escribe con el valor"
 contiene "El pedido aparece como pendiente" "$TMP/pag.html" "Tukán lo está revisando"
 PM=$(sql "SELECT id FROM pedidos_modulos WHERE salon_id=$SB AND modulos='inventario'")
 check "Pedido guardado" "pendiente" "$(sql "SELECT estado FROM pedidos_modulos WHERE id=$PM")"
@@ -107,6 +113,10 @@ post "r=completa" -d accion=pedir -d modulo=oro > /dev/null
 check "Módulo que no existe no se guarda" "0" "$(sql "SELECT count(*) FROM pedidos_modulos WHERE modulos='oro'")"
 get "r=completa&modulo=gastos_sri" > /dev/null
 contiene "Desde «No está en tu plan» resalta el módulo" "$TMP/pag.html" 'class="modulo modulo-activo" id="modulo-gastos_sri"'
+get "r=gastos" > /dev/null
+contiene "«No está en tu plan»: el botón Pedir cotización va a Mi plan" "$TMP/pag.html" 'action="/?r=completa"'
+post "r=completa" -d accion=pedir -d modulo=gastos_sri > /dev/null
+check "… y su pedido llega a Tukán (cambio_modulos)" "pendiente" "$(sql "SELECT estado FROM pedidos_modulos WHERE salon_id=$SB AND modulos='gastos_sri'")"
 
 echo "5. Panel Tukán: aprobar el pedido, interruptores y precio acordado"
 JAR="$TMP/c_admin"

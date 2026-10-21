@@ -42,7 +42,7 @@ Usa **exactamente** estos códigos (el sistema los reconoce por el nombre):
 
 - El precio sugerido cubre el **15 %** que Google cobra en las suscripciones: precio web ÷ 0,85, redondeado a ,99.
 - Si cambias los precios web en el Panel Tukán, la tabla con los nuevos precios sugeridos aparece en **Panel Tukán → Planes → Google Play**.
-- En cada suscripción crea **un plan base** con renovación automática y el período de la tabla. **NO pongas prueba gratis ni ofertas de "días gratis"** en Google: en TuSalón nada se da gratis, todo se pide demo (la demo la prepara Tukán y el salón llega a la app ya con su cuenta).
+- En cada suscripción crea **un plan base** con renovación automática y el período de la tabla. **NO actives periodo de prueba ni ofertas de días sin cobro** en Google: en TuSalón todo se pide demo (la demo la prepara Tukán y el salón llega a la app ya con su cuenta).
 - Activa cada plan base (botón **Activar**).
 
 ---
@@ -137,5 +137,5 @@ curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar
 - Google Play solo cobra **planes**: `tusalon_basica_*` = la base (agenda, clientes, servicios, equipo, cuentas, cobros y caja, hasta 3 personas) y `tusalon_completa_*` = **todos los módulos**. Qué trae cada plan sale de `planes.modulos` (Panel Tukán → Planes y precios → Catálogo de módulos y planes); si cambias lo que trae un plan, cambia también la descripción de la suscripción en Play Console.
 - Los **módulos sueltos no se venden dentro de la app**: en la app, Mi plan muestra los módulos sin precios y sin «Pedir este módulo» (Google exige cobrar con Google lo que se vende dentro de la app). Si un salón que paga por Google Play quiere un módulo extra, lo arregla con Tukán fuera de la app y Tukán lo enciende desde el panel.
 - Cuando Google confirma o renueva una suscripción, el salón queda con ese plan; sus módulos extra o quitados no cambian (los maneja Tukán).
-- Sin prueba gratis en las suscripciones (ver arriba). La app abre la misma página «Solicitar demo» para quien todavía no tiene cuenta.
+- Sin periodo de prueba en las suscripciones (ver arriba). La app abre la misma página «Solicitar demo» para quien todavía no tiene cuenta.
 

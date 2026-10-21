@@ -13,7 +13,7 @@ use RuntimeException;
  *  - Cada salón paga su plan + sus módulos extra − el descuento de los que quitó (o un precio acordado)
  *  - Semestral: paga 5, recibe 6
  *  - Anual: paga 10, recibe 12 + dominio propio (a nombre de Tukán)
- *  - No hay prueba gratis: Tukán crea una demo (estado "prueba", días que decide el súper usuario; por defecto 7)
+ *  - No hay periodo de prueba: Tukán crea una demo (estado "prueba", días que decide el súper usuario; por defecto 7)
  */
 final class Planes
 {

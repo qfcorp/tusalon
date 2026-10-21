@@ -9,7 +9,7 @@ foreach ($pedidos as $p) if (in_array($p['estado'], ['pendiente', 'en_proceso'],
 $etiqueta = function (string $id) use ($detalle, $catalogo, $play): string {
     if (in_array($id, $detalle['del_plan'], true) && !in_array($id, $detalle['quitados'], true)) return 'Incluido en tu plan';
     if (in_array($id, $detalle['extra'], true)) return $play ? 'Extra' : 'Extra · ' . dinero($catalogo[$id]['precio_mensual']) . ' al mes';
-    return $play ? 'Para agregar' : '+' . dinero($catalogo[$id]['precio_mensual']) . ' al mes';
+    return $play ? 'Para agregar' : 'Precio por cotización';   // regla del dueño: lo que no tiene no muestra precio
 };
 $activos = array_values(array_filter($catalogo, fn($m) => in_array($m['id'], $detalle['activos'], true)));
 $disponibles = array_values(array_filter($catalogo, fn($m) => !in_array($m['id'], $detalle['contratados'], true)));
@@ -77,7 +77,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
                 <?php if ($esDemo && !in_array($m['id'], $detalle['contratados'], true) && !$play): ?>
                     <?php if (isset($abiertos[$m['id']])): ?><small>Ya lo pediste</small><?php else: ?>
                     <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
-                        <button class="boton boton-claro boton-chico" type="submit">Lo quiero · +<?= dinero($m['precio_mensual']) ?></button></form>
+                        <button class="boton boton-claro boton-chico" type="submit">Lo quiero · Pedir cotización</button></form>
                     <?php endif; ?>
                 <?php endif; ?></div>
         </li>
@@ -101,7 +101,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
                 <?php if ($pedido): ?><span class="etq etq-pendiente">Pedido</span>
                 <?php elseif (!$play): ?>
                     <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
-                        <button class="boton boton-chico" type="submit">Pedir este módulo</button></form>
+                        <button class="boton boton-chico" type="submit">Pedir cotización</button></form>
                 <?php endif; ?>
             </div>
         </li>

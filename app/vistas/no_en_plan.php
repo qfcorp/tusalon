@@ -9,10 +9,15 @@ $esDueno = $u && !es_peluquero($u) && !es_recepcion($u);
     <h1><?= e(($m['icono'] ?? '') . ' ' . ($m['nombre'] ?? 'Esta función')) ?></h1>
     <p><?= e($m['descripcion'] ?? '') ?></p>
     <?php if ($esDueno): ?>
-        <?php if (!en_app_play() && $m): ?><p><strong><?= dinero($m['precio_mensual']) ?> al mes</strong> más tu plan.</p><?php endif; ?>
+        <?php /* Regla del dueño: el precio de un módulo que el salón no tiene no se muestra; se pide cotización */ ?>
+        <?php if (!en_app_play() && $m): ?><p>Pide la cotización y Tukán te escribe con el valor para agregarlo a tu plan.</p><?php endif; ?>
         <p class="suave">Si lo usaste antes, tus datos están guardados: al encenderlo vuelve todo como estaba.</p>
         <div class="acciones">
-            <a class="boton" href="<?= e(url('completa', ['modulo' => $modulo])) ?>">Ver Mi plan</a>
+            <?php if (!en_app_play() && $m): ?>
+                <form method="post" action="<?= e(url('completa')) ?>"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($modulo) ?>">
+                    <button class="boton" type="submit">Pedir cotización</button></form>
+            <?php endif; ?>
+            <a class="boton boton-claro" href="<?= e(url('completa', ['modulo' => $modulo])) ?>">Ver Mi plan</a>
         </div>
     <?php else: ?>
         <p class="suave">Pídele al dueño del salón que lo agregue a su plan.</p>

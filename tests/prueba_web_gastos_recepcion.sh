@@ -58,7 +58,7 @@ done
 contiene "Mi plan ofrece el módulo Cuenta de recepción" "$TMP/pag.html" "Cuenta de recepción"
 contiene "Mi plan ofrece el módulo Gastos con facturas del SRI" "$TMP/pag.html" "Gastos con facturas del SRI"
 contiene "Mi plan ofrece el módulo Clientes privados" "$TMP/pag.html" "Clientes privados de quien alquila"
-contiene "… cada uno con su precio y «Pedir este módulo»" "$TMP/pag.html" "Pedir este módulo"
+contiene "… cada uno con «Pedir cotización» (sin precio)" "$TMP/pag.html" "Pedir cotización"
 get "r=cuentas" > /dev/null
 no_contiene "Cuentas (Básica) ya no promete cobro automático del arriendo" "$TMP/pag.html" "automático del arriendo"
 no_contiene "Cuentas (Básica) ya no promete rol de pagos" "$TMP/pag.html" "rol de pagos"
