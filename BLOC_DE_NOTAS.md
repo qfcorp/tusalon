@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 20 de octubre de 2026
+Última actualización: 21 de octubre de 2026
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -65,6 +65,16 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Prueba simulada "Barbería Don Pepe": 49 de 49 pruebas correctas. Se metió un error a propósito y las pruebas lo detectaron
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 - [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
+
+## Hecho (21 oct 2026) — Administradores (pedido del dueño de Tukán)
+- [x] El dueño crea **hasta 4 administradores** (rol `admin`, ya existía en la base) con su **mismo nivel** en todo el programa: menú, Equipo, Configuración, Mi plan, Caja, reportes, gastos, recepción, etc.
+- [x] Son **cuentas de acceso**: sin `profesional_id`, **no cuentan en `Modulos::maxPersonas`** y no dependen de ningún módulo. Si además atienden, se crean aparte como peluquero.
+- [x] Pantalla nueva **Más → Administradores** (`app/paginas/administradores.php`, ruta de la base) y sección «Administradores» en Equipo: nombre, correo y contraseña; editar, cambiar contraseña, activar y desactivar. Lógica en `src/Administradores.php`.
+- [x] Límite: 4 activos sin contar al dueño (crear, activar o pasar una recepción a administrador) → «Puede tener hasta 4 administradores además del dueño». Con el salón bloqueado (`FOR UPDATE`) para que dos pedidos a la vez no pasen el límite.
+- [x] Seguridad: nadie se desactiva ni se cambia el rol a sí mismo; la cuenta del dueño no la toca nadie; los administradores sí crean, editan y desactivan a otros administradores, recepción y peluqueros; rol validado en el servidor (solo `admin` o `recepcion`; otro = «Rol no válido» y no se guarda nada); correo único y contraseña de 8; CSRF en todos los formularios.
+- [x] Helpers `es_dueno_o_admin()` y `es_dueno()` en `app/bootstrap.php`; el menú, «No está en tu plan» y la ficha técnica usan `es_dueno_o_admin()`. `public/index.php` niega las páginas privadas a cualquier rol que no sea dueño, administrador, recepción o peluquero.
+- [x] **Exclusivo del dueño** (identidad ante Tukán): su propia cuenta (nadie la edita, le cambia la contraseña ni la desactiva), ser el contacto del salón en el Panel Tukán y el Panel Tukán Central (nombre, correo, WhatsApp) y la cuenta con la que Tukán entra a ver el salón desde su panel (`admin_ver` usa la cuenta del dueño). Su contraseña la cambia Tukán.
+- [x] Pruebas: `tests/prueba_administradores.php` (71) y `tests/prueba_web_administradores.sh` (112, recorre todas las rutas privadas y compara con el dueño). Manual (capítulo 3, captura 42), Primeros pasos (paso 11) y PDFs regenerados.
 
 ## Hecho (18 oct 2026) — TuSalón por módulos (Anexo B) y "todo se pide demo"
 - [x] **14 módulos** con precio, descuento, dependencias y grupo (tabla arriba). Básica = base; Completa = todos. Migración `008_modulos.sql`: los salones de hoy quedan con lo mismo que tenían (probado)

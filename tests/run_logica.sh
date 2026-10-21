@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Corre las pruebas de lógica de TuSalón (tests/run_tests.php, tests/prueba_central.php, tests/prueba_central_v2.php y
-# tests/prueba_gastos_recepcion.php, tests/prueba_papelera.php y tests/prueba_modulos.php) con Telegram y el SRI simulados.
+# tests/prueba_gastos_recepcion.php, tests/prueba_papelera.php, tests/prueba_modulos.php y tests/prueba_administradores.php) con Telegram y el SRI simulados.
 # Uso: bash tests/run_logica.sh
 # Variables opcionales: TUSALON_DB_NAME (debe contener "prueba"; se borra), TUSALON_DB_USER, TUSALON_DB_PASS.
 # Telegram y SRI simulados en el puerto 8098 (se cambia con TG_PUERTO=...).
@@ -35,5 +35,8 @@ php tests/prueba_papelera.php || FALLO=1
 echo
 echo "==================== prueba_modulos ===================="
 php tests/prueba_modulos.php || FALLO=1
+echo
+echo "==================== prueba_administradores ===================="
+php tests/prueba_administradores.php || FALLO=1
 [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
 [ "$FALLO" -eq 0 ]

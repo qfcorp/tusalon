@@ -95,6 +95,11 @@ h.append(paso(9, 'Cerrar la caja del día', 'Menú Caja', [
 h.append(paso(10, 'Pagar a su equipo', 'Menú Más → Cuentas (en la computadora: Cuentas del equipo)', [
     'Vea cuánto le debe a cada peluquero, o cuánto le debe él a usted (por ejemplo, el arriendo de la silla).',
     'Toque <b>Ver detalle</b> para revisar cada cobro y, cuando ya pagaron, <b>Pagado, cerrar cuenta</b>.']))
+h.append(paso(11, 'Sus administradores (si los necesita)', 'Menú Más → Administradores (o Equipo → Ver y crear administradores)', [
+    'Para un socio, gerente o encargado que maneje todo como usted: escriba su <b>Nombre</b>, el <b>Correo con el que entra</b> y una contraseña, y toque <b>Crear administrador</b>.',
+    'Tiene su mismo nivel en todo el programa. Puede tener <b>hasta 4</b> además de usted, y <b>no cuentan</b> en el límite de personas del salón.',
+    'Puede <b>Editar</b>, <b>Cambiar contraseña</b>, <b>Desactivar</b> y <b>Activar</b> cada cuenta. Su cuenta de dueño nadie más la puede cambiar.'],
+    'si su administrador también atiende clientes, agréguelo además en Equipo como peluquero.'))
 
 h.append('''<div class="fin"><b>¿Listo? Ya puede trabajar.</b> Para clientes, avisos, inventario, paquetes, reportes y todo lo demás,
 vea el <b>Manual de TuSalón</b>.<br><br>¿Dudas? Escríbanos por <b>WhatsApp 099 640 8397</b> · info@tukansoftware.com · tukansoftware.com</div>''')

@@ -1,4 +1,4 @@
-<?php $esDueno = !es_peluquero($u); ?>
+<?php $esDueno = es_dueno_o_admin($u); ?>
 <div class="cabecera">
     <div>
         <h1>Ficha técnica · <?= e($cliente['nombre']) ?></h1>

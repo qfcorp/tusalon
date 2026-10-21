@@ -98,7 +98,7 @@ final class Modulos
         'mi_portal' => 'portal_peluquero', 'fotos' => 'reservas_linea', 'reporte' => 'reportes', 'inventario' => 'inventario',
         'paquetes' => 'paquetes_regalo', 'tarjetas' => 'paquetes_regalo', 'puntos' => 'puntos', 'ficha' => 'ficha_tecnica',
         'ficha_foto' => 'ficha_tecnica', 'comprobante' => 'anticipos', 'gastos' => 'gastos_sri', 'recepcion' => 'recepcion',
-        'mis_clientes' => 'clientes_privados',
+        'mis_clientes' => 'clientes_privados', 'administradores' => '',
         // panel de Tukán (no es de un salón)
         'admin' => '', 'admin_salones' => '', 'admin_salon' => '', 'admin_nuevo' => '', 'admin_planes' => '', 'admin_ver' => '',
         'admin_volver' => '', 'admin_salir' => '',

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Corre las pruebas de pantallas de TuSalón contra sitios de prueba que levanta solo:
 #   tests/prueba_web.sh (todo el sistema), tests/prueba_web_gastos_recepcion.sh (gastos con facturas del SRI, recepción y
-#   clientes privados de quien alquila), tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
+#   clientes privados de quien alquila), tests/prueba_web_administradores.sh (administradores con el nivel del dueño),
+#   tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
 #   Panel Tukán Central, protocolos v1 y v2), tests/prueba_web_papelera.sh (Anexo A: pausar y papelera) y
 #   tests/prueba_web_modulos.sh (Anexo B: módulos y "todo se pide demo"). Con CAPTURAS=<carpeta> también saca las capturas.
 # Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector)
@@ -59,6 +60,8 @@ fi
 if [ "${1:-}" != "central" ]; then
   echo; echo "==================== prueba_web_gastos_recepcion ===================="
   bash tests/prueba_web_gastos_recepcion.sh || FALLO=1
+  echo; echo "==================== prueba_web_administradores ===================="
+  bash tests/prueba_web_administradores.sh || FALLO=1
 fi
 echo; echo "==================== prueba_web_central ===================="
 bash tests/prueba_web_central.sh || FALLO=1

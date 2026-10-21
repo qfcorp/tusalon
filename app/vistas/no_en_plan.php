@@ -2,7 +2,7 @@
 /** "No está en tu plan" (Anexo B): el módulo de esta página está apagado. Los datos siguen guardados. */
 $cat = modulos()->catalogo();
 $m = $cat[$modulo] ?? null;
-$esDueno = $u && !es_peluquero($u) && !es_recepcion($u);
+$esDueno = es_dueno_o_admin($u);
 ?>
 <section class="bloque bloque-modulo" style="max-width:640px">
     <p class="etiqueta-plan">No está en tu plan</p>

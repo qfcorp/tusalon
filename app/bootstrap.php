@@ -178,7 +178,7 @@ function aviso_modulo(string $m): string
 {
     $c = modulos()->catalogo()[$m] ?? ['icono' => '', 'nombre' => $m];
     $u = usuario();
-    $enlace = $u && !es_peluquero($u) && !es_recepcion($u) ? ' <a href="' . e(url('completa', ['modulo' => $m])) . '">Ver Mi plan</a>' : '';
+    $enlace = es_dueno_o_admin($u) ? ' <a href="' . e(url('completa', ['modulo' => $m])) . '">Ver Mi plan</a>' : '';
     return '<p class="candado" data-modulo-apagado="' . e($m) . '">' . e(trim($c['icono'] . ' ' . $c['nombre'])) . ' no está en tu plan.' . $enlace . '</p>';
 }
 
@@ -232,6 +232,21 @@ function vista_publica(string $nombre, array $datos = [], string $titulo = 'TuSa
     require RAIZ . "/app/vistas/$nombre.php";
     $contenido = ob_get_clean();
     require RAIZ . '/app/vistas/_publico.php';
+}
+
+/**
+ * ¿Tiene el nivel del dueño? El dueño y sus administradores (hasta 4) ven y hacen lo mismo en todo el programa.
+ * Lo único que queda del dueño solo es su identidad ante Tukán (ver es_dueno()).
+ */
+function es_dueno_o_admin(?array $u): bool
+{
+    return \TuSalon\Administradores::nivelDueno($u);
+}
+
+/** El dueño original de la cuenta (el contacto de Tukán). Los administradores no pueden tocar su cuenta. */
+function es_dueno(?array $u): bool
+{
+    return $u !== null && $u['rol'] === 'dueno';
 }
 
 function es_peluquero(?array $u): bool

@@ -8,7 +8,7 @@ $menu = [
     'clientes' => ['Clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'],
     'equipo'   => ['Equipo',   'M6 20v-8M6 8V4M12 20v-4M12 12V4M18 20v-10M18 6V4M4 12h4M10 16h4M16 10h4'],
 ];
-$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes', 'gastos', 'recepcion'], true);
+$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes', 'gastos', 'recepcion', 'administradores'], true);
 $pendientesCampana = 0;
 if ($u) {
     $pendientesCampana = (new \TuSalon\Notificaciones(db()))->sinLeer((int) $u['id']);
@@ -32,7 +32,7 @@ if ($u) {
     }
 }
 $avisos = tomar_avisos();
-$esDuenoAqui = $u && !es_peluquero($u) && !es_recepcion($u);
+$esDuenoAqui = es_dueno_o_admin($u);
 $diasPrueba = $esDuenoAqui ? dias_prueba($u) : null;
 $estadoCuenta = $esDuenoAqui ? planes()->estadoCuenta($u) : null;
 $diasPlan = ($estadoCuenta === 'activo' && !empty($u['activo_hasta']))
@@ -79,7 +79,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
     <div class="lateral-pie">
         <?php if (es_recepcion($u)): ?>
         <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
-        <?php elseif (!es_peluquero($u)): ?>
+        <?php elseif (es_dueno_o_admin($u)): ?>
         <a href="<?= e(url('clientes')) ?>">Clientes</a>
         <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
         <?php if (modulo('reportes')): ?><a href="<?= e(url('reporte')) ?>">Reporte del mes</a><?php endif; ?>
@@ -92,6 +92,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <a href="<?= e(url('horario')) ?>">Horario y reservas en línea</a>
         <a href="<?= e(url('cuentas')) ?>">Cuentas del equipo</a>
         <?php if (modulo('recepcion')): ?><a href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
+        <a href="<?= e(url('administradores')) ?>">Administradores</a>
         <a href="<?= e(url('completa')) ?>">Mi plan</a>
         <?php endif; ?>
         <a href="<?= e(url('salir')) ?>">Cerrar sesión</a>

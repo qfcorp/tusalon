@@ -62,6 +62,7 @@ PANTALLAS = [
     ('33_puntos', 'dueno', '/?r=puntos', 1280, None, False),
     ('34_reporte', 'dueno', '/?r=reporte&mes={MES}', 1280, None, True),
     ('35_recepcion', 'dueno', '/?r=recepcion', 1280, None, False),
+    ('42_administradores', 'dueno', '/?r=administradores', 1280, None, False),
     ('36_recepcion_inicio_celular', 'recepcion', '/?r=inicio', 390, None, False),
     ('37_portal_peluquero_celular', 'carlos', '/?r=mi_portal&p=mes', 390, None, False),
     ('38_mis_clientes_celular', 'jorge', '/?r=mis_clientes', 390, None, False),

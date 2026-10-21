@@ -108,4 +108,5 @@ foreach ($equipo as &$p) {
 }
 unset($p);
 $puedeAgregar = $planes->puedeAgregarProfesional($sid);
-vista('equipo', compact('equipo', 'error', 'puedeAgregar'), 'Equipo · TuSalón');
+$adminsActivos = (new \TuSalon\Administradores($pdo))->activos($sid);
+vista('equipo', compact('equipo', 'error', 'puedeAgregar', 'adminsActivos'), 'Equipo · TuSalón');

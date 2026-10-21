@@ -30,6 +30,7 @@ $resumenRegla = function (array $p) use ($num): string {
         <?php if (modulo('gastos_sri')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('gastos')) ?>">Gastos y facturas</a><?php endif; ?>
         <a class="boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
         <?php if (modulo('recepcion')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('administradores')) ?>">Administradores</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>
         <a class="boton boton-claro boton-chico solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
     </div>
@@ -84,12 +85,17 @@ $resumenRegla = function (array $p) use ($num): string {
             <?php endforeach; ?>
         </ul>
 
+        <div class="bloque-admins" data-seccion-administradores style="margin-top:16px;padding-top:12px;border-top:1px solid var(--linea)">
+            <h3 style="margin:0 0 4px">Administradores</h3>
+            <p class="linea-sub" style="margin:0 0 8px"><?= (int) $adminsActivos ?> de <?= \TuSalon\Administradores::MAXIMO ?> activos, además del dueño. Tienen tu mismo nivel y no cuentan en el límite de personas.</p>
+            <a class="boton boton-claro boton-chico" href="<?= e(url('administradores')) ?>">Ver y crear administradores</a>
+        </div>
     </section>
 
     <?php if (!$puedeAgregar): ?>
         <section class="bloque">
             <h2>Agregar peluquero</h2>
-            <p>Tu plan permite hasta <?= (int) modulos()->maxPersonas(salon_de_usuario($u)) ?> personas, contándote a ti.</p>
+            <p>Tu plan permite hasta <?= (int) modulos()->maxPersonas(salon_de_usuario($u)) ?> personas, contándote a ti. Los administradores no cuentan.</p>
             <?= aviso_modulo('equipo_ilimitado') ?>
         </section>
     <?php else: ?>

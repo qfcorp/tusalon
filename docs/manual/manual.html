@@ -94,7 +94,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
   <ol>
     <li><span class="n">1</span><a href="#c1">Qué es TuSalón<small>Para quién es y qué resuelve</small></a><span class="pag" data-pag="c1"></span></li>
     <li><span class="n">2</span><a href="#c2">Entrar e inicio<small>Solicitar demo, entrar, la pantalla Hoy y el menú</small></a><span class="pag" data-pag="c2"></span></li>
-    <li><span class="n">3</span><a href="#c3">Quién entra: dueño, peluquero y recepción<small>Qué ve y qué no ve cada uno</small></a><span class="pag" data-pag="c3"></span></li>
+    <li><span class="n">3</span><a href="#c3">Quién entra: dueño, administradores, peluquero y recepción<small>Qué ve y qué no ve cada uno; hasta 4 administradores</small></a><span class="pag" data-pag="c3"></span></li>
     <li><span class="n">4</span><a href="#c4">Los 4 tipos de peluquero<small>Dueño, empleado, porcentaje y alquiler de puesto</small></a><span class="pag" data-pag="c4"></span></li>
     <li><span class="n">5</span><a href="#c5">Planes y módulos<small>La base, los 14 módulos y los planes Básica y Completa</small></a><span class="pag" data-pag="c5"></span></li>
     <li><span class="n">6</span><a href="#c6">Configuración<small>Horario, reglas de las citas en línea, anticipo y Telegram</small></a><span class="pag" data-pag="c6"></span></li>
@@ -169,17 +169,27 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
 </section>
 
 <section class="cap" id="c3">
-  <h1><span class="num">3</span> Quién entra: dueño, peluquero y recepción</h1>
-  <span class="plan">Base · Recepción y Portal del peluquero son módulos</span>
+  <h1><span class="num">3</span> Quién entra: dueño, administradores, peluquero y recepción</h1>
+  <span class="plan">Base (administradores incluidos) · Recepción y Portal del peluquero son módulos</span>
   <table class="t">
-    <tr><th></th><th>Dueño</th><th>Recepción</th><th>Peluquero</th></tr>
+    <tr><th></th><th>Dueño y administradores</th><th>Recepción</th><th>Peluquero</th></tr>
     <tr><td>Agenda, nuevas citas y solicitudes</td><td class="si">Sí</td><td class="si">Sí</td><td>Solo las suyas</td></tr>
     <tr><td>Cobrar y cerrar la caja</td><td class="si">Sí</td><td class="si">Sí</td><td>No</td></tr>
     <tr><td>Clientes y recordatorios por WhatsApp</td><td class="si">Sí</td><td class="si">Sí</td><td>Sus clientes privados (si alquila el puesto)</td></tr>
     <tr><td>Ganancia del local, gastos y reporte del mes</td><td class="si">Sí</td><td>No</td><td>No</td></tr>
     <tr><td>Cuentas del equipo</td><td class="si">Sí</td><td>No</td><td>Solo lo que gana él</td></tr>
     <tr><td>Servicios, precios, horario, equipo, inventario y Mi plan</td><td class="si">Sí</td><td>No</td><td>No</td></tr>
+    <tr><td>Crear y desactivar administradores, recepción y peluqueros</td><td class="si">Sí</td><td>No</td><td>No</td></tr>
   </table>
+  <h2>Administradores</h2>
+  <p>El dueño puede tener <b>hasta 4 administradores</b>: personas de confianza (socio, gerente, encargado) que manejan el salón con <b>el mismo nivel que el dueño</b> en todo: agenda, caja, clientes, servicios, horario, equipo, cuentas, reportes y Mi plan. Se crean en <b>Más → Administradores</b> (o en <b>Equipo</b>, sección <b>Administradores</b> → <b>Ver y crear administradores</b>): nombre, <b>Correo con el que entra</b> y una contraseña de al menos 8 caracteres, y toca <b>Crear administrador</b>. Cada uno se puede <b>Editar</b>, <b>Cambiar contraseña</b>, <b>Desactivar</b> y <b>Activar</b>.</p>
+  <ul class="lista">
+    <li>Un administrador es una <b>cuenta para entrar</b>, no una persona que atiende: <b>no cuenta</b> en el límite de personas del salón y no necesita ningún módulo. Si además corta o atiende clientes, agrégalo también en Equipo como peluquero.</li>
+    <li>Pueden ser hasta 4 activos además del dueño. Si intentas crear o activar un quinto, TuSalón dice «Puede tener hasta 4 administradores además del dueño»; desactiva uno para dejar el cupo libre.</li>
+    <li>Un administrador puede crear, editar y desactivar a otros administradores, a recepción y a los peluqueros.</li>
+    <li>Nadie se puede desactivar ni cambiar el tipo de cuenta a sí mismo, y <b>la cuenta del dueño no la puede cambiar ni desactivar nadie</b>: es la cuenta principal del salón ante Tukán.</li>
+  </ul>
+  <figure class="pc"><img src="capturas/42_administradores.png" alt=""><figcaption>Más → Administradores: la dueña, Sofía activa, Diego sin acceso, el cupo de 4 y el formulario para crear otro.</figcaption></figure>
   <h2>Recepción</h2>
   <p>En <b>Más → Recepción</b> el dueño crea la cuenta: nombre, <b>Correo con el que entra</b> y una contraseña, y toca <b>Crear cuenta de recepción</b>. Puede <b>Cambiar contraseña</b>, <b>Quitar acceso</b> y <b>Devolver acceso</b>. Los avisos de reservas que le llegan al dueño también le llegan a recepción.</p>
   <figure class="pc"><img src="capturas/35_recepcion.png" alt=""><figcaption>Más → Recepción: quién entra, qué puede hacer y qué no ve.</figcaption></figure>
@@ -221,6 +231,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
     <li>Horario del salón y de cada peluquero, almuerzo y vacaciones.</li>
     <li>Enlace de cada cita para que el cliente confirme, cancele o califique.</li>
     <li>Hasta 3 personas que atienden (el dueño cuenta).</li>
+    <li>Hasta 4 administradores con el mismo nivel que el dueño (no cuentan como personas).</li>
   </ul>
   <h2>Los planes</h2>
   <ul class="lista">
@@ -313,6 +324,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
   <div class="ojo"><b>Hasta 3 personas</b>Sin el módulo «Personas ilimitadas», el salón tiene hasta 3 personas que atienden, contándote a ti. Al llegar al límite, el formulario lo dice y te lleva a Mi plan.</div>
   <h2>Darle acceso a su portal</h2>
   <p>Debajo del nombre de cada peluquero toca <b>Darle acceso a su portal</b>, escribe <b>Su correo</b> y una contraseña y toca <b>Crear acceso</b> (módulo Portal y app del peluquero). Después puedes <b>Cambiar contraseña</b> o <b>Quitar acceso</b>.</p>
+  <div class="nota"><b>Administradores</b>Debajo de la lista del equipo está la sección <b>Administradores</b>: cuántos tienes activos (hasta 4) y <b>Ver y crear administradores</b>. Tienen tu mismo nivel y no cuentan en el límite de personas (ver el capítulo 3).</div>
   <h2>Horario, almuerzo y vacaciones</h2>
   <p>Debajo de cada nombre toca <b>🗓 Horario, almuerzo y vacaciones</b>. Elige <b>Usa el horario del salón</b> o <b>Tiene su propio horario</b> (sus días, hora de entrada y salida, y almuerzo) y toca <b>Guardar horario</b>. Para vacaciones o un permiso, llena <b>Desde</b> y <b>Hasta (incluido)</b>; si es por unas horas, abre <b>Solo unas horas (ej. cita médica)</b>. Toca <b>Bloquear esas fechas</b>. En esas horas nadie le puede reservar.</p>
   <figure class="pc"><img src="capturas/06_horario_peluquero.png" alt=""><figcaption>Carlos descansa los lunes y almuerza de 13:00 a 14:00.</figcaption></figure>
@@ -483,7 +495,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
   <h1><span class="num">14</span> Preguntas frecuentes</h1>
   <table class="t">
     <tr><th>Pregunta o problema</th><th>Qué hacer</th></tr>
-    <tr><td>Olvidé mi contraseña</td><td>Escríbele a Tukán por WhatsApp. Si es un peluquero o recepción, el dueño le pone una nueva en Equipo o en Recepción con <b>Cambiar contraseña</b>.</td></tr>
+    <tr><td>Olvidé mi contraseña</td><td>Escríbele a Tukán por WhatsApp. Si es un peluquero, recepción o un administrador, el dueño (o un administrador) le pone una nueva en Equipo, Recepción o Administradores con <b>Cambiar contraseña</b>. La del dueño solo la cambia Tukán.</td></tr>
     <tr><td>Un cliente dice que no ve horas libres</td><td>Revisa que ese día el peluquero trabaje (su horario y sus vacaciones), que haga ese servicio y que el servicio tenga marcado «Se puede reservar en línea».</td></tr>
     <tr><td>Un cliente no puede reservar en línea</td><td>Puede tener faltas. Ábrelo en Clientes y toca <b>Perdonar faltas</b>.</td></tr>
     <tr><td>Me equivoqué de precio al agendar</td><td>Al cobrar puedes cambiar el precio de cada servicio.</td></tr>
@@ -491,7 +503,8 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
     <tr><td>Dice que pagó el anticipo</td><td>Abre su cita: si subió el comprobante, lo ves ahí. Compáralo con tu banco y toca <b>Recibí el anticipo</b>.</td></tr>
     <tr><td>¿Cuánto le queda a una tarjeta de regalo?</td><td>Más → Tarjetas de regalo, escribe el código y toca <b>Ver saldo</b>.</td></tr>
     <tr><td>Vendí un paquete o una tarjeta por error</td><td>Si todavía no se usó, ábrelo y toca <b>Anular</b>. Se quita de la caja.</td></tr>
-    <tr><td>No me deja agregar otro peluquero</td><td>Sin el módulo «Personas ilimitadas», el salón tiene hasta 3 personas. Pídelo en Mi plan con <b>Pedir cotización</b>.</td></tr>
+    <tr><td>No me deja agregar otro peluquero</td><td>Sin el módulo «Personas ilimitadas», el salón tiene hasta 3 personas. Pídelo en Mi plan con <b>Pedir cotización</b>. Los administradores no cuentan en ese límite.</td></tr>
+    <tr><td>Quiero que mi socio o mi gerente maneje todo</td><td>Créale una cuenta en Más → <b>Administradores</b>. Tiene tu mismo nivel; pueden ser hasta 4 además de ti.</td></tr>
     <tr><td>Una página dice «No está en tu plan»</td><td>Ese módulo no está encendido para tu salón. Toca <b>Pedir cotización</b>; tus datos de antes siguen guardados.</td></tr>
     <tr><td>¿Cuánto cuesta un módulo?</td><td>Es por cotización: pídelo en Mi plan y Tukán te escribe con el valor.</td></tr>
     <tr><td>¿Mis datos están seguros?</td><td>Sí. Cada salón solo ve lo suyo y se hace una copia de seguridad cada día.</td></tr>

@@ -58,6 +58,10 @@ $ins = $db->prepare("INSERT INTO usuarios (salon_id, profesional_id, nombre, ema
 $ins->execute([$sid, $carlos, 'Carlos Mena', 'carlos@tusalon.tukanec.com', password_hash(CLAVE, PASSWORD_DEFAULT), 'profesional']);
 $ins->execute([$sid, $jorge, 'Jorge Paz', 'jorge@tusalon.tukanec.com', password_hash(CLAVE, PASSWORD_DEFAULT), 'profesional']);
 $ins->execute([$sid, null, 'Paola Cedeño', 'recepcion@tusalon.tukanec.com', password_hash(CLAVE, PASSWORD_DEFAULT), 'recepcion']);
+// Administradores (Más → Administradores): mismo nivel que la dueña, no atienden ni cuentan en el límite de personas
+$ins->execute([$sid, null, 'Sofía Andrade', 'sofia@tusalon.tukanec.com', password_hash(CLAVE, PASSWORD_DEFAULT), 'admin']);
+$ins->execute([$sid, null, 'Diego Ruiz', 'diego@tusalon.tukanec.com', password_hash(CLAVE, PASSWORD_DEFAULT), 'admin']);
+$q("UPDATE usuarios SET activo = false WHERE email = 'diego@tusalon.tukanec.com'");
 // Carlos: lunes libre y almuerzo de 13:00 a 14:00; Ana: vacaciones la próxima semana
 $hc = [];
 for ($d = 0; $d <= 6; $d++) $hc[$d] = in_array($d, [0, 1], true) ? null : ['abre' => '09:00', 'cierra' => '21:00', 'almuerzo_desde' => '13:00', 'almuerzo_hasta' => '14:00'];

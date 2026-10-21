@@ -7,6 +7,7 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 
 **Todo es por módulos** y **todo se pide demo**:
 - Cada salón tiene la **base** (agenda, clientes, servicios, equipo con los 4 tipos, cuentas del equipo, cobros y caja, horarios, hasta 3 personas) y los **módulos** que contrate. Cada módulo se enciende o se apaga por salón y su precio es por cotización; **apagar nunca borra datos**.
+- **Administradores (21 oct 2026):** el dueño puede crear **hasta 4 administradores** (rol `admin`) con su mismo nivel en todo el programa. Son cuentas de acceso: no atienden citas, **no cuentan en el límite de personas** y no dependen de ningún módulo. Se crean en Más → **Administradores** (`/?r=administradores`, también desde Equipo). Lo único exclusivo del dueño es su cuenta: nadie más la cambia ni la desactiva (es la identidad del salón ante Tukán).
 - No hay registro abierto ni periodo de prueba: el formulario público es **Solicitar demo**. Tukán prepara la demo (con todos los módulos o los que elija) desde el Panel Tukán Central o desde su propio panel.
 
 ### Módulos y planes
@@ -38,7 +39,7 @@ Planes: **Básica** = solo la base · **Completa** = todos los módulos. Precio 
 ## Direcciones
 | Quién | Dirección |
 |---|---|
-| Dueño y recepción | `/` (entrar con correo y contraseña; la cuenta de recepción la crea el dueño en Más → Recepción, módulo «Cuenta de recepción») |
+| Dueño, administradores y recepción | `/` (entrar con correo y contraseña; los administradores los crea el dueño en Más → Administradores, hasta 4; la cuenta de recepción en Más → Recepción, módulo «Cuenta de recepción») |
 | Quien alquila el puesto | Su portal → **Mis clientes** (módulo «Clientes privados de quien alquila») |
 | Quien quiere TuSalón | `/?r=registro` → **Solicitar demo** (nombre, salón, ciudad, WhatsApp, correo, qué necesita y módulos de interés). No crea el salón: llega a Tukán como pedido de demo |
 | Dueño: su plan | Más → **Mi plan** (`/?r=completa`): sus módulos, lo que paga por su plan y los que puede agregar («Precio por cotización» y «Pedir cotización», que llega al Panel Tukán Central como `cambio_modulos`) |
@@ -116,10 +117,10 @@ El instalador ya las deja programadas. Son estas dos líneas de cron:
 Solo en una base de prueba (el script la borra y la vuelve a crear):
 
 ```bash
-# Lógica (1006 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php + prueba_gastos_recepcion.php + prueba_papelera.php
-# + prueba_modulos.php, con Telegram simulado en el puerto 8098; otro puerto con TG_PUERTO=…)
+# Lógica (1080 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php + prueba_gastos_recepcion.php + prueba_papelera.php
+# + prueba_modulos.php + prueba_administradores.php, con Telegram simulado en el puerto 8098; otro puerto con TG_PUERTO=…)
 bash tests/run_logica.sh
-# Pantallas de punta a punta (737 pruebas: prueba_web.sh + prueba_web_gastos_recepcion.sh + prueba_web_central.sh + prueba_web_central_v2.sh
+# Pantallas de punta a punta (856 pruebas: prueba_web.sh + prueba_web_gastos_recepcion.sh + prueba_web_administradores.sh + prueba_web_central.sh + prueba_web_central_v2.sh
 # + prueba_web_papelera.sh + prueba_web_modulos.sh; levanta solo los sitios de prueba, Payphone y Telegram simulados).
 # Opcional: DB=<base> PUERTO=<puerto>, y CAPTURAS=<carpeta> para sacar las capturas de Mi plan, "No está en tu plan" y los
 # interruptores del panel a 390 px y en computadora (Playwright con Chromium ya instalado; no corre "playwright install")
