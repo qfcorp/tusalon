@@ -41,7 +41,11 @@ final class Modulos
         'ventas' => 'Ventas y clientes fieles',
         'dinero' => 'Dinero y reportes',
         'avisos' => 'Avisos automáticos',
+        'extras' => 'Extras',
     ];
+
+    /** Módulos que no entran en ningún plan (ni con '*'): se cotizan aparte. */
+    public const FUERA_DE_PLANES = ['asistente_ia'];
 
     /** Personas que atienden sin el módulo "equipo_ilimitado" (si el plan no pone otro número). */
     public const PERSONAS_SIN_MODULO = 3;
@@ -79,6 +83,9 @@ final class Modulos
             'Lo más vendido, el mejor peluquero, las estrellas, las horas y días más vacíos y las faltas. Te llega solo el día 1 de cada mes.', 3.0, 1.0, []],
         'telegram' => ['📲', 'Avisos automáticos por Telegram', 'avisos',
             'Recordatorio automático al cliente el día anterior, pedido de calificación después del servicio, saludo de cumpleaños y avisos de cada reserva a tu equipo con botones Aceptar y Rechazar.', 3.0, 1.0, []],
+        // Por cotización (precio 0 en el catálogo: el que se acuerde va como precio acordado). No está en ningún plan.
+        'asistente_ia' => ['✨', 'Asistente IA', 'extras',
+            'Arma la cita a partir del mensaje de WhatsApp del cliente con una hora libre de tu agenda, escribe el mensaje para los clientes que no vuelven y responde las dudas al instante.', 0.0, 0.0, []],
     ];
 
     /**
@@ -98,10 +105,10 @@ final class Modulos
         'mi_portal' => 'portal_peluquero', 'fotos' => 'reservas_linea', 'reporte' => 'reportes', 'inventario' => 'inventario',
         'paquetes' => 'paquetes_regalo', 'tarjetas' => 'paquetes_regalo', 'puntos' => 'puntos', 'ficha' => 'ficha_tecnica',
         'ficha_foto' => 'ficha_tecnica', 'comprobante' => 'anticipos', 'gastos' => 'gastos_sri', 'recepcion' => 'recepcion',
-        'mis_clientes' => 'clientes_privados', 'administradores' => '',
+        'mis_clientes' => 'clientes_privados', 'administradores' => '', 'ayuda' => '', 'asistente' => 'asistente_ia',
         // panel de Tukán (no es de un salón)
         'admin' => '', 'admin_salones' => '', 'admin_salon' => '', 'admin_nuevo' => '', 'admin_planes' => '', 'admin_ver' => '',
-        'admin_volver' => '', 'admin_salir' => '',
+        'admin_volver' => '', 'admin_salir' => '', 'admin_faq' => '', 'admin_demo_correo' => '',
     ];
 
     private ?array $catalogo = null;
@@ -186,7 +193,7 @@ final class Modulos
     public function modulosDePlan(string $valor): array
     {
         $valor = trim($valor);
-        return $valor === '*' ? self::ids() : self::limpiar($valor);
+        return $valor === '*' ? array_values(array_diff(self::ids(), self::FUERA_DE_PLANES)) : self::limpiar($valor);
     }
 
     public function olvidar(): void
@@ -437,8 +444,8 @@ final class Modulos
             else {
                 if (!is_array($lista)) throw new RuntimeException("La lista de módulos del plan $codigo no es válida.");
                 foreach ($lista as $id) if (!is_string($id) || !self::existe($id)) throw new RuntimeException('Ese módulo no existe en TuSalón: ' . mb_substr((string) (is_scalar($id) ? $id : '?'), 0, 40) . '.');
-                $ids = self::conDependencias($lista);
-                $valor = $ids === self::ids() ? '*' : implode(',', $ids);
+                $ids = array_values(array_diff(self::conDependencias($lista), self::FUERA_DE_PLANES));   // el Asistente IA no va en planes
+                $valor = $ids === array_values(array_diff(self::ids(), self::FUERA_DE_PLANES)) ? '*' : implode(',', $ids);
             }
             $st = $this->db->prepare('SELECT modulos FROM planes WHERE codigo = ?');
             $st->execute([$codigo]);

@@ -69,6 +69,8 @@ PANTALLAS = [
     ('39_mi_plan_compu', 'basica', '/?r=completa', 1280, 'ocultar_precios', False),
     ('40_mi_plan_celular', 'basica', '/?r=completa', 390, 'ocultar_precios_bajar', False),
     ('41_no_en_plan_celular', 'basica', '/?r=inventario', 390, None, False),
+    ('43_ayuda_celular', 'dueno', '/?r=ayuda', 390, 'preguntar_ayuda', False),
+    ('44_asistente_compu', 'dueno', '/?r=asistente', 1280, None, False),
 ]
 
 
@@ -89,6 +91,11 @@ def accion(pg, cual):
         pg.evaluate("() => { const d = document.querySelector('details.campo'); if (d) d.open = true; }")
         pg.fill(f"input[name='productos[{D['PROD_SHAMPOO']}]']", '1')
         pg.dispatch_event(f"input[name='productos[{D['PROD_SHAMPOO']}]']", 'input')
+    elif cual == 'preguntar_ayuda':   # la respuesta sale de la pregunta frecuente del salón de ejemplo (sin IA)
+        pg.fill('#pregunta', '¿Cómo registro un pago?')
+        with pg.expect_navigation():
+            pg.click('form button[type=submit]')
+        pg.wait_for_load_state('networkidle')
     elif cual in ('ocultar_precios', 'ocultar_precios_bajar'):
         pg.add_style_tag(content=OCULTAR_PLAN + ' { display: none !important; }')
         if cual.endswith('bajar'):

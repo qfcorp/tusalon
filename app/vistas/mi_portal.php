@@ -17,7 +17,7 @@ $diaAnterior = '';
 <div class="cabecera">
     <div>
         <h1>Hola, <?= e($nombre) ?></h1>
-        <p><?= e($u['salon']) ?></p>
+        <p><?= e($u['salon']) ?><span class="solo-celular"> · <a href="<?= e(url('ayuda')) ?>">Ayuda</a></span></p>
     </div>
     <nav class="acciones" aria-label="Periodo">
         <?php foreach ($periodos as $k => $txt): ?>

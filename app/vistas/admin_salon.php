@@ -41,6 +41,7 @@ $metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' =
         <p class="suave">Se muestra solo esta vez. Envíasela y pídele que la cambie.</p>
         <?php $waClave = WhatsApp::enlace($s['telefono'], "Hola {$claveNueva['nombre']}, tu acceso a TuSalón: " . \TuSalon\Agenda::urlBase() . " · Correo: {$claveNueva['email']} · Contraseña: {$claveNueva['clave']}"); ?>
         <?php if ($waClave): ?><a class="boton boton-wa" href="<?= e($waClave) ?>" target="_blank" rel="noopener">Enviársela por WhatsApp</a><?php endif; ?>
+        <?php if ($correoDemo): $correo = $correoDemo; require __DIR__ . '/_correo_demo.php'; endif; ?>
     </section>
 <?php endif; ?>
 
@@ -91,6 +92,21 @@ $metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' =
                     <span class="monto"><?= dinero($h['precio_despues']) ?></span></li>
             <?php endforeach; ?></ul></details>
     <?php endif; ?>
+</section>
+
+<section class="bloque" id="ia" data-ia-salon>
+    <h2>IA de Tukán <small class="suave">(solo lo ve Tukán)</small></h2>
+    <p>Este mes: <strong>$<?= number_format($iaInfo['gasto']['costo'], 4, ',', '.') ?></strong> de un tope de $<?= number_format($iaInfo['tope'], 2, ',', '.') ?>
+       · <?= (int) $iaInfo['gasto']['llamadas'] ?> llamadas · <?= (int) $iaInfo['gasto']['ahorradas'] ?> respuestas sin IA (preguntas frecuentes o manual)
+       · <?= (int) $iaInfo['gasto']['ayudas_nuevas'] ?> respuestas nuevas de la Ayuda.</p>
+    <p class="suave">Módulo «Asistente IA»: <?= $iaInfo['modulo'] ? 'encendido (tope sugerido $' . number_format(TuSalon\Ia::TOPE_CON_MODULO, 2, ',', '.') . ')' : 'apagado (tope sugerido $' . number_format(TuSalon\Ia::TOPE_SIN_MODULO, 2, ',', '.') . ' y ' . TuSalon\Ia::NUEVAS_SIN_MODULO . ' respuestas nuevas de la Ayuda al mes)' ?>.
+       Al llegar al tope el salón no ve ningún aviso: la Ayuda sigue con las preguntas frecuentes y el manual.</p>
+    <form method="post" action="<?= e(url('admin_salon', ['id' => $s['id']])) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <?= campo_csrf() ?><input type="hidden" name="accion" value="ia_tope">
+        <div class="campo" style="margin:0"><label for="ia_tope">Tope del mes (USD)</label>
+            <input id="ia_tope" name="ia_tope" inputmode="decimal" value="<?= $iaInfo['propio'] === null ? '' : e(number_format($iaInfo['propio'], 2, ',', '')) ?>" placeholder="Vacío = el sugerido"></div>
+        <button class="boton boton-claro" type="submit">Guardar tope</button>
+    </form>
 </section>
 
 <div class="rejilla rejilla-2">

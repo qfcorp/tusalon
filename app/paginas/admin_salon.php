@@ -11,6 +11,13 @@ if (!empty($_SESSION['clave_nueva_' . $id])) {   // recién creado desde "Nuevo 
     $claveNueva = $_SESSION['clave_nueva_' . $id];
     unset($_SESSION['clave_nueva_' . $id]);
 }
+$correoDemo = null;
+if ($claveNueva) {   // «Demo lista»: los datos van cifrados en el formulario de «Enviar por correo» (la contraseña no se guarda)
+    $correoDemo = ['para' => (string) $claveNueva['email'], 'listo' => TuSalon\CorreoDemo::listo(), 'salon_id' => $id, 'estado' => null, 'error' => null,
+                   'sello' => TuSalon\CorreoDemo::sellar(['usuario' => $claveNueva['email'], 'clave' => $claveNueva['clave'], 'enlace' => TuSalon\Agenda::urlBase(),
+                                                         'hasta' => (string) ($salon['prueba_hasta'] ?? ''), 'contacto' => $claveNueva['nombre'],
+                                                         'negocio' => $salon['nombre']], (int) superadmin()['id'], $id, $_SESSION)];
+}
 
 if (es_post()) {
     verificar_csrf();
@@ -44,6 +51,13 @@ if (es_post()) {
                 $hasta = $panel->extenderPrueba($id, (int) ($_POST['dias'] ?? 0));
                 registrar_admin('Prueba extendida hasta ' . $hasta, $id);
                 aviso('Demo hasta el ' . date('d/m/Y', strtotime($hasta)) . '.');
+                break;
+            case 'ia_tope':   // tope del mes de la IA de este salón (vacío = el sugerido)
+                $t = trim((string) ($_POST['ia_tope'] ?? ''));
+                if ($t !== '' && !is_numeric(str_replace(',', '.', $t))) throw new RuntimeException('Escribe el tope con números, por ejemplo 3,00.');
+                TuSalon\Ia::guardarTope(db(), $id, $t === '' ? null : (float) str_replace(',', '.', $t));
+                registrar_admin('Tope de IA del mes: ' . ($t === '' ? 'el sugerido' : '$' . number_format((float) str_replace(',', '.', $t), 2, ',', '.')), $id);
+                aviso('Tope de IA guardado.');
                 break;
             case 'notas':
                 $panel->guardarNotas($id, (string) ($_POST['notas'] ?? ''));
@@ -108,5 +122,7 @@ $inicioSugerido = $planes->inicioSugerido($id)->format('Y-m-d');
 $modDetalle = modulos()->detalle(modulos()->salon($id));
 $modHistorial = modulos()->historial($id, 10);
 $modPedidos = modulos()->pedidos($id);
-vista_admin('admin_salon', compact('salon', 'pagos', 'registro', 'listaPlanes', 'cotizaciones', 'inicioSugerido', 'claveNueva', 'modDetalle', 'modHistorial', 'modPedidos'),
+$iaInfo = ['tope' => TuSalon\Ia::tope(db(), $id), 'propio' => TuSalon\Ia::topePropio(db(), $id), 'modulo' => TuSalon\Ia::conModulo(db(), $id),
+           'gasto' => TuSalon\Ia::gastoMes(db(), $id)];
+vista_admin('admin_salon', compact('correoDemo', 'iaInfo', 'salon', 'pagos', 'registro', 'listaPlanes', 'cotizaciones', 'inicioSugerido', 'claveNueva', 'modDetalle', 'modHistorial', 'modPedidos'),
             $salon['nombre'] . ' · Panel Tukán');

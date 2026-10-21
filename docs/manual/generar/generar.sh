@@ -22,6 +22,8 @@ if [ "${SOLO_PDF:-0}" != "1" ]; then
   export TUSALON_UPLOADS="$TMPD/uploads" TUSALON_BORRADOS="$TMPD/borrados"
   # Telegram «configurado» solo para que se vea el botón «Conectar mi Telegram» (no se manda nada: la API apunta a un puerto cerrado)
   export TELEGRAM_BOT_TOKEN=manual TELEGRAM_BOT_USERNAME=TuSalonBot TELEGRAM_API_BASE=http://127.0.0.1:9 GOOGLE_PLAY_ACTIVO=0
+  # Sin IA ni correo de verdad: la Ayuda responde con la pregunta frecuente del salón de ejemplo y el manual (no se gasta nada)
+  export TUKAN_IA_ENV="$TMPD/sin_ia.env" TUKAN_CORREO_ENV="$TMPD/sin_correo.env"
   echo "== 1. Base de ejemplo nueva ($TUSALON_DB_NAME)"
   psql -q -h 127.0.0.1 -U "$TUSALON_DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $TUSALON_DB_NAME" -c "CREATE DATABASE $TUSALON_DB_NAME" 2>/dev/null
   psql -q -h 127.0.0.1 -U "$TUSALON_DB_USER" -d "$TUSALON_DB_NAME" -v ON_ERROR_STOP=1 -f db/schema.sql > /dev/null 2>&1

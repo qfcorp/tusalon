@@ -66,6 +66,17 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 - [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
 
+## Hecho (21 oct 2026) — IA de Tukán (Ayuda y Asistente IA) y demo por correo
+- [x] Librerías del Panel Tukán Central copiadas sin cambios: `src/tukan_ia.php` (LEEME_IA.md) y `src/tukan_correo.php` (LEEME_CORREO.md). Migración `009_ia.sql` (se puede repetir): tablas `tukan_ia_faq` y `tukan_ia_gasto` y `salones.ia_tope_usd`.
+- [x] **Ayuda** («¿En qué le ayudamos?») para todos los planes y todos los roles (dueño, administradores, recepción y peluqueros): FAQ guardada → IA con el manual (`docs/manual/manual.html`) → el manual tal cual. POST con CSRF, máximo 10 preguntas por minuto. Sin el módulo: 30 respuestas nuevas al mes. Nunca «límite», «cupo» ni «saldo» (`Ia::sinPalabras()` también limpia lo que venga del manual).
+- [x] Panel Tukán → **Preguntas frecuentes (IA)**: por revisar, aprobar, editar (queda manual y aprobada), borrar y agregar a mano; todo en registro_admin.
+- [x] Módulo **Asistente IA** (`asistente_ia`, grupo Extras, por cotización, precio 0 en el catálogo, fuera de todos los planes —ni Completa—; una demo con todos los módulos sí lo ve): **Agendar a partir de un mensaje** (JSON validado + comprobación con `Agenda::horasLibres()`; borrador que se confirma en Nueva cita) y **Mensaje para clientes que no vuelven** (también en Avisos a clientes). Sin poder gastar: mensaje neutro con el enlace a mano.
+- [x] Guardián por salón: tope $0,50 sin el módulo / $3,00 con él, o el que ponga Tukán (ficha del salón → IA de Tukán, o `ejecutar ia_tope`). Conector v2: `ia_uso` (Anexo C) e `ia_tope` (acción posible del cliente, campo `tope_usd` tipo dinero).
+- [x] Sin `/etc/tukan-ia.env` la IA queda apagada y la Ayuda funciona con las FAQ y el manual. Instalador: puntos 9 (IA) y 10 (correo).
+- [x] **Demo lista → Enviar por correo** (`tukan_correo_demo()`, desde info@tukansoftware.com): POST con CSRF, sello cifrado con llave de un solo uso en la sesión (30 min), la contraseña no se guarda, auditoría «Envió la demo por correo a …» sin la contraseña; sin `/etc/tukan-correo.env`: «Configure el correo de Tukán».
+- [x] Manual: capítulo 14 «Ayuda e Inteligencia artificial» (capturas 43 y 44) en `manual.html` y `MANUAL.md`; PDF y Primeros pasos regenerados.
+- [x] Pruebas: `tests/prueba_ia.php` (84) y `tests/prueba_web_ia.sh` (84) con la API de Anthropic y el SMTP de mentira de `tests/falsos/`. Lógica 1165 y pantallas 942, todo en verde.
+
 ## Hecho (21 oct 2026) — Administradores (pedido del dueño de Tukán)
 - [x] El dueño crea **hasta 4 administradores** (rol `admin`, ya existía en la base) con su **mismo nivel** en todo el programa: menú, Equipo, Configuración, Mi plan, Caja, reportes, gastos, recepción, etc.
 - [x] Son **cuentas de acceso**: sin `profesional_id`, **no cuentan en `Modulos::maxPersonas`** y no dependen de ningún módulo. Si además atienden, se crean aparte como peluquero.

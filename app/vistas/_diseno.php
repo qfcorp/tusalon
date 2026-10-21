@@ -8,7 +8,7 @@ $menu = [
     'clientes' => ['Clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'],
     'equipo'   => ['Equipo',   'M6 20v-8M6 8V4M12 20v-4M12 12V4M18 20v-10M18 6V4M4 12h4M10 16h4M16 10h4'],
 ];
-$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes', 'gastos', 'recepcion', 'administradores'], true);
+$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes', 'gastos', 'recepcion', 'administradores', 'ayuda', 'asistente'], true);
 $pendientesCampana = 0;
 if ($u) {
     $pendientesCampana = (new \TuSalon\Notificaciones(db()))->sinLeer((int) $u['id']);
@@ -95,6 +95,8 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <a href="<?= e(url('administradores')) ?>">Administradores</a>
         <a href="<?= e(url('completa')) ?>">Mi plan</a>
         <?php endif; ?>
+        <?php if (!es_peluquero($u) && modulo('asistente_ia')): ?><a href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>
+        <a href="<?= e(url('ayuda')) ?>">Ayuda</a>
         <a href="<?= e(url('salir')) ?>">Cerrar sesión</a>
     </div>
 </aside>

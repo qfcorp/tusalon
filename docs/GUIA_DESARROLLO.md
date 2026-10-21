@@ -19,6 +19,25 @@ Notas para quien cambia el código (Claude o un programador). Lo de uso diario e
 - Enlace público de un salón: `/?r=reservar&s=<slug>` (no existe `/<slug>`).
 - Pruebas del conector: `tests/prueba_central.php` y `tests/prueba_web_central.sh` (v1), `tests/prueba_central_v2.php` y `tests/prueba_web_central_v2.sh` (v2). Migraciones 004 (v1) y 005 (v2); `deploy/conectar_central.sh` corre las dos.
 
+## IA de Tukán y correo de la demo (21 oct 2026, migración 009)
+- **Librerías comunes**: `src/tukan_ia.php` y `src/tukan_correo.php` son copias SIN cambios de `compartido/` del Panel Tukán Central
+  (guías `compartido/LEEME_IA.md` y `LEEME_CORREO.md`). No se editan aquí: si sale una versión nueva (`TUKAN_IA_VERSION`, `TUKAN_CORREO_VERSION`), se copian otra vez.
+- `src/Ia.php`: tope del salón (`Ia::tope()`: `salones.ia_tope_usd` o $0,50 sin el módulo / $3,00 con él), guardián (`TukanIaGuardianPdo`,
+  `negocio_id` = id del salón), FAQ (`TukanIaFaqPdo`), la Ayuda (`Ia::ayuda()`, 30 respuestas nuevas al mes sin el módulo), el manual
+  (`docs/manual/manual.html` → texto), `Ia::sinPalabras()` (nunca «límite», «cupo» ni «saldo» en la Ayuda), `Ia::neutroHtml()` (el mensaje neutro
+  con el enlace para hacerlo a mano) e `Ia::uso()` (acción v2 `ia_uso`).
+- `src/Asistente.php` (módulo `asistente_ia`): `agendar()` manda a la IA los servicios, los peluqueros y las horas libres de los próximos 10 días
+  (`Agenda::horasLibres()`, en rangos), pide JSON y lo valida (ids que existen, fecha de hoy a 60 días, hora HH:MM); después `verificar()` lo vuelve
+  a comprobar con la agenda: si la hora no está libre, la más cercana ese día (misma franja primero) o los días siguientes. El borrador abre
+  `cita_nueva` con `fecha`, `hora`, `profesional`, `servicios=1,2` y `notas` por GET (se confirma ahí). `mensajeRecuperar()` arma el WhatsApp.
+- **Al cliente nunca se le dice por qué no hubo IA** (tope, pausa, sin clave o error): siempre `tukan_ia_mensaje_neutro()` + enlace a mano.
+- **Módulo**: `asistente_ia` está en `Modulos::FUERA_DE_PLANES` (no entra en `'*'` ni se guarda en un plan); una demo con todos los módulos sí lo ve.
+- Rutas: `ayuda` (base; también peluquero y recepción), `asistente` (módulo; dueño, administradores y recepción), `admin_faq` y `admin_demo_correo` (panel).
+- **Correo de la demo** (`src/CorreoDemo.php`): el sello lleva los datos cifrados (XChaCha20-Poly1305) con una llave al azar que queda en la sesión
+  (atada al super usuario y al salón, 30 min, un solo uso). Ni la base, ni la sesión, ni `registro_admin` tienen la contraseña.
+- **Pruebas**: `tests/prueba_ia.php` y `tests/prueba_web_ia.sh`, con la API de Anthropic y el SMTP DE MENTIRA de `tests/falsos/` (copias de
+  `tukan-central/tests/anthropic_falso.py` y `smtp_falso.py`). Para que la IA de mentira devuelva un JSON: `RESPONDER:{…}` dentro del texto del mensaje.
+
 ## Pausar y borrar salones (Anexo A, 15 oct 2026, migración 007, `src/Papelera.php`)
 - `pausar` = `suspendido` + `salones.pausa_tipo/pausa_motivo/pausa_en` (`PanelTukan::cambiarEstado()` los borra al salir de suspendido; `suspender` guarda el motivo sin tipo → texto genérico). El salón ve `prueba_terminada` con "Tu cuenta está pausada" y `Papelera::textoPausa()` (genérico en `revision` y `abuso`).
 - Papelera = `salones.eliminado_en/_motivo/_por/_copia` (borrado lógico). **Toda consulta nueva que liste o cuente salones debe excluir `eliminado_en IS NOT NULL`** (`PanelTukan::salones()` ya lo hace; pagos: `PanelTukan::SQL_PAGO_CUENTA` / `SQL_PAGO_VIVO`). `usuario()` y el ingreso no aceptan salones en la papelera; `Automaticas::correr()` y `GooglePlay::revisarRenovaciones()` los saltan.

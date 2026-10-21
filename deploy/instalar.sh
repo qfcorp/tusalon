@@ -154,6 +154,8 @@ echo "5) Tareas: $(sudo -u www-data php "$APP/bin/tareas.php" < /dev/null 2>&1 |
 echo "6) Respaldo: $(sudo APP="$APP" "$APP/deploy/respaldo.sh" < /dev/null 2>&1 | tail -1)"
 echo "7) Super usuarios del panel: $(PGPASSWORD="$CLAVE" psql -h 127.0.0.1 -U tusalon -d tusalon -tAc "SELECT count(*) FROM superadmins" < /dev/null)"
 grep -q '^TUKAN_CENTRAL_SECRET=' "$APP/config/.env" 2>/dev/null && echo "8) Panel Tukan Central: conectado" || echo "8) Panel Tukan Central: sin conectar"
+sudo -u www-data test -r /etc/tukan-ia.env && echo "9) IA de Tukan: /etc/tukan-ia.env se puede leer" || echo "9) IA de Tukan: sin configurar (la Ayuda funciona con las preguntas frecuentes y el manual; en el Panel: bash deploy/configurar_ia.sh)"
+sudo -u www-data test -r /etc/tukan-correo.env && echo "10) Correo de Tukan: /etc/tukan-correo.env se puede leer" || echo "10) Correo de Tukan: sin configurar (en el Panel: bash deploy/configurar_correo.sh)"
 echo "================================="
 echo "Para crear o cambiar tu super usuario:  php $APP/bin/crear_admin.php"
 echo "Conectar con el Panel Tukan Central:  sudo bash $APP/deploy/conectar_central.sh ID SECRETO URL"

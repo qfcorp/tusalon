@@ -84,10 +84,12 @@ $nuevo = function (string $nombre, string $plan, bool $pagado = true) use ($db):
 
 // ---------------------------------------------------------------------------------------------
 titulo('1. Catálogo, base y dependencias');
-$ids = Modulos::ids();
-check('14 módulos vendibles', 14, count($ids));
+$todos = Modulos::ids();
+$ids = array_values(array_diff($todos, Modulos::FUERA_DE_PLANES));   // los que entran en los planes ('*')
+check('15 módulos: 14 de los planes + Asistente IA (por cotización, fuera de los planes)', [15, 14, ['asistente_ia']], [count($todos), count($ids), Modulos::FUERA_DE_PLANES]);
 check('Cada módulo con ícono, nombre, grupo conocido, descripción, precio y descuento', true, array_filter(Modulos::CATALOGO, fn($m) =>
-    $m[0] === '' || mb_strlen($m[1]) < 3 || !isset(Modulos::GRUPOS[$m[2]]) || mb_strlen($m[3]) < 20 || $m[4] <= 0 || $m[5] < 0 || $m[5] > $m[4]) === []);
+    $m[0] === '' || mb_strlen($m[1]) < 3 || !isset(Modulos::GRUPOS[$m[2]]) || mb_strlen($m[3]) < 20 || ($m[4] <= 0 && $m[1] !== 'Asistente IA') || $m[5] < 0 || $m[5] > $m[4]) === []);
+check('Asistente IA: grupo Extras y precio 0 en el catálogo (por cotización)', ['extras', 0.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
 check('Las dependencias existen y no se depende de uno mismo', true, array_filter(Modulos::CATALOGO, fn($m) => array_diff($m[6], $ids) !== []) === []
       && !array_filter(array_keys(Modulos::CATALOGO), fn($id) => in_array($id, Modulos::CATALOGO[$id][6], true)));
 check('Ids en minúsculas y _', [], array_values(array_filter($ids, fn($id) => !preg_match('/^[a-z_]+$/', $id))));
@@ -192,7 +194,7 @@ check('Apagar no borra datos: el inventario de un salón que lo apaga sigue ahí
 // ---------------------------------------------------------------------------------------------
 titulo('5. Demos: todo encendido (o lo que eligió el súper usuario)');
 $dm = $nuevo('Demo Todo', 'basica', false);
-check('Demo de Básica: ve todos los módulos', $ids, $mods->activos($dm));
+check('Demo de Básica: ve todos los módulos (también el Asistente IA)', $todos, $mods->activos($dm));
 check('… pero lo que pagaría al contratar es el plan ($25)', 25.0, $mods->detalle($mods->salon($dm))['mensual']);
 $db->exec("UPDATE salones SET modulos_demo = 'anticipos' WHERE id = $dm");
 check('Demo con módulos elegidos (con sus dependencias)', ['reservas_linea', 'anticipos'], $mods->activos($dm));
@@ -274,7 +276,7 @@ check('Pedido de otro salón → 404 (aislamiento)', [404, 'no_encontrado'], [$e
 titulo('8. Conector v2: modulos, cliente.modulos, cambiar_modulos, guardar_modulos, finanzas.por_modulo');
 $planes->suscribir($b, 'basica', 'mensual', new DateTimeImmutable('today'), 'transferencia');   // paga: cuenta en mensual_estimado y MRR
 $r = $pedir('modulos');
-check('modulos: base, catálogo y planes', [200, count(Modulos::BASE), 14, ['basica', 'completa']], [$r[0], count($r[1]['base']), count($r[1]['modulos']), array_column($r[1]['planes'], 'codigo')]);
+check('modulos: base, catálogo y planes', [200, count(Modulos::BASE), 15, ['basica', 'completa']], [$r[0], count($r[1]['base']), count($r[1]['modulos']), array_column($r[1]['planes'], 'codigo')]);
 check('… cada módulo con la forma del Anexo B', ['id', 'nombre', 'icono', 'descripcion', 'precio_mensual', 'descuento', 'depende_de', 'grupo', 'grupo_nombre', 'orden'], array_keys($r[1]['modulos'][0]));
 $cl = $pedir('cliente', ['id' => (string) $b])[1]['cliente'];
 check('cliente.modulos: los extra del salón', ['ficha_tecnica', 'equipo_ilimitado'], $cl['modulos']['extra']);

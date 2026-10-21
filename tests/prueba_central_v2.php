@@ -224,7 +224,7 @@ $db->exec('DELETE FROM tukan_central_pedidos');
 // ---------------------------------------------------------------------------------------------
 titulo('4. capacidades (§5.1): solo lo que de verdad funciona');
 $cap = $pedir('capacidades')[1];
-check('Acciones (con "modulos" del Anexo B)', ['capacidades', 'estado', 'sso', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'finanzas', 'ejecutar', 'modulos'], $cap['acciones']);
+check('Acciones (con "modulos" del Anexo B)', ['capacidades', 'estado', 'sso', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'finanzas', 'ejecutar', 'modulos', 'ia_uso'], $cap['acciones']);
 check('Revisión 3 (Anexo B)', 3, $cap['revision']);
 check('Operaciones del Anexo B', ['cambiar_modulos', 'guardar_modulos'], array_values(array_intersect(['cambiar_modulos', 'guardar_modulos'], $cap['ejecutar'])));
 check('Sin adjunto', false, in_array('adjunto', $cap['acciones'], true));
@@ -318,7 +318,7 @@ check('Enlace público (reservas en línea)', 'https://tusalon.prueba.ec/?r=rese
 check('Mensaje para recordar la prueba', true, str_contains((string) $x['mensajes_sugeridos']['recordar_prueba'], 'Tu demo de Quinta Prueba Uno termina el'));
 check('Sin mensaje de vencido', null, $x['mensajes_sugeridos']['vencido']);
 $acc = array_column($x['acciones_posibles'], 'accion');
-check('Botones de una demo', ['whatsapp', 'registrar_pago', 'extender_prueba', 'cambiar_modulos', 'cambiar_plan', 'pausar', 'cancelar', 'nueva_clave_dueno', 'nota_interna', 'borrar_cliente', 'abrir'], $acc);
+check('Botones de una demo', ['whatsapp', 'registrar_pago', 'extender_prueba', 'cambiar_modulos', 'cambiar_plan', 'pausar', 'cancelar', 'ia_tope', 'nueva_clave_dueno', 'nota_interna', 'borrar_cliente', 'abrir'], $acc);
 $pago = $x['acciones_posibles'][1];
 check('Formulario de pago (§4.4)', ['plan', 'periodo', 'monto', 'metodo', 'fecha', 'inicio', 'nota', 'dominio'], array_column($pago['campos'], 'campo'));
 check('… con datos fijos y cotizar', [['cliente_id' => (string) $P1], true, 35.0], [$pago['datos'], $pago['campos'][2]['cotizar'], $pago['campos'][2]['valor']]);
@@ -348,7 +348,7 @@ check('planes: meses gratis', [0, 1, 2], array_column($r['planes'][0]['precios']
 check('planes: clientes por plan', [6, 6], array_column($r['planes'], 'clientes'));
 check('planes: límites', ['Personas que atienden' => '3'], $r['planes'][0]['limites']);
 check('planes: ajustes', ['dias_prueba' => 7, 'dias_demo' => 7, 'dias_gracia' => 3, 'dias_gracia_demo' => 0, 'registro_abierto' => false], $r['ajustes']);
-check('planes: módulos de cada plan (Básica = base, Completa = todos)', [[], TuSalon\Modulos::ids()], array_column($r['planes'], 'modulos'));
+check('planes: módulos de cada plan (Básica = base, Completa = todos menos los de cotización aparte)', [[], array_values(array_diff(TuSalon\Modulos::ids(), TuSalon\Modulos::FUERA_DE_PLANES))], array_column($r['planes'], 'modulos'));
 
 // ---------------------------------------------------------------------------------------------
 titulo('7. solicitudes (§5.8, §5.9): registros nuevos y recordatorios');

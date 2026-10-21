@@ -32,6 +32,8 @@ $resumenRegla = function (array $p) use ($num): string {
         <?php if (modulo('recepcion')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
         <a class="boton boton-claro boton-chico" href="<?= e(url('administradores')) ?>">Administradores</a>
         <a class="boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>
+        <?php if (modulo('asistente_ia')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>
+        <a class="boton boton-claro boton-chico" href="<?= e(url('ayuda')) ?>">Ayuda</a>
         <a class="boton boton-claro boton-chico solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
     </div>
 </div>

@@ -12,8 +12,10 @@ $d = [
     'cliente_id'  => (int) ($_REQUEST['cliente_id'] ?? 0),
     'cliente_nuevo' => trim((string) ($_POST['cliente_nuevo'] ?? '')),
     'telefono'    => trim((string) ($_POST['telefono'] ?? '')),
-    'servicios'   => array_map('intval', (array) ($_POST['servicios'] ?? [])),
-    'notas'       => trim((string) ($_POST['notas'] ?? '')),
+    // Sin POST se aceptan servicios=1,2 y notas por el enlace (borrador del Asistente IA: se revisa y se confirma aquí)
+    'servicios'   => es_post() ? array_map('intval', (array) ($_POST['servicios'] ?? []))
+                               : array_values(array_filter(array_map('intval', explode(',', (string) ($_GET['servicios'] ?? ''))))),
+    'notas'       => trim(mb_substr((string) (es_post() ? ($_POST['notas'] ?? '') : ($_GET['notas'] ?? '')), 0, 500)),
     'precios'     => (array) ($_POST['precio'] ?? []),
 ];
 

@@ -21,18 +21,18 @@ $privadas = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 's
              'caja', 'cobrar', 'cuentas', 'completa', 'salir', 'prueba_terminada', 'horario', 'solicitudes', 'mi_portal', 'fotos',
              'horario_peluquero', 'avisos_clientes', 'reporte',
              'inventario', 'paquetes', 'tarjetas', 'puntos', 'ficha', 'ficha_foto', 'comprobante', 'play_compra',
-             'gastos', 'recepcion', 'mis_clientes', 'administradores'];
+             'gastos', 'recepcion', 'mis_clientes', 'administradores', 'ayuda', 'asistente'];
 // Lo único que ve un peluquero con acceso propio (mis_clientes: solo quien alquila el puesto)
-$dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada', 'ficha', 'ficha_foto', 'comprobante', 'mis_clientes'];
+$dePeluquero = ['mi_portal', 'solicitudes', 'fotos', 'salir', 'prueba_terminada', 'ficha', 'ficha_foto', 'comprobante', 'mis_clientes', 'ayuda'];
 // Recepción (plan Completa): agenda, citas, cobros, caja y clientes; nada de configuración, cuentas del equipo ni ganancias
 $deRecepcion = ['inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 'caja', 'cobrar', 'solicitudes', 'avisos_clientes',
-                'comprobante', 'salir', 'prueba_terminada'];
+                'comprobante', 'salir', 'prueba_terminada', 'ayuda', 'asistente'];
 
 // El dueño y sus administradores (rol 'admin', hasta 4) entran a TODAS las páginas privadas: tienen el mismo nivel.
 // Cualquier otro rol que no sea peluquero ni recepción no entra a ninguna (ver es_dueno_o_admin() en app/bootstrap.php).
 
 // Panel del super administrador (Tukán): sesión aparte
-$deAdmin = ['admin', 'admin_salones', 'admin_salon', 'admin_nuevo', 'admin_planes', 'admin_ver', 'admin_volver', 'admin_salir'];
+$deAdmin = ['admin', 'admin_salones', 'admin_salon', 'admin_nuevo', 'admin_planes', 'admin_ver', 'admin_volver', 'admin_salir', 'admin_faq', 'admin_demo_correo'];
 $publicas[] = 'admin_entrar';
 
 $ruta = (string) ($_GET['r'] ?? 'inicio');

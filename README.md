@@ -29,6 +29,10 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 | 🧾 Gastos con facturas del SRI | — |
 | 📊 Reporte del mes | — |
 | 📲 Avisos automáticos por Telegram | — |
+| ✨ **Asistente IA** (extra: no está en ningún plan, ni en Completa) | — |
+
+- **Ayuda** («¿En qué le ayudamos?», 21 oct 2026) para **todos los planes**: el dueño, los administradores, recepción y los peluqueros preguntan cómo hacer algo y les responde con los pasos del manual (preguntas frecuentes guardadas → IA con el manual → el manual tal cual). Sin el módulo: hasta 30 respuestas nuevas con IA al mes por salón (las ya guardadas no cuentan). Nunca dice «límite», «cupo» ni «saldo».
+- **Asistente IA** (módulo `asistente_ia`, por cotización): **Agendar a partir de un mensaje** (se pega el WhatsApp del cliente y propone servicio, peluquero, día y una hora libre de la agenda real; es un borrador que se confirma en Nueva cita) y **Mensaje para clientes que no vuelven**. Si la IA no se puede usar en ese momento, sale «En este momento no pudimos procesar el texto automáticamente; puede hacerlo a mano aquí: …».
 
 Planes: **Básica** = solo la base · **Completa** = todos los módulos. Precio de cada salón = plan + módulos extra − descuento de los que quitó (o un **precio acordado** fijo); lo ve y lo cambia solo Tukán (Panel Tukán → Planes y precios, o el Panel Tukán Central). Semestral paga 5 y recibe 6; anual paga 10, recibe 12 (meses de regalo) y trae dominio propio.
 
@@ -46,6 +50,10 @@ Planes: **Básica** = solo la base · **Completa** = todos los módulos. Precio 
 | Peluquero | `/` con el acceso que le crea el dueño → su portal |
 | Clientes (reservas) | `/?r=reservar&s=<nombre-del-salón>` |
 | Tukán (super administrador) | `/?r=admin_entrar` · cuenta creada con `php bin/crear_admin.php` en el servidor · o con un clic desde el Panel Tukán Central |
+| Ayuda (todos) | Menú **Ayuda** (`/?r=ayuda`; en el celular: Más → Ayuda) |
+| Asistente IA (módulo) | Menú **✨ Asistente IA** (`/?r=asistente`) · también **✨ Mensaje con IA** en Avisos a clientes |
+| Tukán: preguntas de la Ayuda | Panel Tukán → **Preguntas frecuentes (IA)** (`/?r=admin_faq`): aprobar, editar, borrar y agregar a mano |
+| Tukán: demo por correo | Panel Tukán → Nueva demo → en la ficha, **Enviar por correo** (desde info@tukansoftware.com) |
 | Panel Tukán Central (conector) | v1: `/tukan_central.php?accion=sso&t=…` (entrar, con enlace directo `ir`) · `/tukan_central.php?accion=estado&t=…` (cifras en JSON) · v2: `POST /tukan_central.php?accion=<capacidades, clientes, cliente, cotizar, planes, solicitudes, solicitud, finanzas, ejecutar>` |
 | Cliente (su cita: confirmar, cambiar, cancelar, calificar) | `/?r=confirmar&t=<enlace secreto>` (le llega por WhatsApp o Telegram) |
 
@@ -102,6 +110,22 @@ Con el mismo ID y el mismo secreto, el panel central ve y maneja a los salones s
   - `restaurar_cliente` dentro de 30 días lo devuelve tal cual (también desde el Panel Tukán de TuSalón: Salones → filtro **Papelera** → Restaurar). Pasados 30 días, la tarea de cada hora lo borra de verdad (sus fotos pasan junto a la copia); las copias se borran al año.
   - `clientes` con `filtros.estado = "papelera"` los lista (cada uno con `papelera: {desde, hasta, motivo}`); cada ficha trae los botones que corresponden (`pausar`/`reactivar`, `borrar_cliente` o `restaurar_cliente`).
 
+## IA de Tukán y correo (21 oct 2026)
+Las dos piezas son del Panel Tukán Central (`compartido/` del repo `qfcorp/tukan-central`) y se copian sin cambios en `src/`:
+`src/tukan_ia.php` (guía `compartido/LEEME_IA.md`) y `src/tukan_correo.php` (guía `compartido/LEEME_CORREO.md`). Si sale una versión nueva, se vuelven a copiar.
+
+- **Configuración (una sola vez, la hace Dimitry en el servidor desde el Panel):** `cd /var/www/tukan-central && git pull && bash deploy/configurar_ia.sh`
+  (escribe `/etc/tukan-ia.env`) y `bash deploy/configurar_correo.sh` (escribe `/etc/tukan-correo.env`). TuSalón **no** guarda claves.
+  Sin `/etc/tukan-ia.env` la IA queda apagada y la Ayuda responde con las preguntas frecuentes y el manual; sin `/etc/tukan-correo.env` la
+  pantalla de la demo muestra «Configure el correo de Tukán». `www-data` debe poder leer los dos archivos (el instalador lo revisa: puntos 9 y 10).
+- **Gasto controlado por salón** (tabla `tukan_ia_gasto`, migración 009): tope del mes **$0,50** sin el módulo y **$3,00** con el módulo, o el
+  que ponga Tukán (`salones.ia_tope_usd`: ficha del salón → **IA de Tukán**, o `ejecutar ia_tope` desde el Panel Central). Al llegar al tope, o con
+  `TUKAN_IA_PAUSA=1`, no se llama a la IA y el salón no ve ningún aviso. El tope de todo TuSalón va en `TUKAN_IA_TOPE_PROGRAMA_TUSALON`.
+- **Panel Tukán Central:** la acción v2 `ia_uso` (Anexo C) le da el gasto del mes por salón, los totales y el resumen de las preguntas
+  frecuentes; se ve en **Más → IA**. Cada ficha de cliente ofrece **Tope de IA** (`ia_tope`, campo `tope_usd` tipo dinero).
+- **Demo por correo:** en la pantalla de la demo recién creada (contraseña, WhatsApp) está **Enviar por correo**. La contraseña no se guarda: viaja
+  cifrada en el formulario y la llave de un solo uso queda en la sesión (30 min); se anota «Envió la demo por correo a …» sin la contraseña.
+
 ## Tareas automáticas y respaldo (en el servidor)
 El instalador ya las deja programadas. Son estas dos líneas de cron:
 ```
@@ -118,10 +142,12 @@ Solo en una base de prueba (el script la borra y la vuelve a crear):
 
 ```bash
 # Lógica (1080 pruebas: run_tests.php + prueba_central.php + prueba_central_v2.php + prueba_gastos_recepcion.php + prueba_papelera.php
-# + prueba_modulos.php + prueba_administradores.php, con Telegram simulado en el puerto 8098; otro puerto con TG_PUERTO=…)
+# + prueba_modulos.php + prueba_administradores.php + prueba_ia.php, con Telegram simulado en el puerto 8098; otro puerto con TG_PUERTO=…;
+# prueba_ia.php levanta sola la API de Anthropic y el SMTP DE MENTIRA de tests/falsos/ en puertos libres)
 bash tests/run_logica.sh
 # Pantallas de punta a punta (856 pruebas: prueba_web.sh + prueba_web_gastos_recepcion.sh + prueba_web_administradores.sh + prueba_web_central.sh + prueba_web_central_v2.sh
-# + prueba_web_papelera.sh + prueba_web_modulos.sh; levanta solo los sitios de prueba, Payphone y Telegram simulados).
+# + prueba_web_papelera.sh + prueba_web_modulos.sh + prueba_web_ia.sh; levanta solo los sitios de prueba, Payphone y Telegram simulados, y la API de
+# Anthropic y el SMTP de mentira de tests/falsos/).
 # Opcional: DB=<base> PUERTO=<puerto>, y CAPTURAS=<carpeta> para sacar las capturas de Mi plan, "No está en tu plan" y los
 # interruptores del panel a 390 px y en computadora (Playwright con Chromium ya instalado; no corre "playwright install")
 PGPASSWORD=prueba bash tests/run_web.sh

@@ -33,12 +33,12 @@ final class TukanCentralV2
     public const VIDA_LECTURA = 60;
     public const VIDA_EJECUTAR = 30;
     /** Acciones que existen en el protocolo v2 (el resto de nombres es "Acción no válida", 400). */
-    public const ACCIONES_PROTOCOLO = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'adjunto', 'finanzas', 'ejecutar', 'modulos'];
+    public const ACCIONES_PROTOCOLO = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'adjunto', 'finanzas', 'ejecutar', 'modulos', 'ia_uso'];
     /** Las que TuSalón contesta (sin "adjunto": no tiene comprobantes ni tickets con archivos). */
-    public const ACCIONES = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'finanzas', 'ejecutar', 'modulos'];
+    public const ACCIONES = ['capacidades', 'clientes', 'cliente', 'cotizar', 'planes', 'solicitudes', 'solicitud', 'finanzas', 'ejecutar', 'modulos', 'ia_uso'];
     public const OPERACIONES = ['crear_demo', 'extender_prueba', 'registrar_pago', 'anular_pago', 'suspender', 'reactivar', 'cancelar',
                                 'cambiar_plan', 'nueva_clave_dueno', 'nota_interna', 'atender_solicitud', 'guardar_plan',
-                                'pausar', 'borrar_cliente', 'restaurar_cliente', 'cambiar_modulos', 'guardar_modulos'];
+                                'pausar', 'borrar_cliente', 'restaurar_cliente', 'cambiar_modulos', 'guardar_modulos', 'ia_tope'];
     /** Operaciones que se pueden pedir sobre un salón que está en la papelera. */
     public const OPERACIONES_PAPELERA = ['restaurar_cliente', 'borrar_cliente'];
     public const TIPOS_SOLICITUD = ['demo_pedida', 'cambio_modulos', 'pago_automatico', 'seguimiento_prueba', 'renovacion', 'dominio_gratis'];
@@ -191,6 +191,7 @@ final class TukanCentralV2
             'solicitud' => ['solicitud' => $this->solicitud($d)],
             'finanzas' => $this->finanzas($d),
             'modulos' => $this->modulosV2(),
+            'ia_uso' => $this->iaUso($d),
         };
         return [200, $this->sobre($accion) + $r];
     }
@@ -238,6 +239,7 @@ final class TukanCentralV2
                 'crear_demo' => [self::campoModulosDemo()],   // además de los comunes (el plan va en los comunes)
                 'guardar_plan' => $this->camposPlan(null),
                 'cambiar_modulos' => $this->camposModulos(null),
+                'ia_tope' => self::camposIaTope(null),
             ],
             'limites' => ['por_pagina_max' => 200, 'meses_finanzas_max' => 24, 'dias_prueba_max' => 90],
         ];
@@ -564,6 +566,8 @@ final class TukanCentralV2
             $a[] = ['accion' => 'cancelar', 'etiqueta' => 'Cancelar cuenta', 'estilo' => 'peligro', 'confirmar' => '¿Cancelar la cuenta de ' . $c['nombre'] . '?',
                     'datos' => $datos, 'campos' => [['campo' => 'motivo', 'etiqueta' => 'Motivo', 'tipo' => 'texto', 'requerido' => true, 'min' => 5, 'max' => 200]]];
         }
+        $a[] = ['accion' => 'ia_tope', 'etiqueta' => 'Tope de IA', 'estilo' => 'normal', 'confirmar' => null, 'datos' => $datos,
+                'campos' => self::camposIaTope(Ia::topePropio($this->db, (int) $n['id']))];
         if ($n['dueno_usuario_id']) {
             $a[] = ['accion' => 'nueva_clave_dueno', 'etiqueta' => 'Nueva clave del dueño', 'estilo' => 'normal',
                     'confirmar' => '¿Crear una contraseña nueva para el dueño? La anterior deja de servir.', 'datos' => $datos, 'campos' => []];
@@ -576,6 +580,50 @@ final class TukanCentralV2
                 'datos' => $datos, 'campos' => self::camposBorrar($c['nombre'])];
         $a[] = ['accion' => 'abrir', 'etiqueta' => 'Ver en TuSalón', 'ir' => $c['ir']];
         return $a;
+    }
+
+    /** Campo de "ia_tope" (Anexo C.2): tope del mes de la IA en USD; vacío = el sugerido. */
+    public static function camposIaTope(?float $actual): array
+    {
+        return [['campo' => 'tope_usd', 'etiqueta' => 'Tope del mes de la IA (USD)', 'tipo' => 'dinero', 'requerido' => false, 'valor' => $actual,
+                 'ayuda' => 'Vacío = el sugerido: $' . number_format(Ia::TOPE_SIN_MODULO, 2, ',', '.') . ' sin el módulo «Asistente IA», $'
+                          . number_format(Ia::TOPE_CON_MODULO, 2, ',', '.') . ' con el módulo.']];
+    }
+
+    // ------------------------------------------------------------------
+    // IA (Anexo C)
+    // ------------------------------------------------------------------
+
+    /** ia_uso (Anexo C.1): solo lectura; cuerpo {"mes": "2026-10"} (opcional). */
+    public function iaUso(array $d): array
+    {
+        foreach (array_keys($d) as $k) {
+            if ($k !== 'mes') throw TukanCentralError::campo((string) $k, 'Campo desconocido: ' . mb_substr((string) $k, 0, 40) . '.');
+        }
+        $mes = $d['mes'] ?? date('Y-m');
+        if (!is_string($mes) || !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $mes)) throw TukanCentralError::campo('mes', 'Mes no válido (ej. 2026-10).');
+        return Ia::uso($this->db, $mes);
+    }
+
+    /** ejecutar ia_tope (Anexo C.2): {"tope_usd": número | null}. */
+    private function opIaTope(int $id, array $d): array
+    {
+        foreach (array_keys($d) as $k) {
+            if (!in_array($k, ['tope_usd', 'cliente_id'], true)) throw TukanCentralError::campo((string) $k, 'Campo desconocido: ' . mb_substr((string) $k, 0, 40) . '.');
+        }
+        if (!array_key_exists('tope_usd', $d)) throw TukanCentralError::campo('tope_usd', 'Falta el tope (un número o null).');
+        $v = $d['tope_usd'];
+        if ($v === '' ) $v = null;
+        if (is_string($v) && is_numeric(str_replace(',', '.', $v))) $v = (float) str_replace(',', '.', $v);
+        if ($v !== null && !(is_int($v) || is_float($v))) throw TukanCentralError::campo('tope_usd', 'El tope debe ser un número (USD) o vacío.');
+        if ($v !== null && ($v < 0 || $v > 1000)) throw TukanCentralError::campo('tope_usd', 'El tope debe estar entre 0 y 1.000 USD.');
+        $antes = Ia::topePropio($this->db, $id);
+        $nuevo = $v === null ? null : round((float) $v, 4);
+        Ia::guardarTope($this->db, $id, $nuevo);
+        $efectivo = Ia::tope($this->db, $id);
+        $txt = $nuevo === null ? 'el sugerido ($' . number_format($efectivo, 2, ',', '.') . ')' : '$' . number_format($nuevo, 2, ',', '.');
+        return ['mensaje' => "Tope de IA del mes: $txt.", 'resultado' => ['tope_usd' => $nuevo, 'tope_efectivo' => $efectivo, 'modulo' => Ia::conModulo($this->db, $id)],
+                'auditoria' => "Tope de IA del mes: $txt", 'sin_cambios' => $antes === $nuevo];
     }
 
     /** Campos de "pausar" (Anexo A): tipo y motivo obligatorios. */
@@ -1202,6 +1250,7 @@ final class TukanCentralV2
                 'restaurar_cliente' => $this->opRestaurar($id),
                 'cambiar_modulos' => $this->opCambiarModulos($id, $d, $p),
                 'guardar_modulos' => $this->opGuardarModulos($d),
+                'ia_tope' => $this->opIaTope($id, $d),
             };
         } catch (TukanCentralError | PDOException $e) {
             throw $e;

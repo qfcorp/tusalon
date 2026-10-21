@@ -10,6 +10,8 @@ declare(strict_types=1);
  *     (una con anticipo por revisar), inventario, paquetes, tarjetas de regalo, puntos, ficha técnica y calificaciones.
  *   - «Barbería Solo Base» (plan Básica, pagado): para Mi plan («Precio por cotización» y «Pedir cotización») y «No está en tu plan».
  *   - «Peluquería en Demo» (demo con todos los módulos): para «Lo quiero · Pedir cotización».
+ *   - El salón de ejemplo tiene además el módulo «Asistente IA» y una pregunta frecuente de la Ayuda escrita a mano
+ *     (las capturas se toman sin /etc/tukan-ia.env: la IA queda apagada y la Ayuda responde con esa pregunta).
  * Imprime al final las variables para capturas.py (clave=valor).
  */
 define('RAIZ', dirname(__DIR__, 3));
@@ -305,6 +307,12 @@ $b = (new Altas($db))->crearSalonConDueno('Barbería Solo Base', 'Marco Aguirre'
 $q("UPDATE salones SET estado = 'activo', activo_hasta = CURRENT_DATE + 20 WHERE id = ?", [$b['salon_id']]);
 $dm = (new Altas($db))->crearSalonConDueno('Peluquería en Demo', 'Lucía Herrera', '0990004444', 'endemo@tusalon.tukanec.com', CLAVE, 'basica', 'super');
 $q("UPDATE salones SET prueba_hasta = CURRENT_DATE + 10 WHERE id = ?", [$dm['salon_id']]);
+
+// ---------------------------------------------------------------- 13. Asistente IA (módulo extra, por cotización) y una pregunta frecuente de la Ayuda
+$q("UPDATE salones SET modulos_extra = 'asistente_ia' WHERE id = ?", [$sid]);
+require_once RAIZ . '/src/tukan_ia.php';
+(new TukanIaFaqPdo($db))->agregar('¿Cómo registro un pago?',
+    "1. Abre la cita en la **Agenda** y toca **Cobrar** (para alguien sin cita, toca **Cobrar** en **Hoy**).\n2. Revisa los servicios y el precio, y agrega la propina si la dejó.\n3. Elige cómo pagó (efectivo, transferencia, DeUna o tarjeta) y toca **Cobrar**.\nEl pago entra a la caja del día y a las cuentas del equipo.");
 
 // ---------------------------------------------------------------- Datos para las capturas
 $tok = fn(int $id) => (string) $q('SELECT token FROM citas WHERE id = ?', [$id])->fetchColumn();

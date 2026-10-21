@@ -77,6 +77,11 @@
                         <div class="linea-sub">Última vez hace <?= (int) $c['semanas'] ?> semanas · <?= (int) $c['visitas'] ?> <?= (int) $c['visitas'] === 1 ? 'visita' : 'visitas' ?></div></div>
                     <?php if ($c['wa']): ?><a class="boton boton-wa boton-chico" href="<?= e($c['wa']) ?>" target="_blank" rel="noopener">Invitar a volver</a>
                     <?php else: ?><small>Sin celular</small><?php endif; ?>
+                    <?php if (modulo('asistente_ia')): ?>
+                        <form method="post" action="<?= e(url('asistente')) ?>#recuperar"><?= campo_csrf() ?><input type="hidden" name="accion" value="recuperar">
+                            <input type="hidden" name="cliente" value="<?= (int) $c['id'] ?>">
+                            <button class="boton boton-claro boton-chico" type="submit">✨ Mensaje con IA</button></form>
+                    <?php endif; ?>
                 </li>
             <?php endforeach; ?>
         </ul>

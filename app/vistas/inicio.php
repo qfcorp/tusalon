@@ -12,7 +12,11 @@ $nombre = explode(' ', trim($u['nombre']))[0];
     <div class="acciones">
         <a class="boton" href="<?= e(url('cita_nueva')) ?>">Nueva cita</a>
         <a class="boton boton-claro" href="<?= e(url('cobrar')) ?>">Cobrar</a>
-        <?php if (es_recepcion($u)): ?><a class="boton boton-claro solo-celular" href="<?= e(url('salir')) ?>">Salir</a><?php endif; ?>
+        <?php if (es_recepcion($u)): ?>
+            <?php if (modulo('asistente_ia')): ?><a class="boton boton-claro solo-celular" href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>
+            <a class="boton boton-claro solo-celular" href="<?= e(url('ayuda')) ?>">Ayuda</a>
+            <a class="boton boton-claro solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
+        <?php endif; ?>
     </div>
 </div>
 
