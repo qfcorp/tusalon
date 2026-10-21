@@ -8,7 +8,7 @@ Su fuente es [docs/manual/manual.html](manual/manual.html) y las capturas reales
 2. Entrar e inicio (Solicitar demo, Entrar, la pantalla Hoy y el menú)
 3. Quién entra: dueño, administradores (hasta 4, mismo nivel que el dueño), peluquero y recepción
 4. Los 4 tipos de peluquero (dueño, empleado, porcentaje y alquiler de puesto)
-5. Planes y módulos (la base, los 14 módulos, Básica y Completa, y el Asistente IA que se cotiza aparte; los valores son por cotización)
+5. Planes y módulos (la base, los 14 módulos, Básica y Completa, con el Asistente IA incluido en Completa y como extra en Básica; los valores son por cotización)
 6. Configuración (horario, reglas de las citas en línea, anticipo y Telegram)
 7. Servicios y precios del salón
 8. Personal y comisiones (agregar peluqueros, accesos, horarios y cuentas del equipo)
@@ -18,7 +18,7 @@ Su fuente es [docs/manual/manual.html](manual/manual.html) y las capturas reales
 12. Clientes, inventario, paquetes y reportes (ficha técnica, avisos, tarjetas de regalo, puntos y reporte del mes)
 13. Mi plan («Pedir cotización»)
 14. **Ayuda e Inteligencia artificial** (21 oct 2026): la Ayuda «¿En qué le ayudamos?» para todos los planes y el módulo
-    extra «Asistente IA» (agendar a partir de un mensaje de WhatsApp con una hora libre de la agenda real y mensaje para
+    «Asistente IA» (incluido en Completa; extra en Básica) (agendar a partir de un mensaje de WhatsApp con una hora libre de la agenda real y mensaje para
     clientes que no vuelven). Es la fuente de la Ayuda: `src/Ia.php` lee `docs/manual/manual.html` convertido a texto.
 15. Preguntas frecuentes
 

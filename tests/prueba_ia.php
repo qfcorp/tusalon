@@ -5,7 +5,7 @@ declare(strict_types=1);
  * IA de Tukán en TuSalón (src/Ia.php, src/Asistente.php, src/tukan_ia.php) y «Enviar por correo» de la demo
  * (src/CorreoDemo.php, src/tukan_correo.php). La API de Anthropic y el SMTP son DE MENTIRA (tests/falsos/, copiados de
  * tukan-central/tests): no se gasta nada ni sale ningún correo.
- *   1. Migración 009 (se puede repetir) y el módulo «Asistente IA» en el catálogo (por cotización, fuera de los planes)
+ *   1. Migraciones 009 y 010 (se pueden repetir); el módulo «Asistente IA» viene en Completa y en Básica es extra; tope $4
  *   2. Sin /etc/tukan-ia.env: la IA queda apagada y la Ayuda responde con FAQ + manual
  *   3. Ayuda: pregunta nueva (IA), la misma (FAQ, sin llamar), una parecida, pausa, tope silencioso, 30 nuevas sin el módulo
  *   4. Agendar a partir de un mensaje: respeta la agenda real (hora ocupada → la más cercana), otro peluquero, JSON malo, tope
@@ -90,7 +90,18 @@ check('La migración 009 se puede correr varias veces (tablas y columna)', [1, 1
 $mods = new Modulos($db);
 $cat = $mods->catalogo();
 check('Catálogo: asistente_ia «Asistente IA», grupo Extras, precio 0 (por cotización)', ['Asistente IA', 'extras', 0.0], [$cat['asistente_ia']['nombre'], $cat['asistente_ia']['grupo'], $cat['asistente_ia']['precio_mensual']]);
-check('No está en ningún plan (ni en Completa = *)', [false, false], [in_array('asistente_ia', $mods->planes()['completa']['modulos'], true), in_array('asistente_ia', $mods->planes()['basica']['modulos'], true)]);
+check('Viene INCLUIDO en Completa (el plan más caro) y NO en Básica (ahí es extra)', [true, false], [in_array('asistente_ia', $mods->planes()['completa']['modulos'], true), in_array('asistente_ia', $mods->planes()['basica']['modulos'], true)]);
+check('Completa es el plan más caro', 'completa', $db->query('SELECT codigo FROM planes ORDER BY precio_mensual DESC LIMIT 1')->fetchColumn());
+// Migración 010: si Completa se guardó como lista (no '*'), le agrega asistente_ia una sola vez; no toca Básica
+$db->exec("UPDATE planes SET modulos = 'reservas_linea,reportes' WHERE codigo = 'completa'");
+$db->exec(file_get_contents(RAIZ . '/db/migraciones/010_ia_en_completa.sql'));
+$db->exec(file_get_contents(RAIZ . '/db/migraciones/010_ia_en_completa.sql'));
+check('Migración 010 (dos veces): Completa con lista → agrega asistente_ia una vez; Básica sigue sin él', ['reservas_linea,reportes,asistente_ia', ''],
+      [$db->query("SELECT modulos FROM planes WHERE codigo = 'completa'")->fetchColumn(), $db->query("SELECT modulos FROM planes WHERE codigo = 'basica'")->fetchColumn()]);
+$db->exec("UPDATE planes SET modulos = '*' WHERE codigo = 'completa'");
+$db->exec(file_get_contents(RAIZ . '/db/migraciones/010_ia_en_completa.sql'));
+check('… y Completa = * se queda en * (que ya trae el Asistente IA)', '*', $db->query("SELECT modulos FROM planes WHERE codigo = 'completa'")->fetchColumn());
+$mods->olvidar();
 check('La versión de la librería es la del Panel (copiada sin cambios)', [md5_file(RAIZ . '/src/tukan_ia.php'), true], [md5_file(RAIZ . '/src/tukan_ia.php'), defined('TUKAN_IA_VERSION')]);
 
 $alta = fn(string $nombre) => (new Altas($db))->crearSalonConDueno($nombre, 'Dueña ' . $nombre, '0991112222', 'd' . bin2hex(random_bytes(4)) . '@prueba.ec', 'claveSegura1', 'basica', 'super');
@@ -98,8 +109,16 @@ $SB = $alta('Salón Sin Módulo')['salon_id'];          // pagado, plan Básica,
 $SM = $alta('Salón Con Asistente')['salon_id'];       // pagado, plan Básica + asistente_ia
 $db->exec("UPDATE salones SET estado = 'activo', activo_hasta = CURRENT_DATE + 30 WHERE id IN ($SB, $SM)");
 $db->exec("UPDATE salones SET modulos_extra = 'asistente_ia' WHERE id = $SM");
+$SC = $alta('Salón Completa')['salon_id'];            // pagado, plan Completa (trae el Asistente IA)
+$db->exec("UPDATE salones SET plan_codigo = 'completa', estado = 'activo', activo_hasta = CURRENT_DATE + 30 WHERE id = $SC");
 $mods->olvidar();
-check('Sin el módulo: tope sugerido $0,50 · con el módulo $3,00', [0.5, 3.0, false, true], [Ia::tope($db, $SB), Ia::tope($db, $SM), Ia::conModulo($db, $SB), Ia::conModulo($db, $SM)]);
+check('Sin el módulo: tope sugerido $0,50 · con el módulo comprado aparte (Básica) $4,00', [0.5, 4.0, false, true], [Ia::tope($db, $SB), Ia::tope($db, $SM), Ia::conModulo($db, $SB), Ia::conModulo($db, $SM)]);
+check('Plan Completa: trae el Asistente IA sin comprarlo aparte y su tope es $4,00', [true, 4.0, [], true],
+      [Ia::conModulo($db, $SC), Ia::tope($db, $SC), $mods->detalle($mods->salon($SC))['extra'], in_array('asistente_ia', $mods->detalle($mods->salon($SC))['del_plan'], true)]);
+check('Básica con el Asistente IA: va como extra (no del plan)', [['asistente_ia'], false],
+      [$mods->detalle($mods->salon($SM))['extra'], in_array('asistente_ia', $mods->detalle($mods->salon($SM))['del_plan'], true)]);
+check('Ia::TOPE_CON_MODULO = 4,00 y TOPE_SIN_MODULO = 0,50', [4.0, 0.5], [Ia::TOPE_CON_MODULO, Ia::TOPE_SIN_MODULO]);
+$db->exec("UPDATE salones SET estado = 'cancelado' WHERE id = $SC");   // fuera del resto de esta prueba
 Ia::guardarTope($db, $SB, 1.25);
 check('Tope propio (lo pone Tukán) gana; null vuelve al sugerido', [1.25, 0.5], [Ia::tope($db, $SB), (Ia::guardarTope($db, $SB, null) ?? Ia::tope($db, $SB))]);
 
@@ -272,7 +291,7 @@ $db->exec("UPDATE tukan_ia_gasto SET costo_usd = 0.9 WHERE negocio_id = '$SM'");
 $r = $pedir('ia_uso', ['mes' => date('Y-m')]);
 $j = $r[1];
 check('ia_uso con dos salones: el que más gastó primero', [200, 'ia_uso', [(string) $SM, (string) $SB]], [$r[0], $j['accion'], array_column($j['negocios'], 'cliente_id')]);
-check('… con nombre, tope y si tiene el módulo', [3.0, true, 0.5, false], [$j['negocios'][0]['tope'], $j['negocios'][0]['modulo'], $j['negocios'][1]['tope'], $j['negocios'][1]['modulo']]);
+check('… con nombre, tope y si tiene el módulo', [4.0, true, 0.5, false], [$j['negocios'][0]['tope'], $j['negocios'][0]['modulo'], $j['negocios'][1]['tope'], $j['negocios'][1]['modulo']]);
 check('… totales, FAQ, modelos y versión de la librería', [1.1, true, 'claude-haiku-5-5', '1', 'asistente_ia', 'USD'], [$j['totales']['costo'], $j['faq']['total'] >= 1, $j['modelo_rapido'], $j['version_libreria'], $j['modulo'], $j['moneda']]);
 check('… y NO trae la clave', false, str_contains(json_encode($j), $CLAVE) || str_contains(json_encode($j), 'sk-ant'));
 check('ia_uso sin cuerpo: el mes actual', [200, date('Y-m')], [($x = $pedir('ia_uso'))[0], $x[1]['mes']]);

@@ -814,7 +814,7 @@ CREATE INDEX IF NOT EXISTS salones_eliminado_en ON salones (eliminado_en) WHERE 
 -- 008 · TuSalón por módulos (PROTOCOLO_V2.md del Panel Tukán Central, Anexo B) y "todo se pide demo".
 --   modulos: lo que el súper usuario cambió del catálogo (precio, descuento, descripción, orden). Los módulos y sus
 --            valores por defecto están en src/Modulos.php; una fila aquí solo pisa esos valores.
---   planes.modulos: módulos que trae cada plan ('*' = todos). Básica = ninguno (solo la base), Completa = todos.
+--   planes.modulos: módulos que trae cada plan ('*' = todos). Básica = ninguno (solo la base), Completa = todos (desde 010 también el Asistente IA).
 --   salones.modulos_extra / modulos_quitados: módulos encendidos además del plan (se cobran aparte) y módulos del plan
 --            que se apagaron (con su descuento). salones.precio_acordado: precio fijo al mes (vacío = el calculado).
 --            salones.modulos_demo: en una demo, los módulos que eligió el súper usuario (vacío = todos).
@@ -901,7 +901,7 @@ CREATE INDEX IF NOT EXISTS idx_pedidos_demo ON pedidos_demo (estado, creado);
 --                 'manual' = una persona (el súper usuario). aprobada = 1 cuando el súper la revisó.
 --   tukan_ia_gasto: lo que gastó cada salón en IA cada mes (negocio_id = id del salón, mes = '2026-10').
 --   salones.ia_tope_usd: tope del mes en USD que puso Tukán (vacío = el sugerido: $0,50 sin el módulo «Asistente IA»,
---                 $3,00 con el módulo).
+--                 $4,00 con el módulo, venga en Completa o comprado aparte; ver 010).
 -- Se puede correr muchas veces sin dañar nada.
 
 CREATE TABLE IF NOT EXISTS tukan_ia_faq (
@@ -931,5 +931,19 @@ CREATE TABLE IF NOT EXISTS tukan_ia_gasto (
 );
 
 ALTER TABLE salones ADD COLUMN IF NOT EXISTS ia_tope_usd NUMERIC(10,4);
+
+-- 010 · El módulo «Asistente IA» (asistente_ia) viene INCLUIDO en el plan Completa (decisión de Dimitry, 21 oct 2026).
+--   En Básica sigue como extra por cotización (salones.modulos_extra). Completa normalmente es '*' (todos los módulos, y
+--   desde ahora '*' también trae el Asistente IA: Modulos::FUERA_DE_PLANES quedó vacío); si el súper usuario guardó
+--   Completa con una lista, aquí se le agrega asistente_ia.
+--   Tope de IA con el módulo (en el plan o comprado aparte): $4,00 al mes por salón (Ia::TOPE_CON_MODULO);
+--   sin el módulo la Ayuda sigue con $0,50. salones.ia_tope_usd vacío = el sugerido.
+-- Se puede correr muchas veces sin dañar nada.
+
+UPDATE planes
+   SET modulos = CASE WHEN btrim(modulos) = '' THEN 'asistente_ia' ELSE modulos || ',asistente_ia' END
+ WHERE codigo = 'completa'
+   AND modulos <> '*'
+   AND (',' || replace(modulos, ' ', '') || ',') NOT LIKE '%,asistente_ia,%';
 
 COMMIT;

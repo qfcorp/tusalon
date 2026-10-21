@@ -348,7 +348,7 @@ check('planes: meses gratis', [0, 1, 2], array_column($r['planes'][0]['precios']
 check('planes: clientes por plan', [6, 6], array_column($r['planes'], 'clientes'));
 check('planes: límites', ['Personas que atienden' => '3'], $r['planes'][0]['limites']);
 check('planes: ajustes', ['dias_prueba' => 7, 'dias_demo' => 7, 'dias_gracia' => 3, 'dias_gracia_demo' => 0, 'registro_abierto' => false], $r['ajustes']);
-check('planes: módulos de cada plan (Básica = base, Completa = todos menos los de cotización aparte)', [[], array_values(array_diff(TuSalon\Modulos::ids(), TuSalon\Modulos::FUERA_DE_PLANES))], array_column($r['planes'], 'modulos'));
+check('planes: módulos de cada plan (Básica = base, Completa = todos, con el Asistente IA)', [[], array_values(array_diff(TuSalon\Modulos::ids(), TuSalon\Modulos::FUERA_DE_PLANES))], array_column($r['planes'], 'modulos'));
 
 // ---------------------------------------------------------------------------------------------
 titulo('7. solicitudes (§5.8, §5.9): registros nuevos y recordatorios');

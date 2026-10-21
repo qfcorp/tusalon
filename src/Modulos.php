@@ -44,8 +44,11 @@ final class Modulos
         'extras' => 'Extras',
     ];
 
-    /** Módulos que no entran en ningún plan (ni con '*'): se cotizan aparte. */
-    public const FUERA_DE_PLANES = ['asistente_ia'];
+    /**
+     * Módulos que no entran en ningún plan (ni con '*'): se cotizan aparte. Ninguno desde el 21 oct 2026: el Asistente IA
+     * viene incluido en Completa ('*'); en Básica sigue como extra por cotización.
+     */
+    public const FUERA_DE_PLANES = [];
 
     /** Personas que atienden sin el módulo "equipo_ilimitado" (si el plan no pone otro número). */
     public const PERSONAS_SIN_MODULO = 3;
@@ -83,7 +86,7 @@ final class Modulos
             'Lo más vendido, el mejor peluquero, las estrellas, las horas y días más vacíos y las faltas. Te llega solo el día 1 de cada mes.', 3.0, 1.0, []],
         'telegram' => ['📲', 'Avisos automáticos por Telegram', 'avisos',
             'Recordatorio automático al cliente el día anterior, pedido de calificación después del servicio, saludo de cumpleaños y avisos de cada reserva a tu equipo con botones Aceptar y Rechazar.', 3.0, 1.0, []],
-        // Por cotización (precio 0 en el catálogo: el que se acuerde va como precio acordado). No está en ningún plan.
+        // Incluido en Completa ('*'). En Básica es extra por cotización (precio 0 en el catálogo: el que se acuerde va como precio acordado).
         'asistente_ia' => ['✨', 'Asistente IA', 'extras',
             'Arma la cita a partir del mensaje de WhatsApp del cliente con una hora libre de tu agenda, escribe el mensaje para los clientes que no vuelven y responde las dudas al instante.', 0.0, 0.0, []],
     ];
@@ -444,7 +447,7 @@ final class Modulos
             else {
                 if (!is_array($lista)) throw new RuntimeException("La lista de módulos del plan $codigo no es válida.");
                 foreach ($lista as $id) if (!is_string($id) || !self::existe($id)) throw new RuntimeException('Ese módulo no existe en TuSalón: ' . mb_substr((string) (is_scalar($id) ? $id : '?'), 0, 40) . '.');
-                $ids = array_values(array_diff(self::conDependencias($lista), self::FUERA_DE_PLANES));   // el Asistente IA no va en planes
+                $ids = array_values(array_diff(self::conDependencias($lista), self::FUERA_DE_PLANES));
                 $valor = $ids === array_values(array_diff(self::ids(), self::FUERA_DE_PLANES)) ? '*' : implode(',', $ids);
             }
             $st = $this->db->prepare('SELECT modulos FROM planes WHERE codigo = ?');

@@ -86,10 +86,10 @@ $nuevo = function (string $nombre, string $plan, bool $pagado = true) use ($db):
 titulo('1. Catálogo, base y dependencias');
 $todos = Modulos::ids();
 $ids = array_values(array_diff($todos, Modulos::FUERA_DE_PLANES));   // los que entran en los planes ('*')
-check('15 módulos: 14 de los planes + Asistente IA (por cotización, fuera de los planes)', [15, 14, ['asistente_ia']], [count($todos), count($ids), Modulos::FUERA_DE_PLANES]);
+check('15 módulos, todos entran en los planes (el Asistente IA viene en Completa = *)', [15, 15, []], [count($todos), count($ids), Modulos::FUERA_DE_PLANES]);
 check('Cada módulo con ícono, nombre, grupo conocido, descripción, precio y descuento', true, array_filter(Modulos::CATALOGO, fn($m) =>
     $m[0] === '' || mb_strlen($m[1]) < 3 || !isset(Modulos::GRUPOS[$m[2]]) || mb_strlen($m[3]) < 20 || ($m[4] <= 0 && $m[1] !== 'Asistente IA') || $m[5] < 0 || $m[5] > $m[4]) === []);
-check('Asistente IA: grupo Extras y precio 0 en el catálogo (por cotización)', ['extras', 0.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
+check('Asistente IA: grupo Extras y precio 0 en el catálogo (en Básica, por cotización)', ['extras', 0.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
 check('Las dependencias existen y no se depende de uno mismo', true, array_filter(Modulos::CATALOGO, fn($m) => array_diff($m[6], $ids) !== []) === []
       && !array_filter(array_keys(Modulos::CATALOGO), fn($id) => in_array($id, Modulos::CATALOGO[$id][6], true)));
 check('Ids en minúsculas y _', [], array_values(array_filter($ids, fn($id) => !preg_match('/^[a-z_]+$/', $id))));

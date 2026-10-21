@@ -54,7 +54,7 @@ if (es_post()) {
                 break;
             case 'ia_tope':   // tope del mes de la IA de este salón (vacío = el sugerido)
                 $t = trim((string) ($_POST['ia_tope'] ?? ''));
-                if ($t !== '' && !is_numeric(str_replace(',', '.', $t))) throw new RuntimeException('Escribe el tope con números, por ejemplo 3,00.');
+                if ($t !== '' && !is_numeric(str_replace(',', '.', $t))) throw new RuntimeException('Escribe el tope con números, por ejemplo 4,00.');
                 TuSalon\Ia::guardarTope(db(), $id, $t === '' ? null : (float) str_replace(',', '.', $t));
                 registrar_admin('Tope de IA del mes: ' . ($t === '' ? 'el sugerido' : '$' . number_format((float) str_replace(',', '.', $t), 2, ',', '.')), $id);
                 aviso('Tope de IA guardado.');

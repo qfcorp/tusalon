@@ -308,8 +308,7 @@ $q("UPDATE salones SET estado = 'activo', activo_hasta = CURRENT_DATE + 20 WHERE
 $dm = (new Altas($db))->crearSalonConDueno('Peluquería en Demo', 'Lucía Herrera', '0990004444', 'endemo@tusalon.tukanec.com', CLAVE, 'basica', 'super');
 $q("UPDATE salones SET prueba_hasta = CURRENT_DATE + 10 WHERE id = ?", [$dm['salon_id']]);
 
-// ---------------------------------------------------------------- 13. Asistente IA (módulo extra, por cotización) y una pregunta frecuente de la Ayuda
-$q("UPDATE salones SET modulos_extra = 'asistente_ia' WHERE id = ?", [$sid]);
+// ---------------------------------------------------------------- 13. Asistente IA (viene incluido en Completa: el salón de ejemplo ya lo tiene) y una pregunta frecuente de la Ayuda
 require_once RAIZ . '/src/tukan_ia.php';
 (new TukanIaFaqPdo($db))->agregar('¿Cómo registro un pago?',
     "1. Abre la cita en la **Agenda** y toca **Cobrar** (para alguien sin cita, toca **Cobrar** en **Hoy**).\n2. Revisa los servicios y el precio, y agrega la propina si la dejó.\n3. Elige cómo pagó (efectivo, transferencia, DeUna o tarjeta) y toca **Cobrar**.\nEl pago entra a la caja del día y a las cuentas del equipo.");

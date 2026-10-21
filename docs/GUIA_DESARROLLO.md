@@ -22,7 +22,7 @@ Notas para quien cambia el código (Claude o un programador). Lo de uso diario e
 ## IA de Tukán y correo de la demo (21 oct 2026, migración 009)
 - **Librerías comunes**: `src/tukan_ia.php` y `src/tukan_correo.php` son copias SIN cambios de `compartido/` del Panel Tukán Central
   (guías `compartido/LEEME_IA.md` y `LEEME_CORREO.md`). No se editan aquí: si sale una versión nueva (`TUKAN_IA_VERSION`, `TUKAN_CORREO_VERSION`), se copian otra vez.
-- `src/Ia.php`: tope del salón (`Ia::tope()`: `salones.ia_tope_usd` o $0,50 sin el módulo / $3,00 con él), guardián (`TukanIaGuardianPdo`,
+- `src/Ia.php`: tope del salón (`Ia::tope()`: `salones.ia_tope_usd` o $0,50 sin el módulo / $4,00 con él, venga en Completa o comprado aparte), guardián (`TukanIaGuardianPdo`,
   `negocio_id` = id del salón), FAQ (`TukanIaFaqPdo`), la Ayuda (`Ia::ayuda()`, 30 respuestas nuevas al mes sin el módulo), el manual
   (`docs/manual/manual.html` → texto), `Ia::sinPalabras()` (nunca «límite», «cupo» ni «saldo» en la Ayuda), `Ia::neutroHtml()` (el mensaje neutro
   con el enlace para hacerlo a mano) e `Ia::uso()` (acción v2 `ia_uso`).
@@ -31,7 +31,7 @@ Notas para quien cambia el código (Claude o un programador). Lo de uso diario e
   a comprobar con la agenda: si la hora no está libre, la más cercana ese día (misma franja primero) o los días siguientes. El borrador abre
   `cita_nueva` con `fecha`, `hora`, `profesional`, `servicios=1,2` y `notas` por GET (se confirma ahí). `mensajeRecuperar()` arma el WhatsApp.
 - **Al cliente nunca se le dice por qué no hubo IA** (tope, pausa, sin clave o error): siempre `tukan_ia_mensaje_neutro()` + enlace a mano.
-- **Módulo**: `asistente_ia` está en `Modulos::FUERA_DE_PLANES` (no entra en `'*'` ni se guarda en un plan); una demo con todos los módulos sí lo ve.
+- **Módulo**: `asistente_ia` viene incluido en Completa (`'*'`; `Modulos::FUERA_DE_PLANES` quedó vacío, migración 010 `010_ia_en_completa.sql`); en Básica es extra por cotización (`modulos_extra`); una demo con todos los módulos lo ve.
 - Rutas: `ayuda` (base; también peluquero y recepción), `asistente` (módulo; dueño, administradores y recepción), `admin_faq` y `admin_demo_correo` (panel).
 - **Correo de la demo** (`src/CorreoDemo.php`): el sello lleva los datos cifrados (XChaCha20-Poly1305) con una llave al azar que queda en la sesión
   (atada al super usuario y al salón, 30 min, un solo uso). Ni la base, ni la sesión, ni `registro_admin` tienen la contraseña.

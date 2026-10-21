@@ -154,11 +154,11 @@ get "r=admin_planes" > /dev/null
 contiene "Planes y precios tiene el catálogo de módulos" "$TMP/pag.html" 'id="catalogo"'
 r=$(post "r=admin_planes" -d accion=catalogo -d "m[reservas_linea][precio_mensual]=6" -d "m[reservas_linea][descuento]=2" -d "m[reservas_linea][orden]=10" \
      --data-urlencode "m[reservas_linea][descripcion]=Tu enlace de reservas en línea para tus clientes" -d "plan_mod[basica][telegram]=1" \
-     $(for m in reservas_linea anticipos ficha_tecnica recuperar_clientes equipo_ilimitado portal_peluquero clientes_privados recepcion inventario paquetes_regalo puntos gastos_sri reportes telegram; do printf -- '-d plan_mod[completa][%s]=1 ' $m; done))
+     $(for m in reservas_linea anticipos ficha_tecnica recuperar_clientes equipo_ilimitado portal_peluquero clientes_privados recepcion inventario paquetes_regalo puntos gastos_sri reportes telegram asistente_ia; do printf -- '-d plan_mod[completa][%s]=1 ' $m; done))
 check "Guardar precio de un módulo" "6.00" "$(sql "SELECT precio_mensual FROM modulos WHERE id='reservas_linea'")"
 check "Básica ahora trae Telegram; Completa sigue con todos" "telegram|*" "$(sql "SELECT string_agg(modulos, '|' ORDER BY codigo) FROM planes")"
 post "r=admin_planes" -d accion=catalogo -d "m[reservas_linea][precio_mensual]=5" \
-     $(for m in reservas_linea anticipos ficha_tecnica recuperar_clientes equipo_ilimitado portal_peluquero clientes_privados recepcion inventario paquetes_regalo puntos gastos_sri reportes telegram; do printf -- '-d plan_mod[completa][%s]=1 ' $m; done) > /dev/null
+     $(for m in reservas_linea anticipos ficha_tecnica recuperar_clientes equipo_ilimitado portal_peluquero clientes_privados recepcion inventario paquetes_regalo puntos gastos_sri reportes telegram asistente_ia; do printf -- '-d plan_mod[completa][%s]=1 ' $m; done) > /dev/null
 check "Volver a como estaba" "5.00|*" "$(sql "SELECT precio_mensual FROM modulos WHERE id='reservas_linea'")|$(sql "SELECT string_agg(modulos, '|' ORDER BY codigo) FROM planes WHERE codigo='completa'")"
 
 echo "7. Pedidos de demo en el panel de Tukán"

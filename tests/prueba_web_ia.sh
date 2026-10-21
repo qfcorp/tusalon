@@ -82,6 +82,18 @@ contiene "Sin configuración de IA: la Ayuda responde con el manual" "$TMP/resp.
 check "… sin llamar a la API" "$((antes+1))" "$(wc -l < "$IA_LOG")"
 unset B
 
+echo "1b. El Asistente IA viene incluido en Completa (pagado); en Básica es extra"
+registrar "Salón Completa Pagado" completa "" pagado
+check "Completa pagada (sin módulos extra): Asistente IA abre" "200" "$(get "r=asistente")"
+check "… sin tenerlo como extra" "" "$(sql "SELECT modulos_extra FROM salones WHERE id=$SID")"
+get "r=equipo" > /dev/null
+contiene "… y Más (Equipo) tiene Asistente IA" "$TMP/pag.html" "Asistente IA</a>"
+registrar "Salón Básica Con Extra" basica "" pagado
+check "Básica pagada sin el extra: Asistente IA no entra (403)" "403" "$(get "r=asistente")"
+sql "UPDATE salones SET modulos_extra = 'asistente_ia' WHERE id = $SID" > /dev/null
+check "Básica + Asistente IA como extra: abre" "200" "$(get "r=asistente")"
+check "… y queda como módulo extra" "asistente_ia" "$(sql "SELECT modulos_extra FROM salones WHERE id=$SID")"
+
 echo "2. Asistente IA (módulo encendido)"
 registrar "Salón Con Asistente" completa   # demo con todos los módulos
 JAR_DUENA=$JAR
