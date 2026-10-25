@@ -25,7 +25,7 @@ description: Usar cuando algo falla DENTRO de un programa de Dimitry (Tukán, ER
 5. **Arreglar** con el cambio mínimo.
 6. **Comprobar**: Tukán → agregar el caso a las pruebas y correr `bash tests/run_logica.sh` y `run_web.sh` hasta `TODO BIEN`. ERP → `php -l` del archivo y, si se puede, probarlo aquí antes de mandarlo.
 7. **Aplicar**:
-   - Tukán: Claude hace commit, PR y merge a `main`, y da el comando para actualizar el servidor.
+   - Tukán: Claude hace commit y PR, pregunta "¿Uno el cambio a main?" y con el "sí" hace el merge; luego da el comando para actualizar el servidor.
    - ERP QF: seguir la habilidad `erp-qf-cambio-produccion` para entregar los comandos.
 8. **Entregar**: causa (simple), qué se cambió, cómo comprobarlo (dónde hacer clic y qué debe verse) y cómo deshacerlo.
 

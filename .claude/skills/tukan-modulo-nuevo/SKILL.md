@@ -21,7 +21,7 @@ description: Usar cuando Dimitry pide agregar una función, pantalla o módulo n
 6. **Lógica** en una clase nueva de `src/` que pregunte a `Modulos` con el id del salón. Toda consulta que liste o cuente salones lleva `WHERE eliminado_en IS NULL` (así no salen los que están en la papelera).
 7. **Pruebas**: `tests/prueba_<modulo>.php` y `tests/prueba_web_<modulo>.sh`. Correr `bash tests/run_logica.sh` y `PGPASSWORD=prueba bash tests/run_web.sh` hasta `TODO BIEN`, sin avisos de PHP.
 8. **Documentar**: fila en la tabla de módulos del README, sección en `docs/GUIA_DESARROLLO.md`, avance en `BLOC_DE_NOTAS.md`, y el manual (`docs/manual/`) si el cliente lo va a usar.
-9. **GitHub**: rama nueva, commit, PR y merge a `main` (lo hace Claude).
+9. **GitHub**: Claude hace rama nueva, commit y PR, y pregunta "¿Uno el cambio a main?". Con el "sí" de Dimitry hace el merge.
 10. **Entregar**: qué hace el módulo en 2 frases, lista de archivos cambiados, el comando para actualizar el servidor (el instalador corre la migración) y "cómo probarlo": dónde hacer clic y qué debe verse.
 
 ## Ejemplo bueno 1

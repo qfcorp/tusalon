@@ -29,7 +29,7 @@ description: Usar cuando Dimitry pide crear un programa Tukán NUEVO (TuAlgo) co
 8. **Base de datos**: `db/schema.sql` con el nombre nuevo; las bases de prueba llevan "prueba" en el nombre.
 9. **Probar**: `bash tests/run_logica.sh` y `PGPASSWORD=prueba bash tests/run_web.sh` hasta que digan `TODO BIEN`. Correr `buscar_nombres.sh` otra vez: la marca vieja debe dar 0 y las palabras del negocio viejo solo deben quedar en nombres internos. Regenerar el manual en PDF con el nombre nuevo.
 10. **Documentar**: README nuevo (qué es, para quién, direcciones) y `BLOC_DE_NOTAS.md` (decisiones y pendientes).
-11. **GitHub**: Dimitry crea el repositorio privado `qfcorp/<nombre>`; Claude sube el código, abre el PR y hace merge a `main`.
+11. **GitHub**: Dimitry crea el repositorio privado `qfcorp/<nombre>`; Claude sube el código y abre el PR; hace el merge a `main` apenas Dimitry responda "sí" en el chat (un solo sí basta para ese PR).
 12. **Entregar** en este orden: dirección donde quedará, qué se copió, qué se quitó, qué falta, y el comando del instalador listo para pegar (solo se corre cuando Dimitry diga).
 
 ## Ejemplo bueno 1

@@ -9,3 +9,6 @@
 
 ## 2026-10-25 · versión 3 (revisión final)
 - Descripción ajustada para no chocar con la otra habilidad: errores dentro de una pantalla → arreglar-error-sin-romper; servidor, correo, dominio o página entera caída → servidor-tarea-segura.
+
+## 2026-10-25 · versión final
+- El merge a `main` ahora se hace solo después del "sí" de Dimitry en el chat (regla de seguridad: nada se publica sin aprobación).
