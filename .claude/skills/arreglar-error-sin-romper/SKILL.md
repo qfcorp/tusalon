@@ -35,7 +35,7 @@ Claude encuentra que `ppv_evento_control.php` lee la base desde `$_SESSION['ppv_
 
 ## Ejemplo bueno 2
 "En TuSalón la caja no cuadra con propinas."
-Claude reproduce el caso en una prueba que falla, corrige una línea en `src/Caja.php`, la prueba pasa, PR + merge, y avisa: "Además vi que el reporte del mes redondea distinto, ¿lo reviso?".
+Claude reproduce el caso en una prueba que falla, corrige una línea en `src/Caja.php`, la prueba pasa, abre el PR y pide el "sí" para unirlo, y avisa: "Además vi que el reporte del mes redondea distinto, ¿lo reviso?".
 
 ## Ejemplo malo (no hacer)
 "Reescribí `eventos_editar.php` completo con un diseño más moderno y arreglé el error."

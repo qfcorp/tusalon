@@ -26,7 +26,7 @@ description: Usar cuando Dimitry pide agregar una función, pantalla o módulo n
 
 ## Ejemplo bueno 1
 Pedido: "Agrega a TuSalón avisos por WhatsApp oficial."
-Claude pregunta si es extra o va en Completa, crea `011_whatsapp_oficial.sql`, el módulo `whatsapp_oficial` en el catálogo, la clase en `src/`, esconde los botones con `modulo('whatsapp_oficial')`, escribe sus 2 pruebas, todo `TODO BIEN`, PR + merge, y entrega el comando para actualizar.
+Claude pregunta si es extra o va en Completa, crea `011_whatsapp_oficial.sql`, el módulo `whatsapp_oficial` en el catálogo, la clase en `src/`, esconde los botones con `modulo('whatsapp_oficial')`, escribe sus 2 pruebas, todo `TODO BIEN`, abre el PR, pide el "sí" para unirlo a main y entrega el comando para actualizar.
 
 ## Ejemplo bueno 2
 Pedido: "En TuGuardería quiero reporte de estadías por mes."
