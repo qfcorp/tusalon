@@ -29,12 +29,12 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 | 🧾 Gastos con facturas del SRI | — |
 | 📊 Reporte del mes | — |
 | 📲 Avisos automáticos por Telegram | — |
-| ✨ **Asistente IA** (incluido en Completa; en Básica, extra por cotización) | — |
+| ✨ **Asistente IA** (incluido en Completa; en Básica, extra que no cuenta entre los 3 a elegir) | — |
 
 - **Ayuda** («¿En qué le ayudamos?», 21 oct 2026) para **todos los planes**: el dueño, los administradores, recepción y los peluqueros preguntan cómo hacer algo y les responde con los pasos del manual (preguntas frecuentes guardadas → IA con el manual → el manual tal cual). Sin el módulo: hasta 30 respuestas nuevas con IA al mes por salón (las ya guardadas no cuentan). Nunca dice «límite», «cupo» ni «saldo».
-- **Asistente IA** (módulo `asistente_ia`, incluido en Completa desde el 21 oct 2026; en Básica, extra por cotización): **Agendar a partir de un mensaje** (se pega el WhatsApp del cliente y propone servicio, peluquero, día y una hora libre de la agenda real; es un borrador que se confirma en Nueva cita) y **Mensaje para clientes que no vuelven**. Si la IA no se puede usar en ese momento, sale «En este momento no pudimos procesar el texto automáticamente; puede hacerlo a mano aquí: …».
+- **Asistente IA** (módulo `asistente_ia`, incluido en Completa desde el 21 oct 2026; en Básica, extra que no cuenta entre los 3 a elegir): **Agendar a partir de un mensaje** (se pega el WhatsApp del cliente y propone servicio, peluquero, día y una hora libre de la agenda real; es un borrador que se confirma en Nueva cita) y **Mensaje para clientes que no vuelven**. Si la IA no se puede usar en ese momento, sale «En este momento no pudimos procesar el texto automáticamente; puede hacerlo a mano aquí: …».
 
-Planes: **Básica** = solo la base · **Completa** = todos los módulos, incluido el Asistente IA. Precio de cada salón = plan + módulos extra − descuento de los que quitó (o un **precio acordado** fijo); lo ve y lo cambia solo Tukán (Panel Tukán → Planes y precios, o el Panel Tukán Central). Semestral paga 5 y recibe 6; anual paga 10, recibe 12 (meses de regalo) y trae dominio propio.
+Planes (28 oct 2026): **Básica** = la base + **3 módulos que el salón elige** (cada uno más se suma) · **Completa** = todos los módulos, con el Asistente IA. Precio de cada salón = plan + módulos extra (los 3 elegidos van incluidos) − descuento de los que quitó (o un **precio acordado** fijo); lo ve y lo cambia solo Tukán (Panel Tukán → Planes y precios, o el Panel Tukán Central). Semestral paga 5 y recibe 6; anual paga 10, recibe 12 (meses de regalo) y trae dominio propio.
 
 - **Manual para los clientes: [docs/Manual_TuSalon.pdf](docs/Manual_TuSalon.pdf)** (cómo se arma y se regenera: [docs/MANUAL.md](docs/MANUAL.md))
 - Plan y avance del proyecto: [BLOC_DE_NOTAS.md](BLOC_DE_NOTAS.md)

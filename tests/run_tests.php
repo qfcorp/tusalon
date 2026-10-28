@@ -61,6 +61,9 @@ if (!str_contains((string) getenv('TUSALON_DB_NAME'), 'prueba')) {
 }
 $db->exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
 $db->exec(file_get_contents(__DIR__ . '/../db/schema.sql'));
+// Precios y Básica como antes de la migración 011 ($25 solo la base, $35 todo; extras a su precio del catálogo): las cuentas de
+// abajo usan esos números. Los planes de $20 y $45 se prueban en tests/prueba_modulos.php (sección 12) y tests/prueba_web_modulos.sh.
+$db->exec("UPDATE planes SET precio_mensual = 25, modulos_elegir = 0, precio_modulo_extra = NULL WHERE codigo = 'basica'; UPDATE planes SET precio_mensual = 35 WHERE codigo = 'completa'");
 
 $planes = new Planes($db);
 $prof   = new Profesionales($db, $planes);

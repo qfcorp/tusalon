@@ -18,6 +18,8 @@ use RuntimeException;
  *    Activos = (módulos del plan − quitados) + extra, con sus dependencias.
  *  - Demo (estado "prueba"): todos encendidos, o los que eligió el súper usuario (`modulos_demo`).
  *  - Precio al mes = precio del plan + Σ precio de extra − Σ descuento de quitados (o el precio acordado).
+ *    Planes de $20 y $45 (migración 011): los primeros `planes.modulos_elegir` extra van incluidos y los demás cuestan
+ *    `planes.precio_modulo_extra`; el Asistente IA va aparte (FUERA_DEL_CUPO).
  *  - Apagar nunca borra datos: se esconden menús, páginas (RUTAS), botones, páginas públicas, tareas y avisos.
  */
 final class Modulos
@@ -49,6 +51,13 @@ final class Modulos
      * viene incluido en Completa ('*'); en Básica sigue como extra por cotización.
      */
     public const FUERA_DE_PLANES = [];
+
+    /**
+     * Planes de $20 y $45 (decisión de Dimitry, 28 oct 2026; migración 011): el plan Básica trae `planes.modulos_elegir`
+     * módulos a elección del salón y cada uno más cuesta `planes.precio_modulo_extra`. Estos módulos NO cuentan entre los
+     * que elige: siempre se cobran a su precio del catálogo (Asistente IA $5). TuSalón no tiene módulo de sedes.
+     */
+    public const FUERA_DEL_CUPO = ['asistente_ia'];
 
     /** Personas que atienden sin el módulo "equipo_ilimitado" (si el plan no pone otro número). */
     public const PERSONAS_SIN_MODULO = 3;
@@ -86,9 +95,9 @@ final class Modulos
             'Lo más vendido, el mejor peluquero, las estrellas, las horas y días más vacíos y las faltas. Te llega solo el día 1 de cada mes.', 3.0, 1.0, []],
         'telegram' => ['📲', 'Avisos automáticos por Telegram', 'avisos',
             'Recordatorio automático al cliente el día anterior, pedido de calificación después del servicio, saludo de cumpleaños y avisos de cada reserva a tu equipo con botones Aceptar y Rechazar.', 3.0, 1.0, []],
-        // Incluido en Completa ('*'). En Básica es extra por cotización (precio 0 en el catálogo: el que se acuerde va como precio acordado).
+        // Incluido en Completa ('*'). En Básica es un extra de $5 al mes que no cuenta entre los módulos a elegir (migración 011).
         'asistente_ia' => ['✨', 'Asistente IA', 'extras',
-            'Arma la cita a partir del mensaje de WhatsApp del cliente con una hora libre de tu agenda, escribe el mensaje para los clientes que no vuelven y responde las dudas al instante.', 0.0, 0.0, []],
+            'Arma la cita a partir del mensaje de WhatsApp del cliente con una hora libre de tu agenda, escribe el mensaje para los clientes que no vuelven y responde las dudas al instante.', 5.0, 0.0, []],
     ];
 
     /**
@@ -277,7 +286,19 @@ final class Modulos
         }
         $cat = $this->catalogo();
         $precioPlan = round((float) ($pl['precio_mensual'] ?? 0), 2);
-        $precioExtra = round(array_sum(array_map(fn($id) => $cat[$id]['precio_mensual'], $extra)), 2);
+        // Planes de $20 y $45 (migración 011): los primeros `modulos_elegir` extra van en el precio del plan; los demás cuestan
+        // `precio_modulo_extra` (o su precio del catálogo). Los de FUERA_DEL_CUPO siempre a su precio del catálogo.
+        $elegir = max(0, (int) ($pl['modulos_elegir'] ?? 0));
+        $precioFijo = isset($pl['precio_modulo_extra']) && $pl['precio_modulo_extra'] !== null && $pl['precio_modulo_extra'] !== ''
+            ? round((float) $pl['precio_modulo_extra'], 2) : null;
+        $elegibles = array_values(array_diff($extra, self::FUERA_DEL_CUPO));
+        $elegidos = array_slice($elegibles, 0, $elegir);
+        $precioPorExtra = [];
+        foreach ($extra as $id) {
+            $precioPorExtra[$id] = in_array($id, $elegidos, true) ? 0.0
+                : (in_array($id, self::FUERA_DEL_CUPO, true) || $precioFijo === null ? round((float) $cat[$id]['precio_mensual'], 2) : $precioFijo);
+        }
+        $precioExtra = round(array_sum($precioPorExtra), 2);
         $descuento = round(array_sum(array_map(fn($id) => $cat[$id]['descuento'], $quitados)), 2);
         $acordado = isset($s['precio_acordado']) && $s['precio_acordado'] !== null && $s['precio_acordado'] !== '' ? round((float) $s['precio_acordado'], 2) : null;
         $calculado = max(0.0, round($precioPlan + $precioExtra - $descuento, 2));
@@ -286,6 +307,8 @@ final class Modulos
             'activos' => self::limpiar($activos), 'contratados' => $contratados, 'demo' => $demo,
             'precio_plan' => $precioPlan, 'precio_extra' => $precioExtra, 'descuento' => $descuento,
             'precio_calculado' => $calculado, 'precio_acordado' => $acordado, 'mensual' => $acordado ?? $calculado,
+            'modulos_elegir' => $elegir, 'elegidos' => $elegidos, 'por_elegir' => max(0, $elegir - count($elegidos)),
+            'precio_por_extra' => $precioPorExtra,
         ];
     }
 

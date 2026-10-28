@@ -261,7 +261,7 @@ check "Pedir cotización guarda el pedido" "pendiente" "$(sql "SELECT estado FRO
 c96_post solicitudes '{"estado":"abiertas","tipos":["cambio_modulos"],"por_pagina":200}' > /dev/null
 c96_txt "Llega al Central como cambio_modulos" "$(c96_json solicitudes)" "\"id\":\"cambio_modulos:$PM\""
 r=$(c96_ej cambiar_modulos "{\"solicitud_id\":\"cambio_modulos:$PM\"}" "$N7")
-check "Aprobar (cambiar_modulos): 200 y paga \$28" "200 28" "$r $(c96_json resultado.modulos.mensual)"
+check "Aprobar (cambiar_modulos): 200 y paga \$20 (Básica: la recepción es uno de sus 3 módulos a elegir)" "200 20" "$r $(c96_json resultado.modulos.mensual)"
 get "r=recepcion" > /dev/null
 contiene "El dueño ya entra a Recepción" "$TMP/pag.html" "Recepción"
 no_contiene "… sin el aviso de «No está en tu plan»" "$TMP/pag.html" "No está en tu plan"

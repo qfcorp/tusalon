@@ -1,6 +1,6 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 21 de octubre de 2026
+Última actualización: 28 de octubre de 2026
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:
@@ -14,12 +14,13 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Se arranca con los 4 tipos de peluquero desde el inicio
 - [x] Tomar lo mejor de cada programa (tabla en el informe, sección "Nuestra propuesta")
 - [x] SRI: NO emitimos facturas. Se importan del SRI las facturas que el salón **RECIBE** de sus proveedores (tintes, shampoo, luz, agua, arriendo del local) para mostrar los gastos en el panel del dueño
-- [x] **Todo por módulos (18 oct 2026):** cada función se enciende o apaga por salón y tiene su precio. Plan Básica $25/mes = solo la base; Plan Completa $35/mes = todos los módulos (sueltos suman $45)
+- [x] **Todo por módulos (18 oct 2026):** cada función se enciende o apaga por salón y tiene su precio. Plan Básica $25/mes = solo la base; Plan Completa $35/mes = todos los módulos (sueltos suman $45). **Cambiado el 28 oct 2026: ver «Planes de $20 y $45»**
+- [x] **Planes de $20 y $45 (28 oct 2026, decisión de Dimitry para todos los programas):** Básica $20 = la base + 3 módulos que el salón elige (cada uno más $5); Completa $45 = todos, con el Asistente IA (mismo tope de uso). Asistente IA en Básica: $5 aparte (no cuenta entre los 3). Telegram y los demás son módulos normales. TuSalón no tiene sedes. Semestral $100/$225, anual $200/$450; Google Play $23,99/$117,99/$235,99 y $52,99/$264,99/$529,99 (mismos códigos `tusalon_basica_*` y `tusalon_completa_*`: hay que cambiar el precio en Play Console). Migración `011_planes_20_45.sql` (columnas `planes.modulos_elegir` y `precio_modulo_extra`, precios puestos una sola vez con la marca `planes_20_45`). Los precios siguen sin publicarse: los textos dicen «3 módulos que tú eliges» y «todos con el Asistente IA».
 - [x] **Precios del software solo por cotización (20 oct 2026):** Mi plan ya no muestra el precio de los módulos que el salón no tiene («Precio por cotización» + **Pedir cotización**, mismo pedido `cambio_modulos` al Panel Tukán Central); en la demo el botón es «Lo quiero · Pedir cotización»; «No está en tu plan» ya no dice «$X al mes más tu plan» y trae **Pedir cotización** y **Ver Mi plan**. Lo que paga por su propio plan y su renovación se sigue viendo. README y guía `docs/manual/MODULOS_Y_DEMOS.md` sin precios, capturas 40–45 nuevas. Ningún texto, guía ni manual usa la palabra prohibida (solo demos; en ventas: «meses de regalo»). Pruebas: `prueba_modulos.php` §10–11 y `prueba_web_modulos.sh`.
 - [x] **Manual nuevo y regenerable (20 oct 2026):** `docs/Manual_TuSalon.pdf` rehecho desde `docs/manual/manual.html` con capturas reales del salón de ejemplo (`docs/manual/capturas/`), sin la palabra prohibida ni precios del software, todo por módulos y con «Pedir cotización». Se regenera con `bash docs/manual/generar/generar.sh` (avisa y falla si aparece la palabra prohibida o un precio del software). Explicación en `docs/MANUAL.md`.
 - [x] **Nada se da gratis, todo se pide demo (18 oct 2026):** no hay registro con prueba gratis; el formulario público es "Solicitar demo" y Tukán prepara cada demo
-- [x] Semestral: paga 5, recibe 6 (Básica $125, Completa $175) — sale a $20,83 y $29,17 al mes
-- [x] Anual: paga 10, recibe 12 (Básica $250, Completa $350) + dominio propio .com del salón mientras dure el contrato (~$10,46/año en Cloudflare)
+- [x] Semestral: paga 5, recibe 6 (antes Básica $125, Completa $175; desde el 28 oct $100 y $225)
+- [x] Anual: paga 10, recibe 12 (antes Básica $250, Completa $350; desde el 28 oct $200 y $450) + dominio propio .com del salón mientras dure el contrato (~$10,46/año en Cloudflare)
 - [x] Ahorro en ambos casos: 16,7 %. El dominio es lo que hace que el anual convenga más que el semestral
 - [x] El dominio se registra a nombre de Tukán (si el salón no renueva, se le puede transferir cobrando el año)
 - [x] Demo: 7 días por defecto (lo decide Tukán al crearla); ya no hay prueba gratis
@@ -65,6 +66,13 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - [x] Prueba simulada "Barbería Don Pepe": 49 de 49 pruebas correctas. Se metió un error a propósito y las pruebas lo detectaron
 - [x] Explicación simple del reparto: `docs/COMO_FUNCIONA_EL_DINERO.md`
 - [x] Corrección: las facturas importadas son las que RECIBE el salón (gastos). Tabla `facturas_recibidas` con categoría de gasto y proveedores que recuerdan su categoría; el panel del dueño muestra gastos y ganancia después de gastos. **55 de 55 pruebas correctas**
+
+## Hecho (28 oct 2026) — Planes de $20 y $45 (decisión de Dimitry)
+- Migración 011: `planes.modulos_elegir` (3 en Básica) y `planes.precio_modulo_extra` ($5); Básica $20 solo la base + 3 a elegir, Completa $45 con todo; Asistente IA $5 en el catálogo. Quien ya pagaba Básica conserva lo que traía su plan como uno de sus elegidos
+- `Modulos::detalle()`: `elegidos`, `por_elegir`, `precio_por_extra`; `Modulos::FUERA_DEL_CUPO = ['asistente_ia']`
+- Mi plan: «Tu plan trae 3 módulos a tu elección: te quedan N por elegir», «Elegido · incluido en tu plan», «Puedes elegirlo en tu plan» (sin precio); Planes y precios: «Módulos que elige el salón» y «Cada módulo más»
+- Conector v2: `planes` (modulos_elegir, precio_modulo_extra, límite «Módulos a elegir»), `modulos` (lo mismo por plan y `fuera_del_cupo`), `cliente.modulos` (elegidos, por_elegir, precio_por_extra), `guardar_plan` acepta los dos campos, finanzas por módulo cuenta los elegidos en 0
+- Pruebas: `prueba_modulos.php` §12 y `prueba_web_modulos.sh` §8; las demás emulan los precios viejos al principio. Guía de Google Play, manual (PDF) y guías actualizados
 
 ## Hecho (21 oct 2026) — Tope de IA de las demos: $0,50 (decisión de Dimitry)
 - [x] Una demo (estado `prueba`) sin tope propio gasta como máximo **$0,50 al mes en total** (IA y Ayuda), aunque tenga todos los módulos (`Ia::TOPE_DEMO`, `Ia::esDemo()`). El tope propio de Tukán sigue mandando; al registrar el pago (estado `activo`) vuelve sola a $4,00 / $0,50. Pruebas en `prueba_ia.php`.

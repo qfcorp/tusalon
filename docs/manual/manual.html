@@ -96,7 +96,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
     <li><span class="n">2</span><a href="#c2">Entrar e inicio<small>Solicitar demo, entrar, la pantalla Hoy y el menú</small></a><span class="pag" data-pag="c2"></span></li>
     <li><span class="n">3</span><a href="#c3">Quién entra: dueño, administradores, peluquero y recepción<small>Qué ve y qué no ve cada uno; hasta 4 administradores</small></a><span class="pag" data-pag="c3"></span></li>
     <li><span class="n">4</span><a href="#c4">Los 4 tipos de peluquero<small>Dueño, empleado, porcentaje y alquiler de puesto</small></a><span class="pag" data-pag="c4"></span></li>
-    <li><span class="n">5</span><a href="#c5">Planes y módulos<small>La base, los 14 módulos, los planes Básica y Completa y el Asistente IA</small></a><span class="pag" data-pag="c5"></span></li>
+    <li><span class="n">5</span><a href="#c5">Planes y módulos<small>La base, los 14 módulos, los planes Básica (3 módulos que tú eliges) y Completa y el Asistente IA</small></a><span class="pag" data-pag="c5"></span></li>
     <li><span class="n">6</span><a href="#c6">Configuración<small>Horario, reglas de las citas en línea, anticipo y Telegram</small></a><span class="pag" data-pag="c6"></span></li>
     <li><span class="n">7</span><a href="#c7">Servicios y precios del salón<small>Lo que cobras y lo que pagas al peluquero</small></a><span class="pag" data-pag="c7"></span></li>
     <li><span class="n">8</span><a href="#c8">Personal y comisiones<small>Agregar peluqueros, accesos, horarios y cuentas del equipo</small></a><span class="pag" data-pag="c8"></span></li>
@@ -236,9 +236,9 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
   </ul>
   <h2>Los planes</h2>
   <ul class="lista">
-    <li><b>Básica</b>: la base.</li>
-    <li><b>Completa</b>: la base con todos los módulos, <b>incluido el Asistente IA</b>.</li>
-    <li>A cualquier plan se le puede <b>sumar o quitar un módulo</b>. El valor es <b>por cotización</b>: lo pides en <b>Mi plan</b> con <b>Pedir cotización</b> y Tukán te escribe (capítulo 13).</li>
+    <li><b>Básica</b>: la base + <b>3 módulos que tú eliges</b>.</li>
+    <li><b>Completa</b>: la base con todos los módulos, <b>con el Asistente IA</b>.</li>
+    <li>En Básica eliges tus 3 módulos en <b>Mi plan</b> («Puedes elegirlo en tu plan») y puedes sumar más. A cualquier plan se le puede <b>sumar o quitar un módulo</b>. El valor es <b>por cotización</b>: lo pides en <b>Mi plan</b> con <b>Pedir cotización</b> y Tukán te escribe (capítulo 13).</li>
     <li>Si un módulo no está en tu plan, su página dice «No está en tu plan» y sus menús y botones se esconden.</li>
   </ul>
   <h2>Los módulos</h2>
@@ -258,7 +258,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
     <tr><td>🧾 Gastos con facturas del SRI</td><td>Sube las facturas que recibes y mira tu ganancia real (TuSalón no hace facturas)</td></tr>
     <tr><td>📊 Reporte del mes</td><td>Lo más vendido, el mejor peluquero y las horas vacías</td></tr>
     <tr><td>📲 Avisos automáticos por Telegram</td><td>Recordatorios, calificación, cumpleaños y avisos al equipo</td></tr>
-    <tr><td>✨ Asistente IA</td><td>Arma la cita con el mensaje del cliente y escribe el mensaje para los que no vuelven (capítulo 14). Viene incluido en Completa; en Básica se agrega como extra por cotización</td></tr>
+    <tr><td>✨ Asistente IA</td><td>Arma la cita con el mensaje del cliente y escribe el mensaje para los que no vuelven (capítulo 14). Viene incluido en Completa; en Básica se agrega como extra (no cuenta entre tus 3 módulos)</td></tr>
   </table>
 </section>
 
@@ -468,7 +468,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
   <h1><span class="num">13</span> Mi plan</h1>
   <span class="plan">Para el dueño</span>
   <p>En <b>Más → Mi plan</b> ves tu plan y hasta cuándo está pagado, lo que pagas por él y su renovación, <b>Tus módulos encendidos</b>, los <b>Módulos que puedes agregar</b> y <b>Lo que siempre tienes</b> (la base).</p>
-  <figure class="pc alta"><img src="capturas/39_mi_plan_compu.png" alt=""><figcaption>Mi plan de un salón con plan Básica: cada módulo que no tiene dice «Precio por cotización».</figcaption></figure>
+  <figure class="pc alta"><img src="capturas/39_mi_plan_compu.png" alt=""><figcaption>Mi plan de un salón con plan Básica: arriba dice cuántos módulos te quedan por elegir y cada módulo que puedes elegir dice «Puedes elegirlo en tu plan».</figcaption></figure>
   <h2>Pedir cotización</h2>
   <div class="tarea">
     <div>
@@ -478,6 +478,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
         <li>El pedido llega a Tukán y aparece en <b>Tus pedidos de módulos</b> con «Tukán lo está revisando».</li>
         <li>Tukán te escribe con el valor y, cuando lo apruebas, lo enciende. El pedido pasa a «Encendido».</li>
       </ol>
+      <p>En el plan Básica, arriba dice cuántos de tus <b>3 módulos a tu elección</b> te quedan por elegir; los que puedes elegir dicen «Puedes elegirlo en tu plan» y los que ya elegiste, «Elegido · incluido en tu plan».</p>
       <p>Desde la página «No está en tu plan» de un módulo también puedes tocar <b>Pedir cotización</b> o <b>Ver Mi plan</b>.</p>
       <div class="consejo"><b>En la demo</b>Tu demo trae los módulos encendidos para que los pruebes. En Mi plan, cada uno dice «Solo en la demo» y trae <b>Lo quiero · Pedir cotización</b> para elegir los que quieres al contratar.</div>
     </div>
@@ -511,7 +512,7 @@ table.t tr:nth-child(even) td { background: #FAFBFD; }
     <figure class="cel"><img src="capturas/43_ayuda_celular.png" alt=""><figcaption>La Ayuda respondiendo «¿Cómo registro un pago?».</figcaption></figure>
   </div>
   <h2>Asistente IA</h2>
-  <span class="plan">Módulo «Asistente IA» · incluido en Completa · en Básica, extra por cotización</span>
+  <span class="plan">Módulo «Asistente IA» · incluido en Completa · en Básica, módulo extra con uso medido</span>
   <p>Con el módulo <b>Asistente IA</b> aparece <b>✨ Asistente IA</b> en el menú (en el celular, en <b>Más</b>). Tiene dos ayudas para el día a día. Tú siempre revisas antes de guardar o de enviar: el asistente nunca agenda ni manda mensajes solo.</p>
   <figure class="pc"><img src="capturas/44_asistente_compu.png" alt=""><figcaption>Asistente IA: agendar a partir de un mensaje y los clientes que no vuelven.</figcaption></figure>
   <h2>Agendar a partir de un mensaje</h2>

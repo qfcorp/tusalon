@@ -27,7 +27,7 @@ Lo demás son **módulos**: cada uno se enciende o se apaga para tu salón. El p
 | 📲 Avisos automáticos por Telegram | Recordatorios, calificación, cumpleaños y avisos al equipo |
 | ✨ Asistente IA (incluido en Completa; en Básica, extra) | Arma la cita con el mensaje de WhatsApp del cliente (hora libre de la agenda real) y escribe el mensaje para los que no vuelven |
 
-- **Plan Básica**: la base. **Plan Completa**: todos los módulos, incluido el Asistente IA (en Básica se agrega como extra). Precios por cotización.
+- **Plan Básica**: la base + **3 módulos que tú eliges** (puedes sumar más). **Plan Completa**: todos los módulos, con el Asistente IA (en Básica se agrega como extra). Precios por cotización.
 - **Ayuda** («¿En qué le ayudamos?»): la tienen todos los planes; responde con los pasos del manual.
 - Si un módulo no está en tu plan, la página dice **"No está en tu plan"** con los botones **Pedir cotización** y **Ver Mi plan**.
 - **Apagar un módulo no borra nada.** Si lo vuelves a encender, todo sigue como estaba.

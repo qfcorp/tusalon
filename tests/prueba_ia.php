@@ -89,7 +89,7 @@ check('La migración 009 se puede correr varias veces (tablas y columna)', [1, 1
     $cuenta("SELECT count(*) FROM information_schema.columns WHERE table_name = 'salones' AND column_name = 'ia_tope_usd'")]);
 $mods = new Modulos($db);
 $cat = $mods->catalogo();
-check('Catálogo: asistente_ia «Asistente IA», grupo Extras, precio 0 (por cotización)', ['Asistente IA', 'extras', 0.0], [$cat['asistente_ia']['nombre'], $cat['asistente_ia']['grupo'], $cat['asistente_ia']['precio_mensual']]);
+check('Catálogo: asistente_ia «Asistente IA», grupo Extras, $5 en Básica (migración 011)', ['Asistente IA', 'extras', 5.0], [$cat['asistente_ia']['nombre'], $cat['asistente_ia']['grupo'], $cat['asistente_ia']['precio_mensual']]);
 check('Viene INCLUIDO en Completa (el plan más caro) y NO en Básica (ahí es extra)', [true, false], [in_array('asistente_ia', $mods->planes()['completa']['modulos'], true), in_array('asistente_ia', $mods->planes()['basica']['modulos'], true)]);
 check('Completa es el plan más caro', 'completa', $db->query('SELECT codigo FROM planes ORDER BY precio_mensual DESC LIMIT 1')->fetchColumn());
 // Migración 010: si Completa se guardó como lista (no '*'), le agrega asistente_ia una sola vez; no toca Básica

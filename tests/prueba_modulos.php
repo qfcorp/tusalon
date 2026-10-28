@@ -47,6 +47,10 @@ $db = Db::conectar();
 $db->exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
 $db->exec(file_get_contents(RAIZ . '/db/schema.sql'));
 foreach (glob(RAIZ . '/db/migraciones/*.sql') ?: [] as $m) $db->exec(file_get_contents($m));   // se pueden correr muchas veces
+$pl20 = (new Modulos($db))->planes();   // como quedan con la migración 011 (se revisa en la sección 12)
+// Secciones 1 a 11: precios y Básica como antes de la migración 011 ($25 solo la base, $35 todo; extras a su precio del catálogo).
+// Los planes de $20 y $45 se prueban en la sección 12.
+$db->exec("UPDATE planes SET precio_mensual = 25, modulos_elegir = 0, precio_modulo_extra = NULL WHERE codigo = 'basica'; UPDATE planes SET precio_mensual = 35 WHERE codigo = 'completa'");
 
 $SECRETO = str_repeat('ab12', 16);
 putenv('TUKAN_CENTRAL_ID=tusalon');
@@ -89,7 +93,8 @@ $ids = array_values(array_diff($todos, Modulos::FUERA_DE_PLANES));   // los que 
 check('15 módulos, todos entran en los planes (el Asistente IA viene en Completa = *)', [15, 15, []], [count($todos), count($ids), Modulos::FUERA_DE_PLANES]);
 check('Cada módulo con ícono, nombre, grupo conocido, descripción, precio y descuento', true, array_filter(Modulos::CATALOGO, fn($m) =>
     $m[0] === '' || mb_strlen($m[1]) < 3 || !isset(Modulos::GRUPOS[$m[2]]) || mb_strlen($m[3]) < 20 || ($m[4] <= 0 && $m[1] !== 'Asistente IA') || $m[5] < 0 || $m[5] > $m[4]) === []);
-check('Asistente IA: grupo Extras y precio 0 en el catálogo (en Básica, por cotización)', ['extras', 0.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
+check('Asistente IA: grupo Extras y $5 en el catálogo (en Básica es extra; en Completa, incluido)', ['extras', 5.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
+check('Solo el Asistente IA no cuenta entre los módulos a elegir (TuSalón no tiene sedes; Telegram es un módulo normal)', ['asistente_ia'], Modulos::FUERA_DEL_CUPO);
 check('Las dependencias existen y no se depende de uno mismo', true, array_filter(Modulos::CATALOGO, fn($m) => array_diff($m[6], $ids) !== []) === []
       && !array_filter(array_keys(Modulos::CATALOGO), fn($id) => in_array($id, Modulos::CATALOGO[$id][6], true)));
 check('Ids en minúsculas y _', [], array_values(array_filter($ids, fn($id) => !preg_match('/^[a-z_]+$/', $id))));
@@ -382,6 +387,91 @@ check('«No está en tu plan»: sin precio y con «Pedir cotización»', [false,
       [str_contains($vNo, 'precio_mensual'), str_contains($vNo, 'al mes'), str_contains($vNo, 'Pedir cotización')]);
 check('El registro público es "Solicitar demo" y no crea salones', [true, false], [str_contains((string) file_get_contents(RAIZ . '/app/vistas/registro.php'), 'Solicitar demo'),
       str_contains((string) file_get_contents(RAIZ . '/app/paginas/registro.php'), 'crearSalonConDueno')]);
+
+// ---------------------------------------------------------------------------------------------
+titulo('12. Planes de $20 y $45 (migración 011): Básica con 3 módulos a elegir, Completa con todo');
+check('Con la base recién instalada: Básica $20 (base + 3 a elegir, $5 cada uno más) y Completa $45 con todo', [20.0, [], 3, 5.0, 45.0, 0, null, true],
+      [$pl20['basica']['precio_mensual'], $pl20['basica']['modulos'], (int) $pl20['basica']['modulos_elegir'], (float) $pl20['basica']['precio_modulo_extra'],
+       $pl20['completa']['precio_mensual'], (int) $pl20['completa']['modulos_elegir'], $pl20['completa']['precio_modulo_extra'], in_array('asistente_ia', $pl20['completa']['modulos'], true)]);
+$db->exec("DELETE FROM ajustes WHERE clave = 'planes_20_45'");
+$db->exec("UPDATE planes SET modulos = 'ficha_tecnica' WHERE codigo = 'basica'");   // una Básica que el súper usuario armó con un módulo
+$viejo = $nuevo('Barbería Básica que ya paga', 'basica');
+$demoVieja = $nuevo('Barbería Básica en demo', 'basica', false);
+$db->exec(file_get_contents(RAIZ . '/db/migraciones/011_planes_20_45.sql'));
+$mods->olvidar();
+$pl = $mods->planes();
+check('La migración deja Básica $20 (base + 3 a elegir, $5 cada uno más) y Completa $45', [20.0, '', 3, 5.0, 45.0, 0, 5.0],
+      [(float) $pl['basica']['precio_mensual'], implode(',', $pl['basica']['modulos']), (int) $pl['basica']['modulos_elegir'], (float) $pl['basica']['precio_modulo_extra'],
+       (float) $pl['completa']['precio_mensual'], (int) $pl['completa']['modulos_elegir'], $mods->catalogo()['asistente_ia']['precio_mensual']]);
+$dv = $mods->detalle($mods->salon($viejo));
+check('Quien ya pagaba Básica conserva lo que traía su plan: pasa a ser uno de sus 3 elegidos (paga $20)', [['ficha_tecnica'], ['ficha_tecnica'], 2, 20.0],
+      [$dv['activos'], $dv['elegidos'], $dv['por_elegir'], $dv['mensual']]);
+check('Una demo no recibe extras (sigue con todo encendido)', '', (string) $db->query("SELECT modulos_extra FROM salones WHERE id = $demoVieja")->fetchColumn());
+$db->exec("UPDATE planes SET precio_mensual = 22 WHERE codigo = 'basica'");
+$db->exec(file_get_contents(RAIZ . '/db/migraciones/011_planes_20_45.sql'));
+check('Correrla otra vez no pisa lo que cambió Dimitry ni duplica extras', [22.0, 'ficha_tecnica'],
+      [(float) $db->query("SELECT precio_mensual FROM planes WHERE codigo = 'basica'")->fetchColumn(), (string) $db->query("SELECT modulos_extra FROM salones WHERE id = $viejo")->fetchColumn()]);
+$db->exec("UPDATE planes SET precio_mensual = 20 WHERE codigo = 'basica'");
+$mods->olvidar();
+
+$b = $nuevo('Barbería Veinte', 'basica');
+$precio = function (int $id) use ($mods): array { $mods->olvidar(); $d = $mods->detalle($mods->salon($id)); return [$d['mensual'], count($d['elegidos']), $d['por_elegir']]; };
+$poner = function (int $id, string $extra) use ($db): void { $db->prepare('UPDATE salones SET modulos_extra = ? WHERE id = ?')->execute([$extra, $id]); };
+check('Básica sin módulos: $20 y le quedan 3 por elegir', [20.0, 0, 3], $precio($b));
+$poner($b, 'reservas_linea,ficha_tecnica,puntos');
+check('Con 3 módulos elegidos (sin importar su precio del catálogo): sigue en $20', [20.0, 3, 0], $precio($b));
+$poner($b, 'reservas_linea,ficha_tecnica,puntos,inventario,reportes');
+check('Con 5 módulos: $20 + 2 × $5 = $30', [30.0, 3, 0], $precio($b));
+$poner($b, 'portal_peluquero,asistente_ia');
+check('El Asistente IA cuesta $5 aparte y no gasta uno de los 3', [25.0, 1, 2], $precio($b));
+$poner($b, 'telegram');
+check('Los avisos por Telegram son un módulo normal: gastan uno de los 3', [20.0, 1, 2], $precio($b));
+$poner($b, 'reservas_linea,anticipos');
+check('Un módulo y lo que necesita cuentan los dos (Anticipo trae Reservas en línea)', [20.0, 2, 1], $precio($b));
+$poner($b, 'reservas_linea,ficha_tecnica,puntos,inventario,reportes,telegram,recepcion,gastos_sri');
+check('Con 8 módulos llega a $45, lo mismo que la Completa', [45.0, 3, 0], $precio($b));
+$c = $nuevo('Salón Cuarenta y cinco', 'completa');
+check('Completa: $45 con todo, también el Asistente IA', [45.0, true, 0, 0], [$mods->detalle($mods->salon($c))['mensual'], $mods->activo($c, 'asistente_ia'),
+      $mods->detalle($mods->salon($c))['modulos_elegir'], $mods->detalle($mods->salon($c))['por_elegir']]);
+$poner($b, 'reservas_linea,ficha_tecnica,inventario,puntos,reportes');
+$det = $mods->detalle($mods->salon($b));
+check('Cada extra dice cuánto vale: los 3 primeros del catálogo van incluidos (0) y los demás $5', [0.0, 0.0, 0.0, 5.0, 5.0, 10.0],
+      [$det['precio_por_extra']['reservas_linea'], $det['precio_por_extra']['ficha_tecnica'], $det['precio_por_extra']['inventario'], $det['precio_por_extra']['puntos'],
+       $det['precio_por_extra']['reportes'], array_sum($det['precio_por_extra']) + 0.0]);
+check('Cotizar con los módulos del salón: semestral paga 5 × $30', 150.0, $planes->cotizar('basica', 'semestral', $b)['monto']);
+$r = $pedir('planes')[1];
+$pc = array_column($r['planes'] ?? [], null, 'codigo');
+check('El Panel Tukán Central recibe los módulos a elegir y el precio de cada módulo más (planes)', [3, 5.0, 0, null, ['Personas que atienden' => '3', 'Módulos a elegir' => '3']],
+      [$pc['basica']['modulos_elegir'] ?? null, $pc['basica']['precio_modulo_extra'] ?? null, $pc['completa']['modulos_elegir'] ?? null,
+       array_key_exists('precio_modulo_extra', $pc['completa'] ?? []) ? $pc['completa']['precio_modulo_extra'] : 'x', $pc['basica']['limites'] ?? null]);
+$r = $pedir('modulos')[1];
+$pm = array_column($r['planes'] ?? [], null, 'codigo');
+check('Lectura «modulos»: fuera_del_cupo (para el total en vivo del Central) y los módulos a elegir de cada plan', [['asistente_ia'], 3, 5.0, 0, null],
+      [$r['fuera_del_cupo'] ?? null, $pm['basica']['modulos_elegir'] ?? null, $pm['basica']['precio_modulo_extra'] ?? null, $pm['completa']['modulos_elegir'] ?? null,
+       array_key_exists('precio_modulo_extra', $pm['completa'] ?? []) ? $pm['completa']['precio_modulo_extra'] : 'x']);
+$cm = $pedir('cliente', ['id' => (string) $b])[1]['cliente']['modulos'] ?? [];
+check('cliente.modulos dice cuáles eligió, cuántos le quedan y cuánto vale cada extra', [3, ['reservas_linea', 'ficha_tecnica', 'inventario'], 0, 5.0, 30.0],
+      [$cm['modulos_elegir'] ?? null, $cm['elegidos'] ?? null, $cm['por_elegir'] ?? null, $cm['precio_por_extra']['reportes'] ?? null, $cm['mensual'] ?? null]);
+$r = $ej('guardar_plan', ['plan' => 'basica', 'modulos_elegir' => 4, 'precio_modulo_extra' => 4]);
+$mods->olvidar();
+check('Desde el Panel Central se cambian los módulos a elegir y el precio de cada uno más (5 módulos: $20 + 1 × $4)', [200, 4, 4.0, 24.0],
+      [$r[0], (int) $mods->planes()['basica']['modulos_elegir'], (float) $mods->planes()['basica']['precio_modulo_extra'], $precio($b)[0]]);
+$r = $ej('guardar_plan', ['plan' => 'basica', 'modulos_elegir' => 99]);
+check('El Central no acepta módulos a elegir fuera de 0 a 50', 422, $r[0]);
+$planes->guardarPlan('basica', 'Básica', 20.0, 3, 'La base + 3 módulos a tu elección. Cada módulo más: $5 al mes.', 3, 5.0);
+$mods->olvidar();
+check('Desde Planes y precios también (vuelve a 3 a $5: $30)', [3, 5.0, 30.0], [(int) $mods->planes()['basica']['modulos_elegir'], (float) $mods->planes()['basica']['precio_modulo_extra'], $precio($b)[0]]);
+check('Los módulos a elegir no aceptan números raros', 'Los módulos a elegir deben ser de 0 a 50.', lanza(fn() => $planes->guardarPlan('basica', 'Básica', 20.0, 3, '', 99)));
+check('Sin cambiar los módulos a elegir (null/false) quedan como estaban', [3, 5.0],
+      (function () use ($planes, $mods) { $planes->guardarPlan('basica', 'Básica', 20.0, 3, 'La base + 3 módulos a tu elección. Cada módulo más: $5 al mes.'); $mods->olvidar();
+          return [(int) $mods->planes()['basica']['modulos_elegir'], (float) $mods->planes()['basica']['precio_modulo_extra']]; })());
+$fz = $pedir('finanzas')[1];
+$porMod = array_column($fz['por_modulo'] ?? [], null, 'modulo');
+check('Finanzas por módulo: los elegidos del plan Básica no suman (valen 0) y los demás, $5 cada uno', [0.0, 5.0],
+      [min(array_column($porMod, 'monto')) + 0.0, max(array_map(fn($x) => $x['monto'] / max(1, $x['clientes']), $porMod)) + 0.0]);
+$vPlan = (string) file_get_contents(RAIZ . '/app/vistas/completa.php');
+check('Mi plan dice los módulos a tu elección y «Puedes elegirlo en tu plan» (sin precio)', [true, true, true],
+      [str_contains($vPlan, 'módulos a tu elección'), str_contains($vPlan, "'Puedes elegirlo en tu plan'"), str_contains($vPlan, "'Elegido · incluido en tu plan'")]);
 
 echo "\n==================================================\n";
 echo "Resultado: $ok correctas, " . count($fallos) . " fallidas\n";

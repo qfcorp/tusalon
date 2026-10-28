@@ -8,7 +8,7 @@ Su fuente es [docs/manual/manual.html](manual/manual.html) y las capturas reales
 2. Entrar e inicio (Solicitar demo, Entrar, la pantalla Hoy y el menú)
 3. Quién entra: dueño, administradores (hasta 4, mismo nivel que el dueño), peluquero y recepción
 4. Los 4 tipos de peluquero (dueño, empleado, porcentaje y alquiler de puesto)
-5. Planes y módulos (la base, los 14 módulos, Básica y Completa, con el Asistente IA incluido en Completa y como extra en Básica; los valores son por cotización)
+5. Planes y módulos (la base, los 14 módulos, Básica con 3 módulos que tú eliges y Completa con todos y el Asistente IA; en Básica el Asistente IA es extra; los valores son por cotización)
 6. Configuración (horario, reglas de las citas en línea, anticipo y Telegram)
 7. Servicios y precios del salón
 8. Personal y comisiones (agregar peluqueros, accesos, horarios y cuentas del equipo)

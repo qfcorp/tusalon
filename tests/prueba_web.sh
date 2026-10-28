@@ -171,7 +171,7 @@ contiene "… dice «Tu demo terminó» y que nos contacte" "$TMP/pag.html" "Tu 
 contiene "… «Contáctanos para contratar»" "$TMP/pag.html" "Contáctanos para contratar"
 no_gratis "Demo terminada"
 get "r=completa" > /dev/null
-contiene "Puede ver Mi plan y el precio anual (Básica \$250)" "$TMP/pag.html" '\$250,00'
+contiene "Puede ver Mi plan y el precio anual (Básica: 10 × \$20 = \$200, migración 011)" "$TMP/pag.html" '\$200,00'
 sql "UPDATE salones SET prueba_hasta = '$(date -d '+7 days' +%F)' WHERE id=$SID" > /dev/null
 
 echo "9. Salón Completa: servicios con pago al peluquero"
@@ -475,7 +475,7 @@ CLAVEN=$(grep -o 'class="clave-temporal">[^<]*' "$TMP/pag.html" | sed 's/.*>//')
 check "Muestra la contraseña para el dueño (10 letras)" "10" "${#CLAVEN}"
 contiene "…con botón para enviarla por WhatsApp" "$TMP/pag.html" "wa.me/593998887766"
 r=$(post "r=admin_salon&id=$SIDN" -d accion=pago -d plan=completa -d periodo=anual -d inicio=$(date +%F) -d metodo=transferencia -d dominio=barberiacreada.com)
-check "Registrar pago anual con dominio" "anual|350.00|barberiacreada.com|activo" "$(sql "SELECT su.periodo||'|'||su.monto||'|'||su.dominio||'|'||s.estado FROM suscripciones su JOIN salones s ON s.id=su.salon_id WHERE su.salon_id=$SIDN")"
+check "Registrar pago anual con dominio (Completa: 10 × 45 dólares)" "anual|450.00|barberiacreada.com|activo" "$(sql "SELECT su.periodo||'|'||su.monto||'|'||su.dominio||'|'||s.estado FROM suscripciones su JOIN salones s ON s.id=su.salon_id WHERE su.salon_id=$SIDN")"
 check "Queda pagado por 12 meses" "$(date -d '+12 months -1 day' +%F)" "$(sql "SELECT activo_hasta FROM salones WHERE id=$SIDN")"
 r=$(post "r=admin_salon&id=$SIDN" -d accion=pago -d plan=completa -d periodo=mensual -d inicio=$(date +%F) -d metodo=transferencia -d dominio="no valido")
 check "Un dominio mal escrito no se acepta" "1" "$(sql "SELECT count(*) FROM suscripciones WHERE salon_id=$SIDN")"
@@ -489,7 +489,7 @@ JAR="$TMP/c_pedro"
 get "r=completa" > /dev/null
 contiene "El dueño ve el precio nuevo en Mi plan" "$TMP/pag.html" 'data-total-mensual>\$39,00'
 JAR="$TMP/c_admin"
-post "r=admin_planes" -d accion=plan -d codigo=completa --data-urlencode "nombre=Completa" -d precio_mensual=35 -d max_profesionales= > /dev/null
+post "r=admin_planes" -d accion=plan -d codigo=completa --data-urlencode "nombre=Completa" -d precio_mensual=45 -d max_profesionales= > /dev/null
 r=$(post "r=admin_planes" -d accion=ajustes -d dias_prueba=10 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593996408397)
 check "Los días de demo por defecto pasan a 10" "10" "$(sql "SELECT valor FROM ajustes WHERE clave='dias_prueba'")"
 post "r=admin_planes" -d accion=ajustes -d dias_prueba=7 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593996408397 > /dev/null

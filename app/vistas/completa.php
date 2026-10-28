@@ -8,7 +8,9 @@ $abiertos = [];
 foreach ($pedidos as $p) if (in_array($p['estado'], ['pendiente', 'en_proceso'], true)) foreach (TuSalon\Modulos::limpiar($p['modulos']) as $m) $abiertos[$m] = $p;
 $etiqueta = function (string $id) use ($detalle, $catalogo, $play): string {
     if (in_array($id, $detalle['del_plan'], true) && !in_array($id, $detalle['quitados'], true)) return 'Incluido en tu plan';
-    if (in_array($id, $detalle['extra'], true)) return $play ? 'Extra' : 'Extra · ' . dinero($catalogo[$id]['precio_mensual']) . ' al mes';
+    if (in_array($id, $detalle['elegidos'] ?? [], true)) return 'Elegido · incluido en tu plan';   // planes de $20 y $45 (migración 011)
+    if (in_array($id, $detalle['extra'], true)) return $play ? 'Extra' : 'Extra · ' . dinero($detalle['precio_por_extra'][$id] ?? $catalogo[$id]['precio_mensual']) . ' al mes';
+    if (($detalle['por_elegir'] ?? 0) > 0 && !in_array($id, TuSalon\Modulos::FUERA_DEL_CUPO, true)) return 'Puedes elegirlo en tu plan';
     return $play ? 'Para agregar' : 'Precio por cotización';   // regla del dueño: lo que no tiene no muestra precio
 };
 $activos = array_values(array_filter($catalogo, fn($m) => in_array($m['id'], $detalle['activos'], true)));
@@ -20,6 +22,10 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
         <h1>Mi plan</h1>
         <p>Plan <strong><?= e($plan['nombre']) ?></strong><?= $esDemo ? ' · <strong>Demo</strong> con todos los módulos encendidos para que pruebes' : '' ?>
             <?= $vence ? ' · ' . ($esDemo ? 'hasta el ' : 'pagado hasta el ') . (new DateTimeImmutable($vence))->format('d/m/Y') : '' ?></p>
+        <?php if (!$esDemo && ($detalle['modulos_elegir'] ?? 0) > 0): ?>
+            <p data-por-elegir="<?= (int) $detalle['por_elegir'] ?>">Tu plan trae <strong><?= (int) $detalle['modulos_elegir'] ?> módulos a tu elección</strong><?= $detalle['por_elegir'] > 0
+                ? ': te ' . ($detalle['por_elegir'] === 1 ? 'queda 1 por elegir' : 'quedan ' . (int) $detalle['por_elegir'] . ' por elegir') . ($play ? '. Escríbele a Tukán y te lo enciende.' : '. Pídelo abajo y Tukán lo enciende.') : '.' ?></p>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -28,8 +34,8 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
     <h2><?= $esDemo ? 'Lo que pagarías al contratar' : 'Lo que pagas al mes' ?></h2>
     <ul class="lista">
         <li><span>Plan <?= e($plan['nombre']) ?></span><span class="monto"><?= dinero($detalle['precio_plan']) ?></span></li>
-        <?php foreach ($detalle['extra'] as $id): ?>
-            <li><span><?= e($catalogo[$id]['icono'] . ' ' . $catalogo[$id]['nombre']) ?> <small>(extra)</small></span><span class="monto"><?= dinero($catalogo[$id]['precio_mensual']) ?></span></li>
+        <?php foreach ($detalle['extra'] as $id): $elegido = in_array($id, $detalle['elegidos'] ?? [], true); ?>
+            <li><span><?= e($catalogo[$id]['icono'] . ' ' . $catalogo[$id]['nombre']) ?> <small>(<?= $elegido ? 'elegido, incluido en el plan' : 'extra' ?>)</small></span><span class="monto"><?= $elegido ? 'Incluido' : dinero($detalle['precio_por_extra'][$id] ?? $catalogo[$id]['precio_mensual']) ?></span></li>
         <?php endforeach; ?>
         <?php foreach ($detalle['quitados'] as $id): ?>
             <li><span><?= e($catalogo[$id]['nombre']) ?> <small>(lo quitaste del plan)</small></span><span class="monto monto-neg"><?= dinero(-$catalogo[$id]['descuento']) ?></span></li>
@@ -66,7 +72,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 <section class="bloque">
     <h2><?= $esDemo ? 'Todo lo que tiene tu demo' : 'Tus módulos encendidos' ?></h2>
     <?php if (!$activos): ?>
-        <p class="vacio">Tu plan trae solo la base (abajo). Agrega los módulos que necesites.</p>
+        <p class="vacio"><?= ($detalle['por_elegir'] ?? 0) > 0 ? 'Tu plan trae la base (abajo) y ' . ((int) $detalle['por_elegir'] === 1 ? '1 módulo' : (int) $detalle['por_elegir'] . ' módulos') . ' a tu elección' . ($play ? '.' : ': elígelos abajo.') : 'Tu plan trae solo la base (abajo). Agrega los módulos que necesites.' ?></p>
     <?php else: ?>
     <ul class="modulos">
         <?php foreach ($activos as $m): ?>
@@ -129,7 +135,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
         <?php foreach (['basica', 'completa'] as $pc): if (!isset($planes[$pc])) continue; ?>
         <div class="bloque" style="<?= $pc === 'completa' ? 'border-color:var(--verde);box-shadow:0 0 0 2px var(--verde-claro)' : '' ?>">
             <h3><?= e($planes[$pc]['nombre']) ?></h3>
-            <p class="suave"><?= $planes[$pc]['modulos'] ? count($planes[$pc]['modulos']) . ' módulos incluidos' : 'Solo la base' ?></p>
+            <p class="suave"><?= $planes[$pc]['modulos'] ? count($planes[$pc]['modulos']) . ' módulos incluidos' : ((int) ($planes[$pc]['modulos_elegir'] ?? 0) > 0 ? 'La base + ' . (int) $planes[$pc]['modulos_elegir'] . ' módulos a tu elección' : 'Solo la base') ?></p>
             <div class="opciones">
                 <?php foreach (['mensual' => 'Cada mes', 'semestral' => 'Cada 6 meses', 'anual' => 'Cada año'] as $per => $txt):
                     $prod = TuSalon\GooglePlay::producto($pc, $per); ?>

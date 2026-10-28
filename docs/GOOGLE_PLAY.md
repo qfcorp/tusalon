@@ -33,12 +33,16 @@ Usa **exactamente** estos códigos (el sistema los reconoce por el nombre):
 
 | ID del producto (copiar tal cual) | Plan | Plan base / período | Precio web | Precio sugerido Google |
 |---|---|---|---|---|
-| `tusalon_basica_mensual` | Básica | 1 mes | $25 | **$29,99** |
-| `tusalon_basica_semestral` | Básica | 6 meses | $125 | **$147,99** |
-| `tusalon_basica_anual` | Básica | 1 año | $250 | **$294,99** |
-| `tusalon_completa_mensual` | Completa | 1 mes | $35 | **$41,99** |
-| `tusalon_completa_semestral` | Completa | 6 meses | $175 | **$205,99** |
-| `tusalon_completa_anual` | Completa | 1 año | $350 | **$411,99** |
+| `tusalon_basica_mensual` | Básica | 1 mes | $20 | **$23,99** |
+| `tusalon_basica_semestral` | Básica | 6 meses | $100 | **$117,99** |
+| `tusalon_basica_anual` | Básica | 1 año | $200 | **$235,99** |
+| `tusalon_completa_mensual` | Completa | 1 mes | $45 | **$52,99** |
+| `tusalon_completa_semestral` | Completa | 6 meses | $225 | **$264,99** |
+| `tusalon_completa_anual` | Completa | 1 año | $450 | **$529,99** |
+
+Precios del 28 oct 2026: Básica $20 (la base + 3 módulos a elegir) y Completa $45 (todo, con el Asistente IA).
+En Google Play solo se venden los dos planes: los módulos que el salón elige en la Básica los enciende Tukán desde el panel.
+Si ya habías creado las suscripciones con los precios de antes ($25/$35), cámbiales el precio en Play Console (los códigos no cambian).
 
 - El precio sugerido cubre el **15 %** que Google cobra en las suscripciones: precio web ÷ 0,85, redondeado a ,99.
 - Si cambias los precios web en el Panel Tukán, la tabla con los nuevos precios sugeridos aparece en **Panel Tukán → Planes → Google Play**.
@@ -134,7 +138,8 @@ curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar
 ---
 
 ## Planes de la tienda y módulos (Anexo B)
-- Google Play solo cobra **planes**: `tusalon_basica_*` = la base (agenda, clientes, servicios, equipo, cuentas, cobros y caja, hasta 3 personas) y `tusalon_completa_*` = **todos los módulos**. Qué trae cada plan sale de `planes.modulos` (Panel Tukán → Planes y precios → Catálogo de módulos y planes); si cambias lo que trae un plan, cambia también la descripción de la suscripción en Play Console.
+- Google Play solo cobra **planes**: `tusalon_basica_*` = la base (agenda, clientes, servicios, equipo, cuentas, cobros y caja, hasta 3 personas) **+ 3 módulos que el salón elige** y `tusalon_completa_*` = **todos los módulos, con el Asistente IA**. Qué trae cada plan sale de `planes.modulos` y `planes.modulos_elegir` (Panel Tukán → Planes y precios); si cambias lo que trae un plan, cambia también la descripción de la suscripción en Play Console.
+- Los 3 módulos de la Básica se eligen hablando con Tukán (o con «Pedir cotización» en Mi plan desde la web) y Tukán los enciende desde el panel; dentro de la app no se cobran aparte. Cada módulo más y el Asistente IA en la Básica tampoco se venden en la app: se arreglan con Tukán fuera de ella.
 - Los **módulos sueltos no se venden dentro de la app**: en la app, Mi plan muestra los módulos sin precios y sin «Pedir este módulo» (Google exige cobrar con Google lo que se vende dentro de la app). Si un salón que paga por Google Play quiere un módulo extra, lo arregla con Tukán fuera de la app y Tukán lo enciende desde el panel.
 - Cuando Google confirma o renueva una suscripción, el salón queda con ese plan; sus módulos extra o quitados no cambian (los maneja Tukán).
 - Sin periodo de prueba en las suscripciones (ver arriba). La app abre la misma página «Solicitar demo» para quien todavía no tiene cuenta.

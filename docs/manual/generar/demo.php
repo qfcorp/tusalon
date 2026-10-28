@@ -8,7 +8,7 @@ declare(strict_types=1);
  *   - «Salón Demo Tukán» (plan Completa, pagado): dueña, empleado, porcentaje y alquiler de puesto, recepción, servicios con
  *     sus precios (son del salón, no del software), clientes, un mes de cobros, citas de hoy y de mañana, solicitudes en línea
  *     (una con anticipo por revisar), inventario, paquetes, tarjetas de regalo, puntos, ficha técnica y calificaciones.
- *   - «Barbería Solo Base» (plan Básica, pagado): para Mi plan («Precio por cotización» y «Pedir cotización») y «No está en tu plan».
+ *   - «Barbería Solo Base» (plan Básica, pagado): para Mi plan («3 módulos a tu elección», «Puedes elegirlo en tu plan» y «Pedir cotización») y «No está en tu plan».
  *   - «Peluquería en Demo» (demo con todos los módulos): para «Lo quiero · Pedir cotización».
  *   - El salón de ejemplo tiene además el módulo «Asistente IA» y una pregunta frecuente de la Ayuda escrita a mano
  *     (las capturas se toman sin /etc/tukan-ia.env: la IA queda apagada y la Ayuda responde con esa pregunta).

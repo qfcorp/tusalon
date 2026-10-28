@@ -17,6 +17,12 @@
             </div>
             <div class="campo"><label for="m-<?= e($p['codigo']) ?>">Máximo de personas sin el módulo «Personas ilimitadas» <small>(vacío = 3)</small></label>
                 <input type="number" id="m-<?= e($p['codigo']) ?>" name="max_profesionales" value="<?= e($p['max_profesionales'] ?? '') ?>" min="1"></div>
+            <div class="fila-campos">
+                <div class="campo"><label for="e-<?= e($p['codigo']) ?>">Módulos que elige el salón <small>(incluidos en el precio)</small></label>
+                    <input type="number" id="e-<?= e($p['codigo']) ?>" name="modulos_elegir" value="<?= (int) ($p['modulos_elegir'] ?? 0) ?>" min="0" max="50"></div>
+                <div class="campo"><label for="x-<?= e($p['codigo']) ?>">Cada módulo más ($) <small>(vacío = precio del catálogo)</small></label>
+                    <input type="number" id="x-<?= e($p['codigo']) ?>" name="precio_modulo_extra" value="<?= e($p['precio_modulo_extra'] ?? '') ?>" step="0.01" min="0"></div>
+            </div>
             <div class="campo"><label for="d-<?= e($p['codigo']) ?>">Descripción corta <small>(opcional)</small></label>
                 <input type="text" id="d-<?= e($p['codigo']) ?>" name="descripcion" value="<?= e($p['descripcion'] ?? '') ?>" maxlength="300"></div>
             <table class="tabla">
@@ -34,7 +40,8 @@
 <form method="post" class="bloque" id="catalogo">
     <?= campo_csrf() ?><input type="hidden" name="accion" value="catalogo">
     <h2>Catálogo de módulos y planes</h2>
-    <p class="suave">Precio = lo que se cobra al mes si el salón lo agrega aparte. Descuento = lo que se le rebaja si se lo quitan de su plan. Marca qué trae cada plan.</p>
+    <p class="suave">En el plan Básica el salón elige sus módulos: los primeros van incluidos y cada uno más cuesta lo que diga el plan (arriba). El Asistente IA siempre se cobra con el precio de aquí.
+        Precio = lo que se cobra al mes si el salón lo agrega aparte. Descuento = lo que se le rebaja si se lo quitan de su plan. Marca qué trae cada plan.</p>
     <div class="tabla-desliza">
     <table class="tabla">
         <thead><tr><th>Módulo</th><th class="der">Precio</th><th class="der">Descuento</th><th class="der">Orden</th><?php foreach ($pls as $p): ?><th><?= e($p['nombre']) ?></th><?php endforeach; ?></tr></thead>

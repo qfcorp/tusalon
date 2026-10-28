@@ -67,6 +67,9 @@ $db = Db::conectar();
 $db->exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
 $db->exec(file_get_contents(RAIZ . '/db/schema.sql'));
 foreach (glob(RAIZ . '/db/migraciones/*.sql') ?: [] as $m) $db->exec(file_get_contents($m));   // se pueden correr muchas veces
+// Precios y Básica como antes de la migración 011 ($25 solo la base, $35 todo; extras a su precio del catálogo): las cuentas de
+// abajo usan esos números. Los planes de $20 y $45 se prueban en tests/prueba_modulos.php (sección 12) y tests/prueba_web_modulos.sh.
+$db->exec("UPDATE planes SET precio_mensual = 25, modulos_elegir = 0, precio_modulo_extra = NULL WHERE codigo = 'basica'; UPDATE planes SET precio_mensual = 35 WHERE codigo = 'completa'");
 $alta = function (string $nombre, string $plan = 'completa') use ($db): array {
     $a = (new Altas($db))->crearSalonConDueno($nombre, 'Dimitry Prueba', '0990000000', 'dueno' . bin2hex(random_bytes(3)) . '@prueba.ec', 'claveSegura1', $plan);
     return [$a['salon_id'], $a['usuario_id']];

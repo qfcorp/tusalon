@@ -765,7 +765,11 @@ final class TukanCentralV2
         return ['codigo' => (string) $p['codigo'], 'nombre' => (string) $p['nombre'], 'activo' => true, 'para' => null,
                 'modulos' => $this->modulos->modulosDePlan((string) ($p['modulos'] ?? '')),
                 'descripcion' => $p['descripcion'] ?? null, 'precios' => $precios,
-                'limites' => ['Personas que atienden' => $p['max_profesionales'] === null ? 'Ilimitadas' : (string) $p['max_profesionales']],
+                // Planes de $20 y $45 (migración 011): módulos a elección incluidos y precio de cada módulo más
+                'modulos_elegir' => (int) ($p['modulos_elegir'] ?? 0),
+                'precio_modulo_extra' => isset($p['precio_modulo_extra']) && $p['precio_modulo_extra'] !== null ? round((float) $p['precio_modulo_extra'], 2) : null,
+                'limites' => ['Personas que atienden' => $p['max_profesionales'] === null ? 'Ilimitadas' : (string) $p['max_profesionales']]
+                    + ((int) ($p['modulos_elegir'] ?? 0) > 0 ? ['Módulos a elegir' => (string) (int) $p['modulos_elegir']] : []),
                 'clientes' => $clientes];
     }
 
@@ -777,6 +781,8 @@ final class TukanCentralV2
             ['campo' => 'precio_mensual', 'etiqueta' => 'Precio al mes ($)', 'tipo' => 'dinero', 'requerido' => false, 'min' => 0],
             ['campo' => 'descripcion', 'etiqueta' => 'Descripción', 'tipo' => 'texto', 'requerido' => false, 'max' => 300],
             ['campo' => 'max_profesionales', 'etiqueta' => 'Máximo de personas que atienden (vacío = ilimitadas)', 'tipo' => 'numero', 'requerido' => false, 'min' => 1],
+            ['campo' => 'modulos_elegir', 'etiqueta' => 'Módulos que elige el salón (incluidos en el precio)', 'tipo' => 'numero', 'requerido' => false, 'min' => 0],
+            ['campo' => 'precio_modulo_extra', 'etiqueta' => 'Cada módulo más ($, vacío = precio del catálogo)', 'tipo' => 'dinero', 'requerido' => false, 'min' => 0],
         ];
     }
 
@@ -1081,10 +1087,11 @@ final class TukanCentralV2
             $c = $this->cliente($n);
             if ($c['mensual_estimado'] <= 0) continue;
             $mrr += $c['mensual_estimado'];
+            $precioExtra = $this->detalleModulos($n)['precio_por_extra'] ?? [];   // los elegidos del plan Básica valen 0 (migración 011)
             foreach ($c['modulos']['extra'] as $mid) {
                 $porModulo[$mid] ??= ['modulo' => $mid, 'nombre' => $cat[$mid]['nombre'], 'clientes' => 0, 'monto' => 0.0];
                 $porModulo[$mid]['clientes']++;
-                $porModulo[$mid]['monto'] += $cat[$mid]['precio_mensual'];
+                $porModulo[$mid]['monto'] += $precioExtra[$mid] ?? $cat[$mid]['precio_mensual'];
             }
         }
         $porModulo = array_map(function ($x) { $x['monto'] = round($x['monto'], 2); return $x; }, array_values($porModulo));
@@ -1606,7 +1613,9 @@ final class TukanCentralV2
             if (!array_key_exists($k, $d)) return $p[$k] === null ? null : (int) $p[$k];
             return $d[$k] === null || $d[$k] === '' ? null : $this->entero($d, $k, null, 1, 100000, 'datos.');
         };
-        $this->planes->guardarPlan($codigo, $nombre, $precio, $max('max_profesionales'), $descripcion);
+        $elegir = array_key_exists('modulos_elegir', $d) ? ($d['modulos_elegir'] === null || $d['modulos_elegir'] === '' ? 0 : $this->entero($d, 'modulos_elegir', null, 0, 50, 'datos.')) : null;
+        $precioExtra = array_key_exists('precio_modulo_extra', $d) ? $this->dineroOpc($d, 'precio_modulo_extra', 'datos.') : false;
+        $this->planes->guardarPlan($codigo, $nombre, $precio, $max('max_profesionales'), $descripcion, $elegir, $precioExtra);
         if (isset($d['ajustes'])) {
             if (!is_array($d['ajustes']) || array_is_list($d['ajustes'])) throw TukanCentralError::campo('datos.ajustes', 'Los ajustes no son válidos.');
             $this->planes->guardarAjustes(array_map('strval', array_merge($this->planes->ajustes(), $d['ajustes'])));
@@ -1633,7 +1642,10 @@ final class TukanCentralV2
         return ['del_plan' => $x['del_plan'], 'extra' => $x['extra'], 'quitados' => $x['quitados'], 'activos' => $x['activos'],
                 'precio_plan' => $x['precio_plan'], 'precio_extra' => $x['precio_extra'], 'descuento' => $x['descuento'],
                 'precio_acordado' => $x['precio_acordado'], 'mensual' => $x['mensual'],
-                'demo' => $x['demo'], 'contratados' => $x['contratados']];
+                'demo' => $x['demo'], 'contratados' => $x['contratados'],
+                // Planes de $20 y $45 (migración 011): módulos a elegir incluidos en el plan
+                'modulos_elegir' => $x['modulos_elegir'], 'elegidos' => $x['elegidos'], 'por_elegir' => $x['por_elegir'],
+                'precio_por_extra' => $x['precio_por_extra']];
     }
 
     /** Acción de lectura "modulos": la base, el catálogo (con precios editables) y los módulos de cada plan. */
@@ -1644,7 +1656,9 @@ final class TukanCentralV2
         $planes = [];
         foreach ($this->modulos->planes() as $p) {
             $planes[] = ['codigo' => (string) $p['codigo'], 'nombre' => (string) $p['nombre'], 'precio_mensual' => (float) $p['precio_mensual'],
-                         'modulos' => $p['modulos'], 'max_profesionales' => $p['max_profesionales'] === null ? null : (int) $p['max_profesionales']];
+                         'modulos' => $p['modulos'], 'max_profesionales' => $p['max_profesionales'] === null ? null : (int) $p['max_profesionales'],
+                         'modulos_elegir' => (int) ($p['modulos_elegir'] ?? 0),
+                         'precio_modulo_extra' => isset($p['precio_modulo_extra']) && $p['precio_modulo_extra'] !== null ? (float) $p['precio_modulo_extra'] : null];
         }
         $mods = [];
         foreach ($this->modulos->catalogo() as $m) {
@@ -1654,8 +1668,11 @@ final class TukanCentralV2
         }
         return ['base' => Modulos::BASE, 'grupos' => $grupos, 'modulos' => $mods, 'planes' => $planes, 'editable' => true,
                 'personas_sin_modulo' => Modulos::PERSONAS_SIN_MODULO,
+                // Planes de $20 y $45 (migración 011): módulos que no cuentan entre los elegidos y se cobran a su precio del catálogo
+                'fuera_del_cupo' => Modulos::FUERA_DEL_CUPO,
                 'reglas' => 'Activos = (módulos del plan − quitados) + extra, con sus dependencias. Demo: todos (o los elegidos al crearla). '
-                          . 'Mensual = precio del plan + Σ precio de extra − Σ descuento de quitados, o el precio acordado. Apagar no borra datos.'];
+                          . 'Mensual = precio del plan + Σ precio de extra − Σ descuento de quitados, o el precio acordado. '
+                          . 'Los primeros modulos_elegir extra del plan van incluidos y los demás cuestan precio_modulo_extra (el Asistente IA, siempre su precio). Apagar no borra datos.'];
     }
 
     private static function campoModulosDemo(): array

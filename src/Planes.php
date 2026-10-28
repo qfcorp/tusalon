@@ -9,7 +9,8 @@ use RuntimeException;
 
 /**
  * Planes, demos y suscripciones de TuSalón.
- *  - Cada plan = precio + módulos (src/Modulos.php). Básica $25 (solo la base) / Completa $35 (todos los módulos)
+ *  - Cada plan = precio + módulos (src/Modulos.php). Básica $20 (la base + 3 módulos a elegir; cada uno más $5) / Completa $45
+ *    (todos, con el Asistente IA); el Asistente IA en Básica $5 (migración 011); se editan desde el panel
  *  - Cada salón paga su plan + sus módulos extra − el descuento de los que quitó (o un precio acordado)
  *  - Semestral: paga 5, recibe 6
  *  - Anual: paga 10, recibe 12 + dominio propio (a nombre de Tukán)
@@ -98,14 +99,28 @@ final class Planes
         return $this->db->query('SELECT * FROM planes ORDER BY precio_mensual')->fetchAll();
     }
 
-    public function guardarPlan(string $codigo, string $nombre, float $precio, ?int $maxProfesionales, string $descripcion = ''): void
+    /**
+     * Guarda un plan. $modulosElegir: módulos extra incluidos en el precio (null = no cambiar);
+     * $precioModuloExtra: lo que cuesta cada módulo extra después de esos (false = no cambiar, null = el precio del catálogo).
+     */
+    public function guardarPlan(string $codigo, string $nombre, float $precio, ?int $maxProfesionales, string $descripcion = '',
+                                ?int $modulosElegir = null, float|null|false $precioModuloExtra = false): void
     {
         if (mb_strlen(trim($nombre)) < 2) throw new RuntimeException('Escribe el nombre del plan.');
         if ($precio < 0 || $precio > 10000) throw new RuntimeException('Precio no válido.');
         if ($maxProfesionales !== null && $maxProfesionales < 1) throw new RuntimeException('El máximo de personas debe ser 1 o más (vacío = sin límite).');
+        if ($modulosElegir !== null && ($modulosElegir < 0 || $modulosElegir > 50)) throw new RuntimeException('Los módulos a elegir deben ser de 0 a 50.');
+        if ($precioModuloExtra !== false && $precioModuloExtra !== null && ($precioModuloExtra < 0 || $precioModuloExtra > 10000)) {
+            throw new RuntimeException('El precio de cada módulo extra no es válido.');
+        }
         $st = $this->db->prepare('UPDATE planes SET nombre = ?, precio_mensual = ?, max_profesionales = ?, descripcion = ? WHERE codigo = ?');
         $st->execute([trim($nombre), round($precio, 2), $maxProfesionales, trim($descripcion) ?: null, $codigo]);
         if ($st->rowCount() !== 1) throw new RuntimeException('Plan no encontrado.');
+        if ($modulosElegir !== null) $this->db->prepare('UPDATE planes SET modulos_elegir = ? WHERE codigo = ?')->execute([$modulosElegir, $codigo]);
+        if ($precioModuloExtra !== false) {
+            $this->db->prepare('UPDATE planes SET precio_modulo_extra = ? WHERE codigo = ?')
+                     ->execute([$precioModuloExtra === null ? null : round($precioModuloExtra, 2), $codigo]);
+        }
     }
 
     /**

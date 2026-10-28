@@ -6,6 +6,7 @@
 #   - Mi plan: módulos encendidos, los que puede agregar SIN su precio («Precio por cotización») y "Pedir cotización"
 #   - Panel Tukán: interruptores por salón (con precio acordado), aprobar el pedido y el catálogo de módulos y planes
 #   - pedidos de demo en el panel de Tukán → crear la demo con los módulos elegidos
+#   - planes de $20 y $45 (migración 011): Básica con 3 módulos a elegir ($5 cada uno más, Asistente IA aparte) y Completa con todo
 # Uso suelto: BASE=http://127.0.0.1:8099 DB=tusalon_web_prueba bash tests/prueba_web_modulos.sh
 set -u
 cd "$(dirname "$0")/.."
@@ -31,6 +32,9 @@ entrar() { JAR="$TMP/c_$RANDOM$RANDOM"; post "r=login" --data-urlencode "email=$
 # Los salones que se usan en las capturas (tests/capturas_modulos.js) quedan en $TMP/capturas.env
 CAPT=${CAPTURAS_ENV:-$TMP/capturas.env}
 
+# Secciones 1 a 7: la Básica como antes de la migración 011 ($25, solo la base, extras a su precio del catálogo).
+# Los planes de $20 y $45 se prueban en la sección 8.
+sql "UPDATE planes SET precio_mensual = 25, modulos_elegir = 0, precio_modulo_extra = NULL WHERE codigo = 'basica'; UPDATE planes SET precio_mensual = 35 WHERE codigo = 'completa'" > /dev/null
 echo "1. Salón Básica pagado (solo la base): cada página de un módulo dice «No está en tu plan»"
 EB="basica$RANDOM@prueba.ec"
 SB=$(demo "Barbería Solo Base" "$EB" basica "" pagado)
@@ -186,6 +190,50 @@ PD2=$(sql "SELECT id FROM pedidos_demo WHERE email='$EP2'")
 JAR="$TMP/c_admin"
 post "r=admin" -d pedido=$PD2 -d estado=descartada > /dev/null
 check "Descartar un pedido de demo" "descartada" "$(sql "SELECT estado FROM pedidos_demo WHERE id=$PD2")"
+
+echo "8. Planes de \$20 y \$45 (migración 011): Básica con 3 módulos a elegir, Completa con todo"
+sql "UPDATE planes SET precio_mensual = 20, modulos = '', modulos_elegir = 3, precio_modulo_extra = 5 WHERE codigo = 'basica'; UPDATE planes SET precio_mensual = 45, modulos = '*' WHERE codigo = 'completa'" > /dev/null
+E20="veinte$RANDOM@prueba.ec"
+S20=$(demo "Barbería Veinte" "$E20" basica "" pagado)
+sql "UPDATE salones SET modulos_extra = 'reservas_linea,ficha_tecnica,inventario,puntos,asistente_ia' WHERE id = $S20" > /dev/null
+entrar "$E20" claveSegura1
+JAR_20=$JAR
+get "r=completa" > /dev/null
+contiene "Mi plan dice cuántos módulos trae a elección" "$TMP/pag.html" "3 módulos a tu elección"
+contiene "… los 3 elegidos dicen «Incluido»" "$TMP/pag.html" "elegido, incluido en el plan"
+contiene "… el cuarto módulo cuesta \$5" "$TMP/pag.html" "Extra · \$5,00 al mes"
+contiene "… total: \$20 + \$5 (cuarto módulo) + \$5 (Asistente IA) = \$30" "$TMP/pag.html" 'data-total-mensual>\$30,00'
+contiene "… y el semestral: 5 × \$30" "$TMP/pag.html" '\$150,00'
+sql "UPDATE salones SET modulos_extra = 'reservas_linea' WHERE id = $S20" > /dev/null
+get "r=completa" > /dev/null
+contiene "Con 1 elegido: le quedan 2 por elegir" "$TMP/pag.html" 'data-por-elegir="2"'
+contiene "… y los demás dicen «Puedes elegirlo en tu plan»" "$TMP/pag.html" "Puedes elegirlo en tu plan"
+no_contiene "… sin el precio de lo que no tiene" "$TMP/pag.html" '+\$'
+contiene "… el total sigue en \$20" "$TMP/pag.html" 'data-total-mensual>\$20,00'
+sql "UPDATE salones SET modulos_extra = '' WHERE id = $S20" > /dev/null
+get "r=completa" > /dev/null
+contiene "Sin módulos todavía: «la base y 3 módulos a tu elección: elígelos abajo»" "$TMP/pag.html" "3 módulos a tu elección: elígelos abajo"
+r=$(post "r=completa" -d accion=pedir -d modulo=telegram)
+check "Pedir uno de los que puede elegir (Telegram) guarda el pedido" "pendiente" "$(sql "SELECT estado FROM pedidos_modulos WHERE salon_id=$S20 AND modulos='telegram'")"
+E45="cuarenta$RANDOM@prueba.ec"
+S45=$(demo "Salón Cuarenta y cinco" "$E45" completa "" pagado)
+entrar "$E45" claveSegura1
+get "r=completa" > /dev/null
+contiene "Completa: paga \$45 con todo" "$TMP/pag.html" 'data-total-mensual>\$45,00'
+contiene "… con el Asistente IA incluido" "$TMP/pag.html" 'data-modulo="asistente_ia"'
+no_contiene "… y sin módulos a elegir" "$TMP/pag.html" "a tu elección"
+JAR="$TMP/c_admin"
+get "r=admin_planes" > /dev/null
+contiene "Planes y precios: campo «Módulos que elige el salón»" "$TMP/pag.html" 'name="modulos_elegir"'
+contiene "… y «Cada módulo más»" "$TMP/pag.html" 'name="precio_modulo_extra"'
+contiene "… Google Play sugiere \$23,99 para la Básica de \$20" "$TMP/pag.html" '\$23,99'
+contiene "… y \$52,99 para la Completa de \$45" "$TMP/pag.html" '\$52,99'
+r=$(post "r=admin_planes" -d accion=plan -d codigo=basica --data-urlencode "nombre=Básica" -d precio_mensual=20 -d max_profesionales=3 -d modulos_elegir=4 -d precio_modulo_extra=4)
+check "Guardar 4 módulos a elegir a \$4 cada uno más" "4|4.00" "$(sql "SELECT modulos_elegir||'|'||precio_modulo_extra FROM planes WHERE codigo='basica'")"
+r=$(post "r=admin_planes" -d accion=plan -d codigo=basica --data-urlencode "nombre=Básica" -d precio_mensual=20 -d max_profesionales=3 -d modulos_elegir=3 -d precio_modulo_extra=)
+check "Vacío = el precio del catálogo" "3|" "$(sql "SELECT modulos_elegir||'|'||coalesce(precio_modulo_extra::text,'') FROM planes WHERE codigo='basica'")"
+post "r=admin_planes" -d accion=plan -d codigo=basica --data-urlencode "nombre=Básica" -d precio_mensual=20 -d max_profesionales=3 -d modulos_elegir=3 -d precio_modulo_extra=5 > /dev/null
+check "Queda en 3 a elegir y \$5 cada uno más" "3|5.00" "$(sql "SELECT modulos_elegir||'|'||precio_modulo_extra FROM planes WHERE codigo='basica'")"
 
 # Para las capturas de pantalla
 {
