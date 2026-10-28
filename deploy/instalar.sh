@@ -156,6 +156,12 @@ echo "7) Super usuarios del panel: $(PGPASSWORD="$CLAVE" psql -h 127.0.0.1 -U tu
 grep -q '^TUKAN_CENTRAL_SECRET=' "$APP/config/.env" 2>/dev/null && echo "8) Panel Tukan Central: conectado" || echo "8) Panel Tukan Central: sin conectar"
 sudo -u www-data test -r /etc/tukan-ia.env && echo "9) IA de Tukan: /etc/tukan-ia.env se puede leer" || echo "9) IA de Tukan: sin configurar (la Ayuda funciona con las preguntas frecuentes y el manual; en el Panel: bash deploy/configurar_ia.sh)"
 sudo -u www-data test -r /etc/tukan-correo.env && echo "10) Correo de Tukan: /etc/tukan-correo.env se puede leer" || echo "10) Correo de Tukan: sin configurar (en el Panel: bash deploy/configurar_correo.sh)"
+if [ "$GP" = si ] && command -v nginx > /dev/null; then
+  curl -s -o /dev/null -w "11) App de Google Play: ACTIVADA - assetlinks.json: %{http_code} (debe ser 200)\n" -H "Host: $DOMINIO" "http://127.0.0.1/.well-known/assetlinks.json"
+else
+  echo "11) App de Google Play: $([ "$GP" = si ] && echo ACTIVADA || echo apagada)"
+fi
 echo "================================="
 echo "Para crear o cambiar tu super usuario:  php $APP/bin/crear_admin.php"
 echo "Conectar con el Panel Tukan Central:  sudo bash $APP/deploy/conectar_central.sh ID SECRETO URL"
+echo "Cuenta para el revisor de Google Play:  sudo -u www-data php $APP/deploy/demo_google.php crear"

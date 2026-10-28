@@ -54,8 +54,8 @@ $cuenta = fn(string $sql) => (int) $db->query($sql)->fetchColumn();
 // Servidores de mentira (puertos libres al azar) y su configuración
 $tmp = sys_get_temp_dir() . '/tusalon_ia_' . bin2hex(random_bytes(4));
 mkdir($tmp, 0700, true);
-$pIa = puerto_libre();
-$pSmtp = puerto_libre();
+$pIa = (int) (getenv('PUERTO_IA') ?: puerto_libre());      // fijos con PUERTO_IA / PUERTO_SMTP si otros procesos comparten la máquina
+$pSmtp = (int) (getenv('PUERTO_SMTP') ?: puerto_libre());
 $logApi = "$tmp/api.jsonl";
 ini_set('error_log', "$tmp/php.log");
 $procIa = proc_open(['python3', RAIZ . '/tests/falsos/anthropic_falso.py', (string) $pIa, $logApi], [1 => ['file', '/dev/null', 'w'], 2 => ['file', "$tmp/ia.err", 'w']], $t1);

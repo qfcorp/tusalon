@@ -255,7 +255,7 @@ unset C95_IP
 limpiar_limite
 
 echo "6. Sitio sin configurar (TUKAN_CENTRAL_ID/SECRET vacíos; TUKAN_SOLO_CENTRAL=1 no apaga nada sin conector)"
-P_SIN=$(c95_puerto)
+P_SIN=${PUERTO_SIN:-$(c95_puerto)}
 c95_servidor "$P_SIN" "$TMP/servidor_sin_central.log" TUKAN_SOLO_CENTRAL=1
 B_SIN="http://127.0.0.1:$P_SIN"
 c95_esperar "$B_SIN"
@@ -273,7 +273,7 @@ contiene "Entró el dueño" "$TMP/pag.html" "Dimitry"
 BASE=$SALVO_BASE
 
 echo "7. Solo desde el panel central (TUKAN_SOLO_CENTRAL=1)"
-P_SOLO=$(c95_puerto)
+P_SOLO=${PUERTO_SOLO:-$(c95_puerto)}
 c95_servidor "$P_SOLO" "$TMP/servidor_solo_central.log" TUKAN_CENTRAL_ID="$C95_ID" TUKAN_CENTRAL_SECRET="$TUKAN_CENTRAL_SECRET" TUKAN_CENTRAL_URL="$C95_URL" TUKAN_SOLO_CENTRAL=1
 B_SOLO="http://127.0.0.1:$P_SOLO"
 c95_esperar "$B_SOLO"
@@ -313,7 +313,7 @@ else
   cp -r app src public db deploy tests "$APPC/"
   printf 'TUSALON_DB_HOST=127.0.0.1\nTUSALON_DB_NAME=%s\nTUSALON_DB_USER=tusalon\nTUSALON_DB_PASS=%s\nTELEGRAM_BOT_TOKEN=123:abc\nTUKAN_SOLO_CENTRAL=0' "$DB" "$PGPASSWORD" > "$APPC/config/.env"
   chmod 640 "$APPC/config/.env"
-  P_CON=$(c95_puerto)
+  P_CON=${PUERTO_CON:-$(c95_puerto)}
   env -u TUKAN_CENTRAL_ID -u TUKAN_CENTRAL_SECRET -u TUKAN_CENTRAL_URL -u TUKAN_SOLO_CENTRAL -u TUSALON_URL \
       php -S "127.0.0.1:$P_CON" -t "$APPC/public" "$APPC/tests/router.php" > "$TMP/servidor_conectar.log" 2>&1 &
   C95_PIDS="$C95_PIDS $!"

@@ -1,6 +1,6 @@
 <article class="bloque legal">
 <h1>Política de privacidad de TuSalón</h1>
-<p><small>Última actualización: 12 de octubre de 2026</small></p>
+<p><small>Última actualización: 28 de octubre de 2026</small></p>
 
 <p>TuSalón es un sistema de agenda, caja y clientes para peluquerías y barberías, hecho por <b>Tukán Software</b> (QF Producciones, Ecuador). Esta política explica qué datos guarda TuSalón, para qué y cómo puedes pedir que se borren. Se aplica a la página <b>tusalon.tukanec.com</b> y a la app de Android.</p>
 
@@ -29,7 +29,7 @@
 
 <h2>Con quién se comparten</h2>
 <ul>
-<li>Solo con los servicios necesarios para que funcione: el servidor y la red de Cloudflare, Payphone (pagos con tarjeta), Google Play (pago del plan en la app) y Telegram (avisos, solo si se activa).</li>
+<li>Solo con los servicios necesarios para que funcione: el servidor y la red de Cloudflare, Payphone (pagos con tarjeta), Google Play (pago del plan en la app), Telegram (avisos, solo si se activa) y Anthropic (la inteligencia artificial de la Ayuda y del Asistente IA: recibe solo lo necesario para responder: la pregunta, o el mensaje del cliente con los servicios y las horas libres; no lo usa para entrenar sus modelos).</li>
 <li>Con autoridades, solo si la ley lo exige.</li>
 </ul>
 

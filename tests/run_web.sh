@@ -5,10 +5,12 @@
 #   tests/prueba_web_central.sh y tests/prueba_web_central_v2.sh (conector con el
 #   Panel Tukán Central, protocolos v1 y v2), tests/prueba_web_papelera.sh (Anexo A: pausar y papelera) y
 #   tests/prueba_web_modulos.sh (Anexo B: módulos y "todo se pide demo") y tests/prueba_web_ia.sh (IA de Tukán y correo de la demo, con la
-#   API de Anthropic y el SMTP de mentira de tests/falsos/). Con CAPTURAS=<carpeta> también saca las capturas.
+#   API de Anthropic y el SMTP de mentira de tests/falsos/), tests/prueba_web_google_play.sh (cuenta del revisor de Google, modo app
+#   sin pagos por fuera y assetlinks). Con CAPTURAS=<carpeta> también saca las capturas.
 # Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
-# Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM y PUERTO_APAGADA (si no, puertos libres al azar).
+# Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM, PUERTO_APAGADA, PUERTO_IA, PUERTO_SMTP y
+# (prueba_web_central.sh) PUERTO_SIN, PUERTO_SOLO y PUERTO_CON (si no, puertos libres al azar; fíjalos si otros procesos comparten la máquina).
 set -u
 export PGTZ=${PGTZ:-America/Guayaquil}   # la misma zona que la app
 cd "$(dirname "$0")/.."
@@ -46,7 +48,7 @@ SITIO="TUSALON_DB_NAME=$DB TUSALON_DB_USER=tusalon TUSALON_DB_PASS=$PGPASSWORD T
        TWA_SHA256=39:0C:08:10:D4:40:C1:71:C4:30:C8:D0:F1:93:7B:8F:E4:37:03:25:27:2E:B2:F6:2E:4E:A6:5E:01:98:40:DC"
 # IA de Tukán y correo: API de Anthropic y SMTP DE MENTIRA (tests/falsos/, de tukan-central/tests) solo para el sitio principal.
 # El sitio con Google Play apagado queda sin /etc/tukan-ia.env ni /etc/tukan-correo.env (IA apagada, «Configure el correo de Tukán»).
-P_IA=$(puerto_libre); P_SMTP=$(puerto_libre)
+P_IA=${PUERTO_IA:-$(puerto_libre)}; P_SMTP=${PUERTO_SMTP:-$(puerto_libre)}   # fijos si otros procesos comparten la máquina
 export IA_LOG="$TMPW/ia_api.jsonl" SMTP_DIR="$TMPW/correo"
 python3 tests/falsos/anthropic_falso.py "$P_IA" "$IA_LOG" > /dev/null 2> "$TMPW/ia_falso.err" &
 PIDS="$PIDS $!"
@@ -76,6 +78,8 @@ if [ "${1:-}" != "central" ]; then
   bash tests/prueba_web_administradores.sh || FALLO=1
   echo; echo "==================== prueba_web_ia (Ayuda, Asistente IA, preguntas frecuentes y correo de la demo) ===================="
   bash tests/prueba_web_ia.sh || FALLO=1
+  echo; echo "==================== prueba_web_google_play (cuenta del revisor, modo app sin pagos por fuera, assetlinks) ===================="
+  bash tests/prueba_web_google_play.sh || FALLO=1
 fi
 echo; echo "==================== prueba_web_central ===================="
 bash tests/prueba_web_central.sh || FALLO=1

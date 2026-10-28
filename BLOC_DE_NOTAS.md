@@ -10,6 +10,7 @@ Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 
 - **Alquiler de puesto:** cobra con su propio QR; el dueño le carga el arriendo con un botón; sus clientes privados son solo suyos (módulo «Clientes privados de quien alquila»)
 
 ## Decisiones tomadas
+- [x] **Lista para Google Play (28 oct 2026, encargo «todos listos para subir»):** cuenta del revisor `revisor.google@tukanec.com` en un salón de ejemplo aparte (`sudo -u www-data php /var/www/tusalon/deploy/demo_google.php crear|borrar`, contraseña al azar que sale una vez); modo app revisado (sin precios del software ni pagos por fuera); assetlinks con `com.tukansoftware.tusalon`; privacidad con Anthropic (IA); instalador con «11) App de Google Play»; capturas de la ficha con `tests/capturas_tienda.sh`. Pruebas nuevas: `tests/prueba_google_play.php` y `tests/prueba_web_google_play.sh`. Ficha, `play.json` y guía en qfcorp/tukan-apps `tienda/tusalon/`. Sigue APAGADO en el servidor hasta publicar (`GOOGLE_PLAY=si bash /var/www/tusalon/deploy/instalar.sh`).
 - [x] Nombre: TuSalón (sigue el esquema TuPass, TuVocalía)
 - [x] Se arranca con los 4 tipos de peluquero desde el inicio
 - [x] Tomar lo mejor de cada programa (tabla en el informe, sección "Nuestra propuesta")

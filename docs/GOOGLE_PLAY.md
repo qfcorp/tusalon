@@ -21,6 +21,14 @@ Activar la app de Google Play esta vez? escribe si o no [no]:
 - **no** (o Enter, o no contestas en 2 minutos): queda apagada. TuSalón funciona igual que siempre.
 - **si**: se enciende (aparece `/.well-known/assetlinks.json` y el pago con Google dentro de la app). Una vez encendida, el instalador la mantiene encendida si solo das Enter.
 
+Sin que pregunte (por ejemplo el día de publicar), copia y pega en el servidor:
+
+```bash
+GOOGLE_PLAY=si bash /var/www/tusalon/deploy/instalar.sh
+```
+
+Al final debe decir `11) App de Google Play: ACTIVADA - assetlinks.json: 200 (debe ser 200)`.
+
 Para ver cómo está: **Panel Tukán → Planes → Google Play** ("activada" o "apagada").
 
 ---
@@ -144,3 +152,34 @@ curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar
 - Cuando Google confirma o renueva una suscripción, el salón queda con ese plan; sus módulos extra o quitados no cambian (los maneja Tukán).
 - Sin periodo de prueba en las suscripciones (ver arriba). La app abre la misma página «Solicitar demo» para quien todavía no tiene cuenta.
 
+---
+
+## 7. Cuenta para el revisor de Google (28 oct 2026)
+
+Google entra a la app para revisarla. Se le da una cuenta en un **salón de ejemplo aparte** («Salón de Ejemplo Tukán», plan Completoa,
+datos inventados, sin pagos de suscripción). No toca ningún salón real.
+
+En el servidor, copia y pega (la contraseña sale **una sola vez**: cópiala en Play Console → Contenido de la app → Acceso a la app):
+
+```bash
+sudo -u www-data php /var/www/tusalon/deploy/demo_google.php crear
+```
+
+- Usuario: `revisor.google@tukanec.com` · Contraseña: `Revisor-` y 6 números (al azar; no se guarda en ningún lado).
+- Si se pierde la contraseña, se corre otra vez la misma línea: borra el salón de ejemplo anterior, lo vuelve a crear con las fechas de hoy y da una contraseña nueva.
+- Cuando Google apruebe (o si ya no se quiere la cuenta): `sudo -u www-data php /var/www/tusalon/deploy/demo_google.php borrar`
+- Va con `sudo -u www-data` porque así puede leer `config/.env` y la carpeta de la papelera (el borrado es el mismo de la papelera, sin esperar los 30 días).
+- Código: `deploy/demo_google.php` y `src/DemoGoogle.php`. Pruebas: `tests/prueba_google_play.php` y `tests/prueba_web_google_play.sh`.
+
+## 8. Lo que revisan las pruebas para Google Play
+- **Modo app** (`?app=play`, cookie `canal=play`): sin precios del software, sin WhatsApp de ventas, sin «Pedir cotización», «Contratar» ni
+  «Total al mes»; en Mi plan solo el pago con Google Play con los 6 códigos. El WhatsApp de soporte de la Ayuda y los WhatsApp del negocio
+  a sus clientes sí se ven (no son pagos del software).
+- **assetlinks.json** con el paquete `com.tukansoftware.tusalon` y la huella de la llave de subida (y la de Google cuando se agrega); 404 con Google Play apagado.
+- **Privacidad** pública (`/?r=privacidad`) con cómo borrar la cuenta («Borrar mi cuenta de TuSalón») y los servicios que procesan datos (también Anthropic para la IA).
+- **Planes de $20 y $45** → precios de Google $23,99 / $117,99 / $235,99 y $52,99 / $264,99 / $529,99.
+
+## 9. Ficha y guía para publicar
+Están en el repositorio **qfcorp/tukan-apps**: `tienda/tusalon/TEXTOS_GOOGLE_PLAY.md`, `tienda/tusalon/play.json`, imágenes en `tienda/tusalon/` y la guía
+`tienda/tusalon/PUBLICAR_TUSALON_CON_CLAUDE.md`. Las capturas de la ficha se sacan con `CAPTURAS=<carpeta> PGPASSWORD=prueba bash tests/capturas_tienda.sh`
+(el salón de ejemplo del manual, en un TuSalón local; nunca del servidor real).
