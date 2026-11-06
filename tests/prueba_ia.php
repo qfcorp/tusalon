@@ -89,7 +89,7 @@ check('La migración 009 se puede correr varias veces (tablas y columna)', [1, 1
     $cuenta("SELECT count(*) FROM information_schema.columns WHERE table_name = 'salones' AND column_name = 'ia_tope_usd'")]);
 $mods = new Modulos($db);
 $cat = $mods->catalogo();
-check('Catálogo: asistente_ia «Asistente IA», grupo Extras, $5 en Básica (migración 011)', ['Asistente IA', 'extras', 5.0], [$cat['asistente_ia']['nombre'], $cat['asistente_ia']['grupo'], $cat['asistente_ia']['precio_mensual']]);
+check('Catálogo: asistente_ia «Asistente IA», grupo Extras, $3 en Básica (migración 012)', ['Asistente IA', 'extras', 3.0], [$cat['asistente_ia']['nombre'], $cat['asistente_ia']['grupo'], $cat['asistente_ia']['precio_mensual']]);
 check('Viene INCLUIDO en Completa (el plan más caro) y NO en Básica (ahí es extra)', [true, false], [in_array('asistente_ia', $mods->planes()['completa']['modulos'], true), in_array('asistente_ia', $mods->planes()['basica']['modulos'], true)]);
 check('Completa es el plan más caro', 'completa', $db->query('SELECT codigo FROM planes ORDER BY precio_mensual DESC LIMIT 1')->fetchColumn());
 // Migración 010: si Completa se guardó como lista (no '*'), le agrega asistente_ia una sola vez; no toca Básica
@@ -112,12 +112,12 @@ $db->exec("UPDATE salones SET modulos_extra = 'asistente_ia' WHERE id = $SM");
 $SC = $alta('Salón Completa')['salon_id'];            // pagado, plan Completa (trae el Asistente IA)
 $db->exec("UPDATE salones SET plan_codigo = 'completa', estado = 'activo', activo_hasta = CURRENT_DATE + 30 WHERE id = $SC");
 $mods->olvidar();
-check('Sin el módulo: tope sugerido $0,50 · con el módulo comprado aparte (Básica) $4,00', [0.5, 4.0, false, true], [Ia::tope($db, $SB), Ia::tope($db, $SM), Ia::conModulo($db, $SB), Ia::conModulo($db, $SM)]);
-check('Plan Completa: trae el Asistente IA sin comprarlo aparte y su tope es $4,00', [true, 4.0, [], true],
+check('Sin el módulo: tope sugerido $0,50 · con el módulo comprado aparte (Básica) $1,50', [0.5, 1.5, false, true], [Ia::tope($db, $SB), Ia::tope($db, $SM), Ia::conModulo($db, $SB), Ia::conModulo($db, $SM)]);
+check('Plan Completa: trae el Asistente IA sin comprarlo aparte y su tope es $1,50', [true, 1.5, [], true],
       [Ia::conModulo($db, $SC), Ia::tope($db, $SC), $mods->detalle($mods->salon($SC))['extra'], in_array('asistente_ia', $mods->detalle($mods->salon($SC))['del_plan'], true)]);
 check('Básica con el Asistente IA: va como extra (no del plan)', [['asistente_ia'], false],
       [$mods->detalle($mods->salon($SM))['extra'], in_array('asistente_ia', $mods->detalle($mods->salon($SM))['del_plan'], true)]);
-check('Ia::TOPE_CON_MODULO = 4,00 y TOPE_SIN_MODULO = 0,50', [4.0, 0.5], [Ia::TOPE_CON_MODULO, Ia::TOPE_SIN_MODULO]);
+check('Ia::TOPE_CON_MODULO = 1,50 (uso limitado) y TOPE_SIN_MODULO = 0,50', [1.5, 0.5], [Ia::TOPE_CON_MODULO, Ia::TOPE_SIN_MODULO]);
 $db->exec("UPDATE salones SET estado = 'cancelado' WHERE id = $SC");   // fuera del resto de esta prueba
 Ia::guardarTope($db, $SB, 1.25);
 check('Tope propio (lo pone Tukán) gana; null vuelve al sugerido', [1.25, 0.5], [Ia::tope($db, $SB), (Ia::guardarTope($db, $SB, null) ?? Ia::tope($db, $SB))]);
@@ -131,7 +131,7 @@ check('Demo con tope propio de Tukán: manda el propio', 2.5, Ia::tope($db, $SD)
 Ia::guardarTope($db, $SD, null);
 (new \TuSalon\Planes($db))->suscribir($SD, 'completa', 'mensual', new DateTimeImmutable('today'), 'transferencia');
 $mods->olvidar();
-check('La demo pasa a cliente pagado con el módulo: vuelve sola a $4,00', [false, 4.0], [Ia::esDemo($db, $SD), Ia::tope($db, $SD)]);
+check('La demo pasa a cliente pagado con el módulo: vuelve sola a $1,50', [false, 1.5], [Ia::esDemo($db, $SD), Ia::tope($db, $SD)]);
 $db->exec("UPDATE salones SET estado = 'cancelado' WHERE id = $SD");   // fuera del resto de esta prueba
 
 // ---------------------------------------------------------------------------------------------
@@ -303,7 +303,7 @@ $db->exec("UPDATE tukan_ia_gasto SET costo_usd = 0.9 WHERE negocio_id = '$SM'");
 $r = $pedir('ia_uso', ['mes' => date('Y-m')]);
 $j = $r[1];
 check('ia_uso con dos salones: el que más gastó primero', [200, 'ia_uso', [(string) $SM, (string) $SB]], [$r[0], $j['accion'], array_column($j['negocios'], 'cliente_id')]);
-check('… con nombre, tope y si tiene el módulo', [4.0, true, 0.5, false], [$j['negocios'][0]['tope'], $j['negocios'][0]['modulo'], $j['negocios'][1]['tope'], $j['negocios'][1]['modulo']]);
+check('… con nombre, tope y si tiene el módulo', [1.5, true, 0.5, false], [$j['negocios'][0]['tope'], $j['negocios'][0]['modulo'], $j['negocios'][1]['tope'], $j['negocios'][1]['modulo']]);
 check('… totales, FAQ, modelos y versión de la librería', [1.1, true, 'claude-haiku-5-5', '1', 'asistente_ia', 'USD'], [$j['totales']['costo'], $j['faq']['total'] >= 1, $j['modelo_rapido'], $j['version_libreria'], $j['modulo'], $j['moneda']]);
 check('… y NO trae la clave', false, str_contains(json_encode($j), $CLAVE) || str_contains(json_encode($j), 'sk-ant'));
 check('ia_uso sin cuerpo: el mes actual', [200, date('Y-m')], [($x = $pedir('ia_uso'))[0], $x[1]['mes']]);

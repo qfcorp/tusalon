@@ -1,6 +1,13 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 28 de octubre de 2026
+Última actualización: 6 de noviembre de 2026
+
+## 6 nov 2026 — Precios nuevos para todos los programas Tukán (decisión de Dimitry)
+- **Básico $12 + IVA** con 3 módulos a elegir; **cada módulo más $5 + IVA**; **Completo $25 + IVA** con todo y el Asistente IA.
+- **Asistente IA $3 + IVA en Básico, uso limitado** (tope sugerido del mes **$1,50**, antes $4). «Varias sedes» y los módulos gratis no cambian.
+- Se aplica UNA sola vez con la migración `012` (marca `planes_12_25` en ajustes). Después se cambia desde el Panel Tukán → Más → **Módulos y precios** (un precio para todos).
+- No toca el plan, los módulos ni el precio acordado de cada cliente. Google Play: $14,99 / $70,99 / $141,99 (Básico) y $29,99 / $147,99 / $294,99 (Completo).
+- Pruebas: los precios nuevos se revisan aparte; las cuentas de las pruebas viejas usan los precios de antes (así siguen probando las reglas).
 
 ## Qué es
 Sistema para peluquerías y barberías de Ecuador. Un mismo local puede tener 4 tipos de peluquero a la vez:

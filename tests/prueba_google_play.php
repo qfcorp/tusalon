@@ -39,12 +39,12 @@ mkdir($tmp, 0700, true);
 putenv("TUSALON_BORRADOS=$tmp/borrados");
 putenv("TUSALON_UPLOADS=$tmp/uploads");
 
-echo "\n1. Planes de \$20 y \$45 en Google Play\n";
+echo "\n1. Planes de \$12 y \$25 en Google Play (migración 012)\n";
 $planes = new Planes($db);
 $precios = array_map('floatval', $db->query('SELECT codigo, precio_mensual FROM planes ORDER BY codigo')->fetchAll(PDO::FETCH_KEY_PAIR));
-check('Los planes son Básica $20 y Completa $45', ['basica' => 20.0, 'completa' => 45.0], $precios);
-$esperado = ['basica' => ['mensual' => 23.99, 'semestral' => 117.99, 'anual' => 235.99],
-             'completa' => ['mensual' => 52.99, 'semestral' => 264.99, 'anual' => 529.99]];
+check('Los planes son Básica $12 y Completa $25', ['basica' => 12.0, 'completa' => 25.0], $precios);
+$esperado = ['basica' => ['mensual' => 14.99, 'semestral' => 70.99, 'anual' => 141.99],
+             'completa' => ['mensual' => 29.99, 'semestral' => 147.99, 'anual' => 294.99]];
 foreach ($esperado as $plan => $porPeriodo) {
     foreach ($porPeriodo as $periodo => $google) {
         $prod = GooglePlay::producto($plan, $periodo);

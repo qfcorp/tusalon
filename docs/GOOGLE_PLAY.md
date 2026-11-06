@@ -41,14 +41,14 @@ Usa **exactamente** estos códigos (el sistema los reconoce por el nombre):
 
 | ID del producto (copiar tal cual) | Plan | Plan base / período | Precio web | Precio sugerido Google |
 |---|---|---|---|---|
-| `tusalon_basica_mensual` | Básica | 1 mes | $20 | **$23,99** |
-| `tusalon_basica_semestral` | Básica | 6 meses | $100 | **$117,99** |
-| `tusalon_basica_anual` | Básica | 1 año | $200 | **$235,99** |
-| `tusalon_completa_mensual` | Completa | 1 mes | $45 | **$52,99** |
-| `tusalon_completa_semestral` | Completa | 6 meses | $225 | **$264,99** |
-| `tusalon_completa_anual` | Completa | 1 año | $450 | **$529,99** |
+| `tusalon_basica_mensual` | Básica | 1 mes | $12 | **$14,99** |
+| `tusalon_basica_semestral` | Básica | 6 meses | $60 | **$70,99** |
+| `tusalon_basica_anual` | Básica | 1 año | $120 | **$141,99** |
+| `tusalon_completa_mensual` | Completa | 1 mes | $25 | **$29,99** |
+| `tusalon_completa_semestral` | Completa | 6 meses | $125 | **$147,99** |
+| `tusalon_completa_anual` | Completa | 1 año | $250 | **$294,99** |
 
-Precios del 28 oct 2026: Básica $20 (la base + 3 módulos a elegir) y Completa $45 (todo, con el Asistente IA).
+Precios del 6 nov 2026: Básica $12 + IVA (la base + 3 módulos a elegir; cada módulo más $5) y Completa $25 + IVA (todo, con el Asistente IA).
 En Google Play solo se venden los dos planes: los módulos que el salón elige en la Básica los enciende Tukán desde el panel.
 Si ya habías creado las suscripciones con los precios de antes ($25/$35), cámbiales el precio en Play Console (los códigos no cambian).
 
@@ -177,7 +177,7 @@ sudo -u www-data php /var/www/tusalon/deploy/demo_google.php crear
   a sus clientes sí se ven (no son pagos del software).
 - **assetlinks.json** con el paquete `com.tukansoftware.tusalon` y la huella de la llave de subida (y la de Google cuando se agrega); 404 con Google Play apagado.
 - **Privacidad** pública (`/?r=privacidad`) con cómo borrar la cuenta («Borrar mi cuenta de TuSalón») y los servicios que procesan datos (también Anthropic para la IA).
-- **Planes de $20 y $45** → precios de Google $23,99 / $117,99 / $235,99 y $52,99 / $264,99 / $529,99.
+- **Planes de $12 y $25 (6 nov 2026)** → precios de Google $14,99 / $70,99 / $141,99 y $29,99 / $147,99 / $294,99.
 
 ## 9. Ficha y guía para publicar
 Están en el repositorio **qfcorp/tukan-apps**: `tienda/tusalon/TEXTOS_GOOGLE_PLAY.md`, `tienda/tusalon/play.json`, imágenes en `tienda/tusalon/` y la guía

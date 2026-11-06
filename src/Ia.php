@@ -26,7 +26,7 @@ final class Ia
     public const NOMBRE = 'TuSalón';
     public const MODULO = 'asistente_ia';
     public const TOPE_SIN_MODULO = 0.50;
-    public const TOPE_CON_MODULO = 4.00;
+    public const TOPE_CON_MODULO = 1.50;   // (6 nov 2026) «uso limitado»: la IA vale $3 al mes (antes 4,00)
     public const TOPE_DEMO = 0.50;   // (decisión del dueño, 21 oct 2026) una demo gasta como máximo $0,50 al mes en total, aunque tenga todos los módulos
     public const NUEVAS_SIN_MODULO = 30;
     public const PREGUNTAS_POR_MINUTO = 10;

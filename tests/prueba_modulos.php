@@ -101,7 +101,7 @@ check('Ids en minúsculas y _', [], array_values(array_filter($ids, fn($id) => !
 check('Nada que no exista: sin rol de pagos/IESS, cobro automático del arriendo ni sucursales', [], array_values(array_filter(Modulos::CATALOGO,
       fn($m) => preg_match('/IESS|d[eé]cimo|rol de pago|sucursal|multi.?sede|arriendo autom/i', $m[1] . ' ' . $m[3]))));
 check('La base dice qué trae siempre', true, count(Modulos::BASE) >= 6);
-check('Precio del catálogo (Reservas en línea $5, Anticipo $3)', [5.0, 3.0], [$mods->catalogo()['reservas_linea']['precio_mensual'], $mods->catalogo()['anticipos']['precio_mensual']]);
+check('Precio del catálogo: cada módulo $5 (migración 012)', [5.0, 5.0], [$mods->catalogo()['reservas_linea']['precio_mensual'], $mods->catalogo()['anticipos']['precio_mensual']]);
 check('Encender Anticipo trae Reservas en línea', ['reservas_linea', 'anticipos'], Modulos::conDependencias(['anticipos']));
 check('Clientes privados trae el portal del peluquero', ['portal_peluquero', 'clientes_privados'], Modulos::conDependencias(['clientes_privados']));
 check('Sin su dependencia, el módulo no queda (huérfano)', ['inventario'], Modulos::sinHuerfanos(['anticipos', 'inventario']));
@@ -390,7 +390,7 @@ check('El registro público es "Solicitar demo" y no crea salones', [true, false
 
 // ---------------------------------------------------------------------------------------------
 titulo('12. Planes de $20 y $45 (migración 011): Básica con 3 módulos a elegir, Completa con todo');
-check('Con la base recién instalada: Básica $20 (base + 3 a elegir, $5 cada uno más) y Completa $45 con todo', [20.0, [], 3, 5.0, 45.0, 0, null, true],
+check('Con la base recién instalada: Básica $12 (base + 3 a elegir, $5 cada uno más) y Completa $25 con todo (migración 012)', [12.0, [], 3, 5.0, 25.0, 0, null, true],
       [$pl20['basica']['precio_mensual'], $pl20['basica']['modulos'], (int) $pl20['basica']['modulos_elegir'], (float) $pl20['basica']['precio_modulo_extra'],
        $pl20['completa']['precio_mensual'], (int) $pl20['completa']['modulos_elegir'], $pl20['completa']['precio_modulo_extra'], in_array('asistente_ia', $pl20['completa']['modulos'], true)]);
 $db->exec("DELETE FROM ajustes WHERE clave = 'planes_20_45'");
