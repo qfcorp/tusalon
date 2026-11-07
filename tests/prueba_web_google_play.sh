@@ -29,7 +29,7 @@ entrar() { # correo clave [app] -> sesión nueva en JAR; deja en R "código dest
   R=$(curl -s -b "$JAR" -c "$JAR" -o "$TMP/post.html" -w "%{http_code} %{redirect_url}" --data-urlencode "csrf=$(csrf)" \
        --data-urlencode "email=$1" --data-urlencode "clave=$2" "$BASE/?r=login")
 }
-WA_VENTAS=$(sql "SELECT valor FROM ajustes WHERE clave='whatsapp_ventas'"); WA_VENTAS=${WA_VENTAS:-593996408397}
+WA_VENTAS=$(sql "SELECT valor FROM ajustes WHERE clave='whatsapp_ventas'"); WA_VENTAS=${WA_VENTAS:-593983662181}
 demo() { env $DBENV php deploy/demo_google.php "$@"; }
 # Lo que nunca debe verse dentro de la app (precios del software y pagos por fuera de Google)
 sin_pagos_afuera() { # nombre archivo

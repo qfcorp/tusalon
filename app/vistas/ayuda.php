@@ -18,6 +18,6 @@
     <section class="bloque" data-respuesta-ayuda aria-live="polite">
         <h2>Respuesta</h2>
         <div class="respuesta-ayuda"><?= \TuSalon\Ia::html((string) $respuesta['respuesta']) ?></div>
-        <p class="suave" style="margin-top:12px">¿Le sirvió? Si no, escríbanos por WhatsApp <a href="https://wa.me/593996408397" target="_blank" rel="noopener">099 640 8397</a>.</p>
+        <p class="suave" style="margin-top:12px">¿Le sirvió? Si no, escríbanos por WhatsApp <a href="https://wa.me/593983662181" target="_blank" rel="noopener">098 366 2181</a>.</p>
     </section>
 <?php endif; ?>

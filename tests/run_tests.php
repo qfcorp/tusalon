@@ -689,19 +689,19 @@ echo "\n24. Panel Tukán: planes, pagos, vencimientos y salones\n";
 $pl = new Planes($db);
 check('Días de prueba por defecto: 7', '7', $pl->ajuste('dias_prueba'));
 $pl->guardarAjustes(['dias_prueba' => '10', 'semestral_paga' => '5', 'semestral_recibe' => '6', 'anual_paga' => '9',
-                     'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '+593 99 640 8397']);
+                     'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '+593 98 366 2181']);
 check('El panel cambia la promoción anual a "paga 9"', 315.0, $pl->cotizar('completa', 'anual')['monto']);
 check('…y el texto de la promoción', 'Paga 9, recibe 12 + dominio propio', $pl->textoPeriodo('anual'));
-check('El WhatsApp de ventas queda solo con números', '593996408397', $pl->ajuste('whatsapp_ventas'));
+check('El WhatsApp de ventas queda solo con números', '593983662181', $pl->ajuste('whatsapp_ventas'));
 $msg = '';
-try { $pl->guardarAjustes(['dias_prueba' => '7', 'semestral_paga' => '7', 'semestral_recibe' => '6', 'anual_paga' => '10', 'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '593996408397']); }
+try { $pl->guardarAjustes(['dias_prueba' => '7', 'semestral_paga' => '7', 'semestral_recibe' => '6', 'anual_paga' => '10', 'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '593983662181']); }
 catch (RuntimeException $e) { $msg = $e->getMessage(); }
 check('No deja pagar más meses de los que recibe', true, $msg !== '');
 $pl->guardarPlan('basica', 'Básica', 27.5, 3, 'Para empezar');
 check('El panel cambia el precio de la Básica', 27.5, $pl->cotizar('basica', 'mensual')['monto']);
 $pl->guardarPlan('basica', 'Básica', 25, 3);
 $pl->guardarAjustes(['dias_prueba' => '7', 'semestral_paga' => '5', 'semestral_recibe' => '6', 'anual_paga' => '10',
-                     'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '593996408397']);
+                     'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '593983662181']);
 
 $alta = (new Altas($db))->crearSalonConDueno('Barbería Panel', 'Mario Dueño', '0991231234', 'mario@panel.ec', 'claveMario1', 'completa');
 $sp = (int) $alta['salon_id'];

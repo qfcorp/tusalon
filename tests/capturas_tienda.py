@@ -16,7 +16,7 @@ D = dict(l.strip().split('=', 1) for l in Path(datos).read_text().splitlines() i
 CLAVE = 'SalonDemo2026'
 CUENTAS = {'dueno': 'demo@tusalon.tukanec.com', 'carlos': 'carlos@tusalon.tukanec.com'}
 # Precio del software (no los precios del negocio, como sus servicios o membresías) o pago por fuera de Google
-PRECIO_SOFTWARE = re.compile(r'(?i)(plan (básic|complet)[^\n]{0,40}\$\s?\d|total al mes|lo que pagas|gratis|gratuit|wa\.me/593996408397\?text|pedir cotización)')
+PRECIO_SOFTWARE = re.compile(r'(?i)(plan (básic|complet)[^\n]{0,40}\$\s?\d|total al mes|lo que pagas|gratis|gratuit|wa\.me/593983662181\?text|pedir cotización)')
 
 # (archivo, quién, ruta, acción, bajar)
 PANTALLAS = [

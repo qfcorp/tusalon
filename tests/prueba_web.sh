@@ -490,9 +490,9 @@ get "r=completa" > /dev/null
 contiene "El dueño ve el precio nuevo en Mi plan" "$TMP/pag.html" 'data-total-mensual>\$39,00'
 JAR="$TMP/c_admin"
 post "r=admin_planes" -d accion=plan -d codigo=completa --data-urlencode "nombre=Completa" -d precio_mensual=45 -d max_profesionales= > /dev/null
-r=$(post "r=admin_planes" -d accion=ajustes -d dias_prueba=10 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593996408397)
+r=$(post "r=admin_planes" -d accion=ajustes -d dias_prueba=10 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593983662181)
 check "Los días de demo por defecto pasan a 10" "10" "$(sql "SELECT valor FROM ajustes WHERE clave='dias_prueba'")"
-post "r=admin_planes" -d accion=ajustes -d dias_prueba=7 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593996408397 > /dev/null
+post "r=admin_planes" -d accion=ajustes -d dias_prueba=7 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593983662181 > /dev/null
 r=$(post "r=admin_salon&id=$SIDN" -d accion=estado -d estado=suspendido)
 JAR="$TMP/c_pedro"
 code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=agenda")

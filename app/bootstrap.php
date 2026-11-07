@@ -284,7 +284,7 @@ function planes(): \TuSalon\Planes
 /** WhatsApp de ventas de Tukán (se cambia en el panel del super administrador). */
 function whatsapp_ventas(): string
 {
-    return planes()->ajuste('whatsapp_ventas') ?: '593996408397';
+    return planes()->ajuste('whatsapp_ventas') ?: '593983662181';
 }
 
 /** Precio mensual de un plan, con formato ($25,00). */

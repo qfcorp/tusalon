@@ -8,7 +8,7 @@
 <ul>
 <li><b>Cada salón</b> es el responsable de los datos de sus clientes y de su equipo. TuSalón los guarda por cuenta del salón.</li>
 <li><b>Tukán Software</b> es responsable de los datos de la cuenta del salón (dueño, plan y pagos del plan).</li>
-<li>Contacto: <a href="mailto:info@tukansoftware.com">info@tukansoftware.com</a> · WhatsApp 099 640 8397.</li>
+<li>Contacto: <a href="mailto:info@tukansoftware.com">info@tukansoftware.com</a> · WhatsApp 098 366 2181.</li>
 </ul>
 
 <h2>Qué datos guardamos</h2>

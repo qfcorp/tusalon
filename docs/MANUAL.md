@@ -22,7 +22,7 @@ Su fuente es [docs/manual/manual.html](manual/manual.html) y las capturas reales
     clientes que no vuelven). Es la fuente de la Ayuda: `src/Ia.php` lee `docs/manual/manual.html` convertido a texto.
 15. Preguntas frecuentes
 
-Contacto que lleva el manual: WhatsApp 099 640 8397 · info@tukansoftware.com · tukansoftware.com.
+Contacto que lleva el manual: WhatsApp 098 366 2181 · info@tukansoftware.com · tukansoftware.com.
 
 ## Reglas del manual
 - Nunca se ofrece nada sin costo ni periodo de prueba: solo **demos**.

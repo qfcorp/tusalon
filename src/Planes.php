@@ -24,7 +24,7 @@ final class Planes
         'semestral_paga' => '5', 'semestral_recibe' => '6',
         'anual_paga' => '10', 'anual_recibe' => '12',
         'dias_gracia' => '3',
-        'whatsapp_ventas' => '593996408397',
+        'whatsapp_ventas' => '593983662181',
     ];
     public const PERIODOS_NOMBRE = ['mensual' => 'Mensual', 'semestral' => 'Semestral', 'anual' => 'Anual'];
 

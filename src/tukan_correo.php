@@ -344,7 +344,7 @@ if (!function_exists('tukan_correo_enviar')) {
         if ($clave !== '') $t[] = "Contraseña: $clave";
         if ($hasta !== '') array_push($t, '', "Su demo termina el $hasta.");
         array_push($t, '', 'Le recomendamos cambiar la contraseña la primera vez que entre.', '',
-                   '¿Dudas? Escríbanos:', 'WhatsApp 099 640 8397 · info@tukansoftware.com · tukansoftware.com', '', 'Tukán Software');
+                   '¿Dudas? Escríbanos:', 'WhatsApp 098 366 2181 · info@tukansoftware.com · tukansoftware.com', '', 'Tukán Software');
         $texto = implode("\n", $t);
 
         $fila = fn(string $k, string $v, bool $mono = false) => '<tr><td style="padding:8px 0;color:#5A6378;font-size:14px;width:110px;vertical-align:top">' . $h($k)
@@ -372,7 +372,7 @@ if (!function_exists('tukan_correo_enviar')) {
             . '<p style="margin:16px 0 0;padding:12px 14px;background:#FFF6DB;border-radius:10px;font-size:14px;line-height:1.5">Le recomendamos <b>cambiar la contraseña</b> la primera vez que entre.</p>'
             . '</td></tr>'
             . '<tr><td style="padding:20px 28px;background:#14213D;color:#FFFFFF;font-size:14px;line-height:1.6">¿Dudas? Escríbanos:<br>'
-            . '<a href="https://wa.me/593996408397" style="color:#FFC93C;text-decoration:none">WhatsApp 099 640 8397</a> · '
+            . '<a href="https://wa.me/593983662181" style="color:#FFC93C;text-decoration:none">WhatsApp 098 366 2181</a> · '
             . '<a href="mailto:info@tukansoftware.com" style="color:#FFC93C;text-decoration:none">info@tukansoftware.com</a> · '
             . '<a href="https://tukansoftware.com" style="color:#FFC93C;text-decoration:none">tukansoftware.com</a></td></tr>'
             . '</table></td></tr></table></body></html>';
