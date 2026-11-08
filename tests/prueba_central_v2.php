@@ -328,7 +328,7 @@ check('… con datos fijos y cotizar', [['cliente_id' => (string) $P1], true, 35
 check('Solicitudes abiertas del cliente (ninguna: le faltan 7 días)', [], array_column($x['solicitudes'], 'id'));
 $x2 = $pedir('cliente', ['id' => (string) $A2])[1]['cliente'];
 check('A quien paga no se le ofrece alargar la prueba', false, in_array('extender_prueba', array_column($x2['acciones_posibles'], 'accion'), true));
-check('Mensaje de renovación con el precio', true, str_contains((string) $x2['mensajes_sugeridos']['recordar_renovacion'], '$25,00 al mes'));
+check('Mensaje de renovación con el precio', true, str_contains((string) $x2['mensajes_sugeridos']['recordar_renovacion'], '$25,00 + IVA al mes'));
 check('Suspendido: botón reactivar', true, in_array('reactivar', array_column($pedir('cliente', ['id' => (string) $S1])[1]['cliente']['acciones_posibles'], 'accion'), true));
 check('Cliente que no existe → 404 no_encontrado', [404, 'no_encontrado'], $codigo($pedir('cliente', ['id' => '999999'])));
 check('Sin id → 422', [422, 'id'], [$pedir('cliente', [])[0], $pedir('cliente', [])[1]['campo']]);

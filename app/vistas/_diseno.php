@@ -38,6 +38,9 @@ $estadoCuenta = $esDuenoAqui ? planes()->estadoCuenta($u) : null;
 $diasPlan = ($estadoCuenta === 'activo' && !empty($u['activo_hasta']))
     ? (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($u['activo_hasta']))->days : null;
 $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
+// (7 nov 2026) El dueño acepta los términos y la privacidad de Tukán (src/TukanLegal.php); se acepta desde Mi plan
+require_once dirname(__DIR__, 2) . '/src/TukanLegal.php';
+$pideTerminos = $esDuenoAqui && !$adminViendo && !TukanLegal::aceptado(db(), (string) $u['salon_id']);
 ?>
 <!doctype html>
 <html lang="es">
@@ -98,6 +101,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <?php if (!es_peluquero($u) && modulo('asistente_ia')): ?><a href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>
         <a href="<?= e(url('ayuda')) ?>">Ayuda</a>
         <a href="<?= e(url('salir')) ?>">Cerrar sesión</a>
+        <p class="pie-legal"><?= TukanLegal::enlaces(url('privacidad')) ?></p>
     </div>
 </aside>
 <?php endif; ?>
@@ -120,6 +124,7 @@ $adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
         <p class="franja-prueba">Tu plan vence <?= $diasPlan === 0 ? 'hoy' : "en $diasPlan " . ($diasPlan === 1 ? 'día' : 'días') ?>.
             <a href="<?= e(url('completa')) ?>">Renovar</a></p>
     <?php endif; ?>
+    <?php if ($pideTerminos): ?><?= TukanLegal::aviso(campo_csrf(), url('completa'), url('privacidad')) ?><?php endif; ?>
     <?php foreach ($avisos as $a): ?>
         <p class="aviso aviso-<?= e($a['tipo']) ?>" role="status"><?= e($a['texto']) ?></p>
     <?php endforeach; ?>

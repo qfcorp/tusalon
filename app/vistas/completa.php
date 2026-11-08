@@ -160,3 +160,6 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 <?php endif; ?>
 <script src="/assets/play.js?v=1" defer></script>
 <?php endif; ?>
+<?php if (es_dueno_o_admin($u) && ($u['estado'] ?? '') !== 'prueba'): /* «Cancelar mi plan» (src/TukanCancelarPlan.php) */ ?>
+<?= TukanCancelarPlan::html($cancelacion ?? null, campo_csrf(), url('completa'), $u['activo_hasta'] ?? null, en_app_play()) ?>
+<?php endif; ?>

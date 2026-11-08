@@ -275,3 +275,10 @@ Pegar en la sesión SSH, una línea a la vez (no borra datos):
    - Pregunta "Activar la app de Google Play esta vez?": contestar `no` mientras Dimi no decida publicar
    - Debe mostrar las migraciones con "listo" (incluidas `006_gastos_recepcion.sql`, `007_papelera.sql` y `008_modulos.sql`) y al final: tablas más de 25, extensiones 6, prueba de la página 200
 2. `curl -s -o /dev/null -w "%{http_code}\n" -H "Host: tusalon.tukanec.com" "http://127.0.0.1/?r=login"` → debe salir 200
+
+## 7 nov 2026 — Legal (auditoría de 20 puntos)
+- **Cancelar mi plan** (módulo común `TukanCancelarPlan.php`, copia igual a la de tukan-central/herramientas/cancelar_plan): sección al final de Mi plan con casilla de confirmar y motivo; no borra nada, sigue hasta el último día pagado; guarda en `tukan_cancelaciones` y avisa al Panel (`plux_api.php` acción `cancelar_plan`), que cancela las suscripciones Plux, lo muestra en Inicio y avisa por Telegram. «Seguir con mi plan» lo deshace. En la app de Google Play solo explica cómo cancelar en Google Play.
+- **Aceptar términos y privacidad** (módulo común `TukanLegal.php`): aviso arriba para el dueño/administrador hasta que acepte (casilla + Aceptar, se guarda en `tukan_aceptaciones` con versión `2026-10-27` de tukansoftware.com/terminos.html); enlaces **Términos · Privacidad** en el menú y en la pantalla de entrar.
+- **Reserva pública**: casilla obligatoria «Acepto la política de privacidad»; se guarda en `tukan_consentimientos`.
+- Manual: capítulo nuevo «Términos, privacidad y cancelar tu plan» y PDF regenerado (`SOLO_PDF=1`).
+- Pruebas nuevas en las pruebas de pantallas (cancelar, seguir, aceptar términos, casilla de reserva).

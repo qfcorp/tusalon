@@ -492,3 +492,16 @@ body.admin { background: var(--fondo); }
     .modulo-lado { width: 100%; flex-direction: row; justify-content: space-between; align-items: center; text-align: left; }
 }
 .tabla-desliza { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* «Cancelar mi plan» (módulo común TukanCancelarPlan.php, 7 nov 2026) */
+.tukan-cancelar details summary{cursor:pointer;font-weight:600}
+.tukan-cancelar label{display:block;margin:10px 0}
+.tukan-cancelar textarea{width:100%;box-sizing:border-box}
+.tukan-cancelar .tc-confirmo{display:flex;gap:8px;align-items:flex-start}
+.tukan-cancelar .boton-peligro{background:#b42318;border-color:#b42318;color:#fff}
+/* Aviso de términos y enlaces legales (módulo común TukanLegal.php, 7 nov 2026) */
+.tukan-legal-aviso{background:#fff8e1;border:1px solid #f2c94c;border-radius:10px;padding:12px 14px;margin:0 0 14px}
+.tukan-legal-aviso p{margin:0 0 8px}
+.tukan-legal-aviso label{display:inline-flex;gap:8px;align-items:center;margin-right:10px}
+.pie-legal{font-size:.85rem;opacity:.8;margin-top:10px}
+.tukan-legal-enlaces a{color:inherit}

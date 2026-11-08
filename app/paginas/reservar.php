@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__DIR__, 2) . '/src/TukanLegal.php';
 use TuSalon\Agenda;
 
 /**
@@ -70,6 +71,11 @@ $d = [
 if (es_post()) {
     verificar_csrf();
     try {
+        // (7 nov 2026) Ley de protección de datos: quien no tiene cuenta acepta la política de privacidad (src/TukanLegal.php)
+        if (empty($clienteSesion) && empty($_POST['acepta_privacidad'])) {
+            throw new RuntimeException('Para reservar, acepta la política de privacidad.');
+        }
+        if (empty($clienteSesion)) TukanLegal::consentimiento(db(), (string) $sid, trim(($d['nombre'] ?? '') . ' ' . ($d['telefono'] ?? '')), 'privacidad_reserva');
         if (!empty($_POST['sitio_web'])) {   // campo trampa para robots
             throw new RuntimeException('No se pudo reservar.');
         }

@@ -152,6 +152,9 @@ $meses = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oc
                 <span><strong>El salón puede guardar fotos de mis cortes</strong><small>Las verás solo tú y el salón, en tu historial. Puedes cambiarlo cuando quieras.</small></span></label>
         </div>
         <?php endif; ?>
+        <?php if (empty($clienteSesion)): /* (7 nov 2026) casilla obligatoria de la política de privacidad (src/TukanLegal.php) */ ?>
+        <?= TukanLegal::casillaCliente(url('privacidad'), !empty($_POST['acepta_privacidad'])) ?>
+        <?php endif; ?>
         <div class="trampa" aria-hidden="true"><label for="sitio_web">No llenar</label><input type="text" id="sitio_web" name="sitio_web" tabindex="-1" autocomplete="off"></div>
         <button class="boton boton-ancho" type="submit" id="btn-reservar">Reservar cita</button>
     </fieldset>

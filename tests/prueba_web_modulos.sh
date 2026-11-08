@@ -240,6 +240,32 @@ check "Queda en 3 a elegir y \$5 cada uno más" "3|5.00" "$(sql "SELECT modulos_
   echo "BASE=$BASE"; echo "EMAIL_BASICA=$EB"; echo "CLAVE=claveSegura1"; echo "ADMIN=$ADM"; echo "ADMIN_CLAVE=claveAdminSegura1"; echo "SALON_BASICA=$SB"
 } > "$CAPT"
 
+echo "Aceptar los términos (módulo común TukanLegal, 7 nov 2026)"
+JAR=$JAR_B
+get "r=inicio" > /dev/null
+contiene "El dueño ve el aviso para aceptar los términos y la privacidad" "$TMP/pag.html" 'value="aceptar_terminos_tukan"'
+contiene "… con enlace a los Términos de Tukán" "$TMP/pag.html" "tukansoftware.com/terminos.html"
+contiene "El menú trae los enlaces Términos · Privacidad" "$TMP/pag.html" 'class="tukan-legal-enlaces"'
+post "r=completa" -d accion=aceptar_terminos_tukan > /dev/null
+check "Sin marcar la casilla no se acepta" "0" "$(sql "SELECT count(*) FROM tukan_aceptaciones WHERE cliente_id='$SB'")"
+post "r=completa" -d accion=aceptar_terminos_tukan -d acepto_terminos=1 > /dev/null
+check "Aceptar: queda guardado con la versión" "2026-10-27" "$(sql "SELECT version FROM tukan_aceptaciones WHERE cliente_id='$SB'")"
+get "r=inicio" > /dev/null
+no_contiene "Ya no sale el aviso" "$TMP/pag.html" 'value="aceptar_terminos_tukan"'
+echo "Cancelar mi plan (módulo común, 7 nov 2026)"
+JAR=$JAR_B
+check "Mi plan del dueño pagado abre" "200" "$(get "r=completa")"
+contiene "Trae la sección «Cancelar mi plan»" "$TMP/pag.html" 'id="cancelar-plan"'
+contiene "… con la casilla obligatoria de confirmar" "$TMP/pag.html" 'name="confirmo" value="1" required'
+post "r=completa" -d accion=cancelar_plan -d motivo=prueba > /dev/null
+check "Sin marcar la casilla no cancela" "0" "$(sql "SELECT count(*) FROM tukan_cancelaciones WHERE cliente_id='$SB'" 2>/dev/null || echo 0)"
+post "r=completa" -d accion=cancelar_plan -d confirmo=1 --data-urlencode "motivo=Cierro el local" > /dev/null
+check "Cancelar: queda guardada con el motivo" "Cierro el local" "$(sql "SELECT motivo FROM tukan_cancelaciones WHERE cliente_id='$SB'")"
+get "r=completa" > /dev/null
+contiene "Mi plan dice «Pediste cancelar tu plan» y ofrece seguir" "$TMP/pag.html" 'value="seguir_plan"'
+post "r=completa" -d accion=seguir_plan > /dev/null
+check "Seguir con mi plan: se quita la cancelación" "0" "$(sql "SELECT count(*) FROM tukan_cancelaciones WHERE cliente_id='$SB'")"
+
 echo
 echo "Resultado: $OK correctas, $FALLAS fallidas"
 [ "$FALLAS" -eq 0 ]

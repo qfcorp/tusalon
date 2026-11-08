@@ -210,7 +210,11 @@ contiene "Muestra el servicio con su precio" "$TMP/pub.html" '\$15,00'
 curl -s "$BASE/?r=horas&s=$SLUG3&p=$LUIS3&serv=$PREM&f=$MAN" > "$TMP/horas.json"
 contiene "Horas libres en tiempo real: aparece 10:00" "$TMP/horas.json" '"10:00"'
 JAR="$TMP/c_cliente1"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 \
+post "r=reservar&s=$SLUG3" > /dev/null   # (7 nov 2026) sin la casilla de privacidad no reserva
+contiene "Reservar sin aceptar la política de privacidad: avisa y no reserva" "$TMP/post.html" "acepta la política de privacidad"
+get "r=reservar&s=$SLUG3" > /dev/null
+contiene "La reserva pública trae la casilla obligatoria de privacidad" "$TMP/pag.html" 'name="acepta_privacidad" value="1" required'
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 \
      --data-urlencode "nombre=Carla Cliente" -d telefono=0997776655)
 check "El cliente reserva y ve la confirmación" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
 get "r=reservar&s=$SLUG3&ok=1" > /dev/null
@@ -220,10 +224,10 @@ check "La cita queda pendiente de aceptar" "pendiente" "$(sql "SELECT estado FRO
 curl -s "$BASE/?r=horas&s=$SLUG3&p=$LUIS3&serv=$PREM&f=$MAN" > "$TMP/horas2.json"
 contiene "Para otros clientes las 10:00 sale 'en confirmación'" "$TMP/horas2.json" '"en_confirmacion":\["10:00"\]'
 JAR="$TMP/c_cliente2"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 \
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 \
      --data-urlencode "nombre=Otro Cliente" -d telefono=0981112222)
 contiene "Otro cliente que intenta las 10:00 recibe 'estamos confirmando'" "$TMP/post.html" "confirmando esa hora para otro cliente"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 -d sitio_web=spam \
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=10:00 -d sitio_web=spam \
      --data-urlencode "nombre=Robot" -d telefono=0981112222)
 check "El campo trampa frena a los robots" "1" "$(sql "SELECT count(*) FROM citas WHERE salon_id=$SID3")"
 code=$(curl -s -o "$TMP/pubb.html" -w '%{http_code}' "$BASE/?r=reservar&s=$(sql "SELECT slug FROM salones WHERE id=$SID")")
@@ -262,7 +266,7 @@ check "Luis no puede agendar desde el sistema del dueño" "1" "$(sql "SELECT cou
 echo "12. Cuenta del cliente, historial y fotos"
 JAR="$TMP/c_cuenta"
 MAILC="carla$RANDOM@correo.ec"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=15:00 -d modo=cuenta \
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=15:00 -d modo=cuenta \
      --data-urlencode "nombre=Carla Cuenta" -d telefono=0995554433 -d email=$MAILC -d clave=claveCarla1 -d acepta_fotos=1)
 check "Reservar creando cuenta" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
 check "La cuenta queda con permiso de fotos" "t" "$(sql "SELECT acepta_fotos FROM clientes WHERE email='$MAILC'")"
@@ -352,14 +356,14 @@ contiene "No acepta enlaces raros para Google" "$TMP/post.html" "debe empezar co
 echo "16. Reserva con cumpleaños, el dueño pone el valor y el cliente confirma"
 JAR="$TMP/c_cumple"
 MAILK="kati$RANDOM@correo.ec"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$KERA -d fecha=$MAN -d hora=11:00 -d modo=cuenta \
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$KERA -d fecha=$MAN -d hora=11:00 -d modo=cuenta \
      --data-urlencode "nombre=Kati Keratina" -d telefono=0993334455 -d email=$MAILK -d clave=claveKati1 -d cumple_dia=20 -d cumple_mes=11)
 check "Reserva creando cuenta con cumpleaños" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
 check "El cumpleaños se guarda sin año (mes|día)" "11|20" "$(sql "SELECT cumple_mes||'|'||cumple_dia FROM clientes WHERE email='$MAILK'")"
 CK=$(sql "SELECT c.id FROM citas c JOIN clientes cl ON cl.id=c.cliente_id WHERE cl.email='$MAILK'")
 check "La cita tiene el precio de Luis (\$35)" "35.00" "$(sql "SELECT precio FROM cita_servicios WHERE cita_id=$CK")"
 JAR="$TMP/c_cumple_mal"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=16:00 -d modo=cuenta \
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=16:00 -d modo=cuenta \
      --data-urlencode "nombre=Fecha Mala" -d telefono=0993334466 -d email="mala$RANDOM@correo.ec" -d clave=claveMala1 -d cumple_dia=31 -d cumple_mes=4)
 contiene "31 de abril no se acepta" "$TMP/post.html" "no existe"
 JAR=$JAR_DUENA
@@ -385,7 +389,7 @@ contiene "En su cuenta ve su cumpleaños" "$TMP/pag.html" '<option value="20" se
 echo "17. Cambiar y cancelar desde el enlace"
 get "r=reservar&s=$SLUG3&cambia=$TOK" > /dev/null
 contiene "Al cambiar, avisa que la anterior se libera" "$TMP/pag.html" "Estás cambiando tu cita"
-r=$(post "r=reservar&s=$SLUG3&cambia=$TOK" -d profesional=$LUIS3 -d servicio=$KERA -d fecha=$MAN -d hora=12:30)
+r=$(post "r=reservar&s=$SLUG3&cambia=$TOK" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$KERA -d fecha=$MAN -d hora=12:30)
 check "Reserva la nueva hora (12:30)" "302 $BASE/?r=reservar&s=$SLUG3&ok=1" "$r"
 check "La cita anterior quedó cancelada por el cliente" "cancelada|cliente" "$(sql "SELECT estado||'|'||cancelada_por FROM citas WHERE id=$CK")"
 CK2=$(sql "SELECT max(c.id) FROM citas c JOIN clientes cl ON cl.id=c.cliente_id WHERE cl.email='$MAILK'")
@@ -426,7 +430,7 @@ if grep -q "2 faltas" "$TMP/pag.html"; then FALLAS=$((FALLAS+1)); echo "  FALLA 
 r=$(post "r=cliente&id=$CL_F" --data-urlencode "nombre=Carla Cliente" -d telefono=0997776655 -d cumple_dia=5 -d cumple_mes=3)
 check "El dueño pone el cumpleaños en la ficha" "3|5" "$(sql "SELECT cumple_mes||'|'||cumple_dia FROM clientes WHERE id=$CL_F")"
 JAR="$TMP/c_rec"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=17:00 --data-urlencode "nombre=Rita Recordar" -d telefono=0992221100)
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=17:00 --data-urlencode "nombre=Rita Recordar" -d telefono=0992221100)
 CRIT=$(sql "SELECT max(id) FROM citas WHERE salon_id=$SID3")
 JAR=$JAR_DUENA
 post "r=solicitudes" -d cita=$CRIT -d accion=aceptar > /dev/null
@@ -595,7 +599,7 @@ r=$(post "r=horario" -d accion=anticipo -d anticipo_modo=todos -d anticipo_tipo=
      --data-urlencode "anticipo_banco=Banco Pichincha - Ahorros 2201234567 - Rosa Dueña" -d anticipo_deuna=0990001111)
 check "Guardar anticipo del 40 %" "todos|40.00" "$(sql "SELECT anticipo_modo||'|'||anticipo_valor FROM salones WHERE id=$SID3")"
 JAR="$TMP/c_cliente_ant"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=13:00 --data-urlencode "nombre=Paula Anticipo" -d telefono=0981234567)
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=13:00 --data-urlencode "nombre=Paula Anticipo" -d telefono=0981234567)
 CITAA=$(sql "SELECT max(id) FROM citas WHERE salon_id=$SID3")
 check "Reserva con anticipo del 40 % de \$15 = \$6" "pendiente|pendiente|6.00" "$(sql "SELECT estado||'|'||anticipo_estado||'|'||anticipo FROM citas WHERE id=$CITAA")"
 get "r=reservar&s=$SLUG3&ok=1" > /dev/null
@@ -616,7 +620,7 @@ check "Confirma el anticipo: entra a la caja" "pagado|6.00" "$(sql "SELECT antic
 # Anticipo con tarjeta (Payphone simulado)
 sql "UPDATE salones SET payphone_token='tok_web', payphone_store_id='store-web' WHERE id=$SID3" > /dev/null
 JAR="$TMP/c_cliente_pp"
-r=$(post "r=reservar&s=$SLUG3" -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=18:00 --data-urlencode "nombre=Pedro Tarjeta" -d telefono=0981239999)
+r=$(post "r=reservar&s=$SLUG3" -d acepta_privacidad=1 -d profesional=$LUIS3 -d servicio=$PREM -d fecha=$MAN -d hora=18:00 --data-urlencode "nombre=Pedro Tarjeta" -d telefono=0981239999)
 CITAP=$(sql "SELECT max(id) FROM citas WHERE salon_id=$SID3")
 TOKP=$(sql "SELECT token FROM citas WHERE id=$CITAP")
 get "r=confirmar&t=$TOKP&pagar=tarjeta" > /dev/null
