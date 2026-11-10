@@ -282,3 +282,11 @@ Pegar en la sesión SSH, una línea a la vez (no borra datos):
 - **Reserva pública**: casilla obligatoria «Acepto la política de privacidad»; se guarda en `tukan_consentimientos`.
 - Manual: capítulo nuevo «Términos, privacidad y cancelar tu plan» y PDF regenerado (`SOLO_PDF=1`).
 - Pruebas nuevas en las pruebas de pantallas (cancelar, seguir, aceptar términos, casilla de reserva).
+
+## Precios del 10 nov 2026: Básico $12,99 (decisión de Dimitry, Excel «Precios y planes Tukán»)
+- El plan **Básico pasa de $12 a $12,99 al mes**, más IVA. Semestral $64,95 (paga 5 meses). Anual $129,90 (paga 10 meses).
+- No cambia nada más: 3 módulos a elegir, cada módulo más $5, Asistente IA $3, Completo $25.
+- Migración `db/migraciones/014_basico_1299.sql`: una sola vez (marca `basico_1299` en ajustes) y solo si el precio seguía en $12.
+- No toca el plan ni el precio acordado de cada cliente.
+- Google Play: $15,99 / $76,99 / $152,99 (Básico). Completo igual: $29,99 / $147,99 / $294,99.
+- Pruebas del 10 nov: lógica y pantallas bien con el precio nuevo.

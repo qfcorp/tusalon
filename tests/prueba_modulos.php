@@ -390,7 +390,7 @@ check('El registro público es "Solicitar demo" y no crea salones', [true, false
 
 // ---------------------------------------------------------------------------------------------
 titulo('12. Planes de $20 y $45 (migración 011): Básica con 3 módulos a elegir, Completa con todo');
-check('Con la base recién instalada: Básica $12 (base + 3 a elegir, $5 cada uno más) y Completa $25 con todo (migración 012)', [12.0, [], 3, 5.0, 25.0, 0, null, true],
+check('Con la base recién instalada: Básica $12,99 (base + 3 a elegir, $5 cada uno más) y Completa $25 con todo (migraciones 012 y 014)', [12.99, [], 3, 5.0, 25.0, 0, null, true],
       [$pl20['basica']['precio_mensual'], $pl20['basica']['modulos'], (int) $pl20['basica']['modulos_elegir'], (float) $pl20['basica']['precio_modulo_extra'],
        $pl20['completa']['precio_mensual'], (int) $pl20['completa']['modulos_elegir'], $pl20['completa']['precio_modulo_extra'], in_array('asistente_ia', $pl20['completa']['modulos'], true)]);
 $db->exec("DELETE FROM ajustes WHERE clave = 'planes_20_45'");
