@@ -20,7 +20,7 @@ final class Planes
 {
     /** Valores por defecto; el super administrador los cambia en su panel (tabla ajustes). */
     public const AJUSTES = [
-        'dias_prueba' => '7',
+        'dias_prueba' => '3',   // demos de 3 días (10 nov 2026)
         'semestral_paga' => '5', 'semestral_recibe' => '6',
         'anual_paga' => '10', 'anual_recibe' => '12',
         'dias_gracia' => '3',

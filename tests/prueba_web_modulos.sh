@@ -168,7 +168,7 @@ check "Volver a como estaba" "5.00|*" "$(sql "SELECT precio_mensual FROM modulos
 echo "7. Pedidos de demo en el panel de Tukán"
 JAR="$TMP/c_pub"; rm -f "$JAR"
 EP="pedido$RANDOM@prueba.ec"
-post "r=registro" --data-urlencode "nombre=Carla Pide" --data-urlencode "salon=Salón Carla Pide" --data-urlencode "ciudad=Cuenca" -d whatsapp=0995556666 \
+post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Carla Pide" --data-urlencode "salon=Salón Carla Pide" --data-urlencode "ciudad=Cuenca" -d whatsapp=0995556666 \
      --data-urlencode "email=$EP" --data-urlencode "necesita=Quiero reservas" -d "modulos[]=reservas_linea" > /dev/null
 PD=$(sql "SELECT id FROM pedidos_demo WHERE email='$EP'")
 JAR="$TMP/c_admin"
@@ -185,7 +185,7 @@ check "El pedido queda «demo creada»" "demo_creada|$SC" "$(sql "SELECT estado|
 check "Lo que pidió queda en las notas" "1" "$(sql "SELECT count(*) FROM salones WHERE id=$SC AND notas_admin LIKE '%Quiero reservas%'")"
 EP2="pedido2$RANDOM@prueba.ec"
 JAR="$TMP/c_pub2"
-post "r=registro" --data-urlencode "nombre=Otro Pide" --data-urlencode "salon=Salón Descartado" --data-urlencode "ciudad=Loja" -d whatsapp=0995557777 --data-urlencode "email=$EP2" > /dev/null
+post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Otro Pide" --data-urlencode "salon=Salón Descartado" --data-urlencode "ciudad=Loja" -d whatsapp=0995557777 --data-urlencode "email=$EP2" > /dev/null
 PD2=$(sql "SELECT id FROM pedidos_demo WHERE email='$EP2'")
 JAR="$TMP/c_admin"
 post "r=admin" -d pedido=$PD2 -d estado=descartada > /dev/null

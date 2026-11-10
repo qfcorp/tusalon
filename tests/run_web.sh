@@ -81,6 +81,13 @@ if [ "${1:-}" = "tufactura" ]; then   # solo la factura electrónica con TuFactu
   [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
   exit "$FALLO"
 fi
+if [ "${1:-}" = "demos" ]; then   # solo las demos automáticas
+  echo "==================== prueba_web_demos_auto ===================="
+  bash tests/prueba_web_demos_auto.sh || FALLO=1
+  if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then echo "Avisos de PHP:"; grep -iE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log | head -20; FALLO=1; fi
+  [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
+  exit "$FALLO"
+fi
 if [ "${1:-}" = "pago" ]; then   # solo pagar el plan con tarjeta desde Mi plan
   echo "==================== prueba_web_pago_plan ===================="
   bash tests/prueba_web_pago_plan.sh || FALLO=1
@@ -118,6 +125,8 @@ if [ "${1:-}" != "central" ]; then
 fi
 
 if [ "${1:-}" != "central" ]; then
+  echo; echo "==================== prueba_web_demos_auto (demos automáticas: 7 datos, aviso al Panel simulado, PDF públicos, tarjeta de la demo) ===================="
+  bash tests/prueba_web_demos_auto.sh || FALLO=1
   echo; echo "==================== prueba_web_pago_plan (pagar el plan con tarjeta desde Mi plan, con el Panel Tukán Central simulado) ===================="
   bash tests/prueba_web_pago_plan.sh || FALLO=1
 fi

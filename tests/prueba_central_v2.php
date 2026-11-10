@@ -350,7 +350,7 @@ check('planes: precios de Básica', [25.0, 125.0, 250.0], array_column($r['plane
 check('planes: meses gratis', [0, 1, 2], array_column($r['planes'][0]['precios'], 'meses_gratis'));
 check('planes: clientes por plan', [6, 6], array_column($r['planes'], 'clientes'));
 check('planes: límites', ['Personas que atienden' => '3'], $r['planes'][0]['limites']);
-check('planes: ajustes', ['dias_prueba' => 7, 'dias_demo' => 7, 'dias_gracia' => 3, 'dias_gracia_demo' => 0, 'registro_abierto' => false], $r['ajustes']);
+check('planes: ajustes', ['dias_prueba' => 3, 'dias_demo' => 3, 'dias_gracia' => 3, 'dias_gracia_demo' => 0, 'registro_abierto' => false], $r['ajustes']);
 check('planes: módulos de cada plan (Básica = base, Completa = todos, con el Asistente IA)', [[], array_values(array_diff(TuSalon\Modulos::ids(), TuSalon\Modulos::FUERA_DE_PLANES))], array_column($r['planes'], 'modulos'));
 
 // ---------------------------------------------------------------------------------------------
@@ -538,13 +538,13 @@ check('Pedido de demo que no existe → 404', [404, 'no_encontrado'], $codigo($e
 check('solicitud_id que no es pedido de demo → 422', 'datos.solicitud_id', $ej('crear_demo', ['solicitud_id' => 'renovacion:1', 'email' => 'otro5@ejemplo.com'] + $datosDemo)[1]['campo']);
 check('Ningún error creó cuentas', 0, $cuenta("SELECT count(*) FROM usuarios WHERE email LIKE 'otro%@ejemplo.com'"));
 $r = $ej('crear_demo', ['nombre' => 'Salón Sin Plan', 'contacto_nombre' => 'Ana', 'email' => 'ana.demo@ejemplo.com', 'telefono' => '0987777777']);
-check('Sin plan ni días: plan por defecto y días del ajuste', [200, 'completa', $d('+7 days'), null], [$r[0], $r[1]['cliente']['plan']['codigo'], $r[1]['resultado']['prueba_hasta'], $r[1]['cliente']['ciudad']]);
+check('Sin plan ni días: plan por defecto y días del ajuste', [200, 'completa', $d('+3 days'), null], [$r[0], $r[1]['cliente']['plan']['codigo'], $r[1]['resultado']['prueba_hasta'], $r[1]['cliente']['ciudad']]);
 
 // ---------------------------------------------------------------------------------------------
 titulo('11. Las demás operaciones con su efecto real');
 // extender_prueba
 $r = $ej('extender_prueba', ['dias' => 10], $P1);
-check('Alargar prueba: desde su fin', [200, $d('+17 days'), $d('+17 days')], [$r[0], $r[1]['resultado']['prueba_hasta'], $db->query("SELECT prueba_hasta FROM salones WHERE id = $P1")->fetchColumn()]);
+check('Alargar prueba: desde su fin', [200, $d('+13 days'), $d('+13 days')], [$r[0], $r[1]['resultado']['prueba_hasta'], $db->query("SELECT prueba_hasta FROM salones WHERE id = $P1")->fetchColumn()]);
 $r = $ej('extender_prueba', ['dias' => 7], $A2);
 check('Alargar la prueba de quien paga → 403 no_permitido', [403, 'no_permitido'], $codigo($r));
 check('… y no le cambia nada', 'activo', $db->query("SELECT estado FROM salones WHERE id = $A2")->fetchColumn());

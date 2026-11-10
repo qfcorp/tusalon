@@ -28,6 +28,7 @@ spl_autoload_register(function (string $clase): void {
         }
     }
 });
+require_once dirname(__DIR__) . '/src/TukanDemos.php';   // demos automáticas: datos del pedido, aviso al Panel y PDF (módulo común)
 
 // 3) Sesión segura (el estado para el Panel Tukán Central no la necesita: define TUKAN_SIN_SESION)
 if (!defined('TUKAN_SIN_SESION')) {

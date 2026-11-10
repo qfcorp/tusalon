@@ -3,6 +3,11 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
 
+// Manual y guía de primeros pasos en PDF, públicos (sin sesión): los baja el Panel para el correo de la demo y se descargan desde el
+// inicio de la demo y desde Ayuda. Salen de docs/.
+$rutaPdf = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+if ($rutaPdf === '/manual.pdf') TukanDemos::servirPdf(dirname(__DIR__) . '/docs/Manual_TuSalon.pdf');
+if ($rutaPdf === '/primeros_pasos.pdf') TukanDemos::servirPdf(dirname(__DIR__) . '/docs/TuSalon_Primeros_Pasos.pdf');
 // Enlace de la app de Android con este sitio (Digital Asset Links)
 if (parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) === '/.well-known/assetlinks.json') {
     if (!\TuSalon\GooglePlay::activo()) { http_response_code(404); exit; }

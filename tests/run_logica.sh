@@ -51,5 +51,8 @@ php tests/prueba_tufactura.php || FALLO=1
 echo
 echo "==================== prueba_pago_plan (pagar el plan con tarjeta desde Mi plan, con el Panel Tukán Central simulado) ===================="
 php tests/prueba_pago_plan.php || FALLO=1
+echo
+echo "==================== prueba_demos_auto (demos automáticas de 3 días: 7 datos del pedido, aviso al Panel simulado, PDF) ===================="
+php tests/prueba_demos_auto.php || FALLO=1
 [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
 [ "$FALLO" -eq 0 ]

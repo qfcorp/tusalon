@@ -85,3 +85,9 @@ Con este módulo, cada venta cobrada sale como **factura electrónica autorizada
 **Si algo falla**
 - Si TuFactura o el SRI no responden, el cobro igual se guarda. La factura queda pendiente: toca **Reintentar las pendientes** o **Revisar**.
 - Si apagas el módulo, las facturas hechas se quedan en TuFactura.
+
+## Demos automáticas de 3 días (10 nov 2026)
+- **Solicitar demo** pide 7 datos, todos obligatorios: nombre y apellido, nombre del negocio, teléfono de contacto, celular, dirección, ciudad y correo.
+- **La clave llega al correo** en unos minutos, con el manual y la guía de primeros pasos (revisar spam). Por eso el correo debe estar bien escrito.
+- **La demo dura 3 días**, llega vacía y con todos los módulos.
+- En el **Inicio** de la demo: «Tu demo dura hasta el dd/mm» con **Descargar el manual** y **Descargar los primeros pasos**. Los mismos botones están siempre en **Ayuda**.

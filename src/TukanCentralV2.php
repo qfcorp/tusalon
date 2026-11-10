@@ -1758,7 +1758,9 @@ final class TukanCentralV2
                 'resumen' => trim(($p['ciudad'] ?: '') . ($nombres ? ' · Módulos: ' . implode(', ', $nombres) : '') . ($p['necesita'] ? ' · ' . mb_substr($p['necesita'], 0, 120) : ''), ' ·'),
                 'monto' => null, 'estado' => self::ESTADOS_DEMO[$p['estado']], 'estado_producto' => $p['estado'],
                 'prioridad' => $p['estado'] === 'nueva' ? 'alta' : 'normal', 'vence_el' => null,
-                'detalle' => ['ciudad' => $p['ciudad'], 'necesita' => $p['necesita'], 'modulos' => $mods, 'modulos_nombres' => $nombres,
+                'detalle' => ['nombre' => $p['nombre'], 'nombre_comercial' => $p['salon'], 'telefono' => ($p['telefono'] ?? '') ?: $p['whatsapp'], 'celular' => $p['whatsapp'],
+                              'direccion' => (string) ($p['direccion'] ?? ''), 'email' => $p['email'],   // los 7 datos de las demos automáticas (con ciudad)
+                              'ciudad' => $p['ciudad'], 'necesita' => $p['necesita'], 'modulos' => $mods, 'modulos_nombres' => $nombres,
                               'salon_creado_id' => $p['salon_creado_id'] ? (string) $p['salon_creado_id'] : null,
                               'atencion' => $p['atendido_por'] ? ['estado' => $p['estado'], 'nota' => $p['nota'], 'por' => $p['atendido_por'], 'momento' => self::momento($p['actualizado'])] : null],
                 'adjuntos' => [], 'acciones_posibles' => $a, 'ir' => '/?r=admin#pedidos-demo',

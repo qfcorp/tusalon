@@ -9,7 +9,7 @@
 <?php if ($enviado): ?>
 <section class="bloque" role="status">
     <h2>¡Gracias! Recibimos tu pedido</h2>
-    <p>Te escribimos por WhatsApp para preparar tu demo con los módulos que necesitas.</p>
+    <p data-gracias><?= e(TukanDemos::GRACIAS) ?></p>
     <?php if (!en_app_play()): ?>
     <p><a class="boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode('Hola, acabo de pedir una demo de TuSalón.') ?>" target="_blank" rel="noopener">Escribir ahora por WhatsApp</a></p>
     <?php endif; ?>
@@ -17,36 +17,55 @@
 <p>¿Ya tienes cuenta? <a href="<?= e(url('login')) ?>">Entrar</a></p>
 <?php return; endif; ?>
 
-<form method="post" class="bloque" novalidate>
+<form method="post" class="bloque">
     <?= campo_csrf() ?>
     <?php if ($errores): ?>
         <div class="aviso aviso-error" role="alert">
             <?php foreach ($errores as $err): ?><div><?= e($err) ?></div><?php endforeach; ?>
         </div>
     <?php endif; ?>
+    <p class="suave" data-demo-dias><strong><?= e(TukanDemos::AVISO_DIAS) ?></strong> Todos los datos son obligatorios.</p>
     <div class="fila-campos">
         <div class="campo">
-            <label for="nombre">Tu nombre</label>
-            <input type="text" id="nombre" name="nombre" value="<?= e($d['nombre']) ?>" autocomplete="name" required autofocus>
+            <label for="nombre">Tu nombre y apellido</label>
+            <input type="text" id="nombre" name="nombre" value="<?= e($d['nombre']) ?>" autocomplete="name" maxlength="80" autofocus required<?= isset($porCampo['nombre']) ? ' aria-invalid="true"' : '' ?>>
+            <?php if (isset($porCampo['nombre'])): ?><small class="error-campo" data-error="nombre" style="color:#b42318;display:block"><?= e($porCampo['nombre']) ?></small><?php endif; ?>
         </div>
         <div class="campo">
-            <label for="salon">Nombre de tu salón o barbería</label>
-            <input type="text" id="salon" name="salon" value="<?= e($d['salon']) ?>" required>
+            <label for="nombre_comercial">Nombre de tu salón o barbería</label>
+            <input type="text" id="nombre_comercial" name="nombre_comercial" value="<?= e($d['nombre_comercial']) ?>" autocomplete="organization" maxlength="120" required<?= isset($porCampo['nombre_comercial']) ? ' aria-invalid="true"' : '' ?>>
+            <?php if (isset($porCampo['nombre_comercial'])): ?><small class="error-campo" data-error="nombre_comercial" style="color:#b42318;display:block"><?= e($porCampo['nombre_comercial']) ?></small><?php endif; ?>
         </div>
     </div>
     <div class="fila-campos">
         <div class="campo">
-            <label for="ciudad">Ciudad</label>
-            <input type="text" id="ciudad" name="ciudad" value="<?= e($d['ciudad']) ?>" autocomplete="address-level2" required>
+            <label for="telefono">Teléfono de contacto</label>
+            <input type="tel" id="telefono" name="telefono" value="<?= e($d['telefono']) ?>" placeholder="022345678" autocomplete="tel" maxlength="20" pattern="[0-9+ ()\-]{7,20}" required<?= isset($porCampo['telefono']) ? ' aria-invalid="true"' : '' ?>>
+            <?php if (isset($porCampo['telefono'])): ?><small class="error-campo" data-error="telefono" style="color:#b42318;display:block"><?= e($porCampo['telefono']) ?></small><?php endif; ?>
         </div>
         <div class="campo">
-            <label for="whatsapp">WhatsApp</label>
-            <input type="tel" id="whatsapp" name="whatsapp" value="<?= e($d['whatsapp']) ?>" placeholder="0991234567" autocomplete="tel" required>
+            <label for="celular">Celular</label>
+            <input type="tel" id="celular" name="celular" value="<?= e($d['celular']) ?>" placeholder="0991234567" autocomplete="mobile tel" maxlength="20" pattern="[0-9+ ()\-]{9,20}" required<?= isset($porCampo['celular']) ? ' aria-invalid="true"' : '' ?>>
+            <?php if (isset($porCampo['celular'])): ?><small class="error-campo" data-error="celular" style="color:#b42318;display:block"><?= e($porCampo['celular']) ?></small><?php endif; ?>
+        </div>
+    </div>
+    <div class="fila-campos">
+        <div class="campo">
+            <label for="direccion">Dirección</label>
+            <input type="text" id="direccion" name="direccion" value="<?= e($d['direccion']) ?>" autocomplete="street-address" maxlength="200" required<?= isset($porCampo['direccion']) ? ' aria-invalid="true"' : '' ?>>
+            <?php if (isset($porCampo['direccion'])): ?><small class="error-campo" data-error="direccion" style="color:#b42318;display:block"><?= e($porCampo['direccion']) ?></small><?php endif; ?>
+        </div>
+        <div class="campo">
+            <label for="ciudad">Ciudad</label>
+            <input type="text" id="ciudad" name="ciudad" value="<?= e($d['ciudad']) ?>" autocomplete="address-level2" maxlength="80" required<?= isset($porCampo['ciudad']) ? ' aria-invalid="true"' : '' ?>>
+            <?php if (isset($porCampo['ciudad'])): ?><small class="error-campo" data-error="ciudad" style="color:#b42318;display:block"><?= e($porCampo['ciudad']) ?></small><?php endif; ?>
         </div>
     </div>
     <div class="campo">
-        <label for="email">Correo</label>
-        <input type="email" id="email" name="email" value="<?= e($d['email']) ?>" autocomplete="email" required>
+            <label for="email">Correo</label>
+            <input type="email" id="email" name="email" value="<?= e($d['email']) ?>" autocomplete="email" maxlength="120" required<?= isset($porCampo['email']) ? ' aria-invalid="true"' : '' ?>>
+            <small class="suave" data-aviso-correo><?= e(TukanDemos::AVISO_CORREO) ?></small>
+            <?php if (isset($porCampo['email'])): ?><small class="error-campo" data-error="email" style="color:#b42318;display:block"><?= e($porCampo['email']) ?></small><?php endif; ?>
     </div>
     <div class="campo">
         <label for="necesita">¿Qué necesitas? <small>(opcional)</small></label>

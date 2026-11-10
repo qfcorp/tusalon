@@ -5,6 +5,7 @@ declare(strict_types=1);
  * Imita plux_api.php del Panel (tukan-central/public/plux_api.php y PagosPlux::atenderPrograma): revisa el token v2 «plux»
  * (firma con TUKAN_CENTRAL_SECRET, programa TUKAN_CENTRAL_ID, hash del cuerpo, vida y que no se repita) y contesta
  * «estado», «crear», «cancelar», «cambiar» y «cancelar_plan» con las mismas respuestas y códigos. No cobra nada: todo es de mentira.
+ * También imita demo_aviso.php (aviso al instante de un pedido de demo, token v2 «demo»): contesta 202 y lo anota en avisos_demo.jsonl.
  * Guarda en PANEL_SIM_DIR: config.json ({"activo":bool,"pruebas":bool}), cobros.json y pedidos.jsonl (cada pedido recibido).
  * Para las pruebas: POST /_control {"activo":…, "pruebas":…} · {"aprobar":id,"pagado_hasta":"AAAA-MM-DD"} · {"estado":id,"a":"rechazado"} · {"reiniciar":true}
  */
@@ -35,7 +36,7 @@ $publico = function (array $c): array {
 
 if ($ruta === '/_control') {
     $b = json_decode($cuerpo, true) ?: [];
-    if (!empty($b['reiniciar'])) { $cobros = []; $config = ['activo' => true, 'pruebas' => true]; @unlink("$dir/pedidos.jsonl"); }
+    if (!empty($b['reiniciar'])) { $cobros = []; $config = ['activo' => true, 'pruebas' => true]; @unlink("$dir/pedidos.jsonl"); @unlink("$dir/avisos_demo.jsonl"); }
     foreach (['activo', 'pruebas'] as $k) if (array_key_exists($k, $b)) $config[$k] = (bool) $b[$k];
     foreach ($cobros as &$c) {
         if (isset($b['aprobar']) && $c['id'] === (int) $b['aprobar']) {
@@ -51,7 +52,7 @@ if ($ruta === '/_control') {
     $responder(200, ['ok' => true, 'config' => $config, 'cobros' => $cobros]);
 }
 if ($ruta === '/pagar') { header('Content-Type: text/html; charset=utf-8'); exit('<h1>Página de pago SIMULADA</h1><p>Aquí no se cobra nada.</p>'); }
-if ($ruta !== '/plux_api.php') $responder(404, ['ok' => false, 'error' => 'No existe.']);
+if (!in_array($ruta, ['/plux_api.php', '/demo_aviso.php'], true)) $responder(404, ['ok' => false, 'error' => 'No existe.']);
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') $responder(405, ['ok' => false, 'error' => 'Solo POST.']);
 
 // Token v2 de tipo «plux»
@@ -62,7 +63,7 @@ $p = count($partes) === 2 ? json_decode($unb64($partes[0]), true) : null;
 if (!is_array($p) || ($p['inst'] ?? '') !== (string) getenv('TUKAN_CENTRAL_ID')) $responder(404, ['ok' => false, 'codigo' => 'no_encontrado', 'error' => 'Programa no conectado al panel.']);
 $malo = fn(string $c) => $responder(401, ['ok' => false, 'codigo' => $c, 'error' => "Token no válido ($c)."]);
 if (!hash_equals($b64(hash_hmac('sha256', $partes[0], (string) getenv('TUKAN_CENTRAL_SECRET'), true)), $partes[1])) $malo('firma');
-if (($p['v'] ?? 0) !== 2 || ($p['tipo'] ?? '') !== 'plux') $malo('tipo');
+if (($p['v'] ?? 0) !== 2 || ($p['tipo'] ?? '') !== ($ruta === '/demo_aviso.php' ? 'demo' : 'plux')) $malo('tipo');
 if ((int) ($p['exp'] ?? 0) < time() || (int) ($p['iat'] ?? 0) > time() + 60) $malo('vencido');
 if (!hash_equals($b64(hash('sha256', $cuerpo, true)), (string) ($p['bh'] ?? ''))) $malo('cuerpo');
 $nonces = $leer('nonces.json', []);
@@ -72,6 +73,11 @@ $guardar('nonces.json', $nonces);
 
 $b = json_decode($cuerpo, true);
 if (!is_array($b)) $responder(400, ['ok' => false, 'codigo' => 'invalido', 'error' => 'El cuerpo debe ser JSON.']);
+if ($ruta === '/demo_aviso.php') {   // aviso al instante de un pedido de demo: el Panel contesta 202 y revisa ese programa en ese momento
+    if (($b['accion'] ?? '') !== 'demo_pedida' || !is_string($b['id'] ?? null) || $b['id'] === '') $responder(422, ['ok' => false, 'codigo' => 'invalido', 'error' => 'Falta el pedido.']);
+    file_put_contents("$dir/avisos_demo.jsonl", json_encode($b, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n", FILE_APPEND | LOCK_EX);
+    $responder(202, ['ok' => true]);
+}
 file_put_contents("$dir/pedidos.jsonl", json_encode($b + ['_email' => $p['email'] ?? ''], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n", FILE_APPEND | LOCK_EX);
 $accion = (string) ($b['accion'] ?? '');
 $cid = (string) ($b['cliente_id'] ?? '');

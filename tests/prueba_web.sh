@@ -46,11 +46,11 @@ echo "1. Demo de plan Básica con solo la base (la crea Tukán; ya no hay regist
 r=$(alta_demo "Barbería El Tucán" "Dimitry Prueba" 0990000000 "$EMAIL" claveSegura1 basica ninguno)
 check "El dueño entra a su demo" "302 $BASE/?r=inicio" "$r"
 SID=$(sql "SELECT salon_id FROM usuarios WHERE email='$EMAIL'")
-check "Demo por 7 días" "$(date -d '+7 days' +%F)" "$(sql "SELECT prueba_hasta FROM salones WHERE id=$SID")"
+check "Demo por 3 días" "$(date -d '+3 days' +%F)" "$(sql "SELECT prueba_hasta FROM salones WHERE id=$SID")"
 check "Se crean 5 servicios de ejemplo" "5" "$(sql "SELECT count(*) FROM servicios WHERE salon_id=$SID")"
 get "r=inicio" > /dev/null
 contiene "Inicio saluda al dueño" "$TMP/pag.html" "Hola, Dimitry"
-contiene "Muestra la franja de la demo" "$TMP/pag.html" "Demo: te quedan 7 días"
+contiene "Muestra la franja de la demo" "$TMP/pag.html" "Demo: te quedan 3 días"
 no_gratis() { if grep -qi "prueba gratis\|días gratis\|sin tarjeta" "$TMP/pag.html"; then FALLAS=$((FALLAS+1)); echo "  FALLA $1: promete algo gratis"; else OK=$((OK+1)); echo "  OK    $1: no promete nada gratis"; fi; }
 no_gratis "Inicio de la demo"
 JAR_REG="$TMP/c_reg"; JAR_GUARDA=$JAR; JAR=$JAR_REG
@@ -58,13 +58,13 @@ get "r=registro" > /dev/null
 contiene "El formulario público es «Solicitar demo»" "$TMP/pag.html" "Solicitar demo"
 no_gratis "Solicitar demo"
 contiene "Ofrece elegir los módulos que le interesan" "$TMP/pag.html" 'name="modulos\[\]" value="reservas_linea"'
-r=$(post "r=registro" --data-urlencode "nombre=Ana Pide" --data-urlencode "salon=Barbería Pedida" --data-urlencode "ciudad=Quito" \
+r=$(post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Ana Pide" --data-urlencode "salon=Barbería Pedida" --data-urlencode "ciudad=Quito" \
      -d whatsapp=0991230000 --data-urlencode "email=pide$RANDOM@prueba.ec" --data-urlencode "necesita=Somos dos" -d "modulos[]=reservas_linea")
 check "Pedir demo vuelve a la misma página" "302 $BASE/?r=registro" "$r"
 get "r=registro" > /dev/null
-contiene "… y dice que Tukán le escribe" "$TMP/pag.html" "Te escribimos por WhatsApp"
+contiene "… y dice que la clave le llega al correo" "$TMP/pag.html" "En unos minutos te llega al correo tu clave"
 check "El pedido queda guardado y NO crea un salón" "1|0" "$(sql "SELECT count(*) FROM pedidos_demo WHERE salon='Barbería Pedida'")|$(sql "SELECT count(*) FROM salones WHERE nombre='Barbería Pedida'")"
-r=$(post "r=registro" --data-urlencode "nombre=A" --data-urlencode "salon=X" -d whatsapp=1 -d email=malo)
+r=$(post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=A" --data-urlencode "salon=X" -d whatsapp=1 -d email=malo)
 contiene "Datos incompletos: mensaje claro" "$TMP/post.html" "Escribe tu ciudad"
 JAR=$JAR_GUARDA
 get "r=login" > /dev/null
@@ -496,7 +496,7 @@ JAR="$TMP/c_admin"
 post "r=admin_planes" -d accion=plan -d codigo=completa --data-urlencode "nombre=Completa" -d precio_mensual=45 -d max_profesionales= > /dev/null
 r=$(post "r=admin_planes" -d accion=ajustes -d dias_prueba=10 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593983662181)
 check "Los días de demo por defecto pasan a 10" "10" "$(sql "SELECT valor FROM ajustes WHERE clave='dias_prueba'")"
-post "r=admin_planes" -d accion=ajustes -d dias_prueba=7 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593983662181 > /dev/null
+post "r=admin_planes" -d accion=ajustes -d dias_prueba=3 -d dias_gracia=3 -d semestral_paga=5 -d semestral_recibe=6 -d anual_paga=10 -d anual_recibe=12 -d whatsapp_ventas=593983662181 > /dev/null
 r=$(post "r=admin_salon&id=$SIDN" -d accion=estado -d estado=suspendido)
 JAR="$TMP/c_pedro"
 code=$(curl -s -b "$JAR" -o /dev/null -w '%{http_code} %{redirect_url}' "$BASE/?r=agenda")

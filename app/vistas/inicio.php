@@ -4,6 +4,7 @@ $dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sába
 $meses = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 $nombre = explode(' ', trim($u['nombre']))[0];
 ?>
+<?php if (($u['estado'] ?? '') === 'prueba') echo TukanDemos::tarjetaDemo($u['prueba_hasta'] ?? null);   // mientras la cuenta es demo: hasta cuándo dura y los dos PDF ?>
 <div class="cabecera">
     <div>
         <h1>Hola, <?= e($nombre) ?></h1>

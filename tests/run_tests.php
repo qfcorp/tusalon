@@ -93,7 +93,7 @@ $hoy = new DateTimeImmutable('2026-10-05');
 $salon = $planes->crearSalon('Barbería Don Pepe', 'donpepe', 'completa', $hoy);
 $prueba = $db->query("SELECT estado, prueba_hasta FROM salones WHERE id = $salon")->fetch();
 check('Salón nuevo empieza en prueba', 'prueba', $prueba['estado']);
-check('Prueba gratis de 7 días (hasta 12 oct)', '2026-10-12', $prueba['prueba_hasta']);
+check('Demo de 3 días (hasta 8 oct)', '2026-10-08', $prueba['prueba_hasta']);
 
 $subId = $planes->suscribir($salon, 'completa', 'anual', new DateTimeImmutable('2026-10-12'), 'payphone', 'barberiadonpepe.com');
 $sub = $db->query("SELECT fin, dominio, monto FROM suscripciones WHERE id = $subId")->fetch();
@@ -687,7 +687,7 @@ check('La tarea de cada hora recorre los salones activos', true, $todo['salones'
 // ------------------------------------------------------------------
 echo "\n24. Panel Tukán: planes, pagos, vencimientos y salones\n";
 $pl = new Planes($db);
-check('Días de prueba por defecto: 7', '7', $pl->ajuste('dias_prueba'));
+check('Días de demo por defecto: 3', '3', $pl->ajuste('dias_prueba'));
 $pl->guardarAjustes(['dias_prueba' => '10', 'semestral_paga' => '5', 'semestral_recibe' => '6', 'anual_paga' => '9',
                      'anual_recibe' => '12', 'dias_gracia' => '3', 'whatsapp_ventas' => '+593 98 366 2181']);
 check('El panel cambia la promoción anual a "paga 9"', 315.0, $pl->cotizar('completa', 'anual')['monto']);

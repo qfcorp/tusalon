@@ -228,7 +228,7 @@ check "Registro del panel con el correo del Central" "1" "$(sql "SELECT count(*)
 r=$(c96_ej extender_prueba '{"dias":7}' "$NG")
 check "Alargar la prueba de quien paga: 403 no_permitido" "403 no_permitido" "$(c96_cod "$r")"
 r=$(c96_ej extender_prueba '{"dias":7}' "$NR")
-check "Alargar la prueba de una prueba: 200" "200 $(date -d '+14 days' +%F)" "$r $(c96_json resultado.prueba_hasta)"
+check "Alargar la prueba de una prueba: 200" "200 $(date -d '+10 days' +%F)" "$r $(c96_json resultado.prueba_hasta)"
 r=$(c96_ej registrar_pago '{"periodo":"mensual","metodo":"bitcoin"}' "$NR")
 check "Forma de pago mala: 422 con campo" "422 invalido datos.metodo" "$r $(c96_json codigo) $(c96_json campo)"
 c96_txt "… mensaje en español" "$(c96_json error)" "forma de pago"
@@ -236,7 +236,7 @@ c96_txt "… mensaje en español" "$(c96_json error)" "forma de pago"
 echo "6. Solicitudes: pedido de demo del formulario público y pedido de módulos desde Mi plan"
 JAR_GUARDA6=$JAR; JAR="$TMP/c_pide"; rm -f "$JAR"
 EPIDE="pide$RANDOM@prueba.ec"
-post "r=registro" --data-urlencode "nombre=Lucía Pide" --data-urlencode "salon=Barbería V2 Pedida" --data-urlencode "ciudad=Ambato" \
+post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Lucía Pide" --data-urlencode "salon=Barbería V2 Pedida" --data-urlencode "ciudad=Ambato" \
      -d whatsapp=0991239999 --data-urlencode "email=$EPIDE" -d "modulos[]=anticipos" > /dev/null
 PD=$(sql "SELECT id FROM pedidos_demo WHERE email='$EPIDE'")
 check "El formulario «Solicitar demo» guarda el pedido sin crear el salón" "1 0" "$(sql "SELECT count(*) FROM pedidos_demo WHERE email='$EPIDE'") $(sql "SELECT count(*) FROM usuarios WHERE email='$EPIDE'")"

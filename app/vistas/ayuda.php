@@ -21,3 +21,4 @@
         <p class="suave" style="margin-top:12px">¿Le sirvió? Si no, escríbanos por WhatsApp <a href="https://wa.me/593983662181" target="_blank" rel="noopener">098 366 2181</a>.</p>
     </section>
 <?php endif; ?>
+<?= TukanDemos::ayuda(true) /* manual y primeros pasos en PDF, para todos */ ?>
