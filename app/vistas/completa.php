@@ -1,5 +1,5 @@
 <?php
-/** Mi plan (Anexo B). Variables: $detalle, $catalogo, $planes, $plan, $precios, $pedidos, $resaltar. */
+/** Mi plan (Anexo B). Variables: $pagoHtml (pago con tarjeta por el Panel; '' = apagado), $sugHtml (aviso «te sugerimos el Completo»), $detalle, $catalogo, $planes, $plan, $precios, $pedidos, $resaltar. */
 $play = en_app_play();
 $esDemo = $detalle['demo'];
 $wa = fn(string $texto) => 'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode($texto);
@@ -28,6 +28,9 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
         <?php endif; ?>
     </div>
 </div>
+
+<?= $play ? '' : ($sugHtml ?? '') /* «Te sugerimos el Completo» (TukanPagoPlan::htmlSugerencia) */ ?>
+<?= $play ? '' : ($pagoHtml ?? '') /* «Paga tu plan con tarjeta» (src/TukanPagoPlan.php): vacío si el Panel no lo tiene encendido */ ?>
 
 <?php if (!$play): ?>
 <section class="bloque" id="total">

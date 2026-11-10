@@ -48,5 +48,8 @@ php tests/prueba_google_play.php || FALLO=1
 echo
 echo "==================== prueba_tufactura (factura electrónica con TuFactura: módulo apagado, conectar, facturar a mano y solo, sin repetir) ===================="
 php tests/prueba_tufactura.php || FALLO=1
+echo
+echo "==================== prueba_pago_plan (pagar el plan con tarjeta desde Mi plan, con el Panel Tukán Central simulado) ===================="
+php tests/prueba_pago_plan.php || FALLO=1
 [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
 [ "$FALLO" -eq 0 ]

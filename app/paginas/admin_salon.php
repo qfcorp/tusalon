@@ -19,6 +19,26 @@ if ($claveNueva) {   // «Demo lista»: los datos van cifrados en el formulario 
                                                          'negocio' => $salon['nombre']], (int) superadmin()['id'], $id, $_SESSION)];
 }
 
+// Suscripción con tarjeta (src/TukanPagoPlan.php, 10 nov 2026): si este salón paga con suscripción viva, un cambio de módulos, de precio
+// o de plan hecho aquí se manda al Panel Tukán Central (sube el valor y cobra aparte lo proporcional). No se pueden quitar módulos
+// contratados ni bajar de plan mientras dure el período pagado. $cuidar hace el cambio con esas reglas y deja el aviso en $avisoSus.
+require_once dirname(__DIR__, 2) . '/src/TukanCancelarPlan.php';
+require_once dirname(__DIR__, 2) . '/src/TukanPagoPlan.php';
+$avisoSus = null;
+$cuidar = function (callable $cambio, callable $quita, string $que = 'modulos', bool $pasaACompleto = false) use ($id, $planes, &$avisoSus): mixed {
+    $valor = function (string $periodo) use ($id, $planes): float {
+        modulos()->olvidar();
+        return (float) $planes->cotizar((string) db()->query('SELECT plan_codigo FROM salones WHERE id = ' . $id)->fetchColumn(), $periodo, $id)['monto'];
+    };
+    $conTarjeta = db()->query('SELECT metodo_pago FROM suscripciones WHERE salon_id = ' . $id . ' AND NOT anulada ORDER BY id DESC LIMIT 1')->fetchColumn() === 'plux';
+    try {
+        $x = TukanPagoPlan::cambiarCuidando(db(), (string) $id, (string) (superadmin()['email'] ?? ''), $cambio, $valor, $quita, $conTarjeta, $que, $pasaACompleto);
+    } finally {
+        modulos()->olvidar();
+    }
+    $avisoSus = $x['aviso'];
+    return $x['resultado'];
+};
 if (es_post()) {
     verificar_csrf();
     $accion = (string) ($_POST['accion'] ?? '');
@@ -38,9 +58,12 @@ if (es_post()) {
                 aviso('Pago anulado.');
                 break;
             case 'plan':
-                $panel->cambiarPlan($id, (string) ($_POST['plan'] ?? ''));
+                $cuidar(fn() => $panel->cambiarPlan($id, (string) ($_POST['plan'] ?? '')),
+                    fn() => (float) (modulos()->planes()[(string) ($_POST['plan'] ?? '')]['precio_mensual'] ?? 0) < (float) (modulos()->planes()[(string) $salon['plan_codigo']]['precio_mensual'] ?? 0), 'plan',   // bajar de plan no; pasar al Completo sí, aunque baje el valor
+                    (string) ($_POST['plan'] ?? '') === TukanPagoPlan::completo(modulos()->planes(), count(array_diff(\TuSalon\Modulos::ids(), \TuSalon\Modulos::FUERA_DE_PLANES))));
                 registrar_admin('Plan cambiado a ' . $_POST['plan'], $id);
                 aviso('Plan cambiado.');
+                if ($avisoSus) aviso($avisoSus['texto'], $avisoSus['tipo']);
                 break;
             case 'estado':
                 $panel->cambiarEstado($id, (string) ($_POST['estado'] ?? ''));
@@ -77,11 +100,12 @@ if (es_post()) {
                 $base = $actual['demo'] ? $actual['activos'] : $actual['contratados'];
                 $acTxt = trim((string) ($_POST['precio_acordado'] ?? ''));
                 if ($acTxt !== '' && !is_numeric(str_replace(',', '.', $acTxt))) throw new RuntimeException('Escribe el precio acordado con números, por ejemplo 30,00.');
-                $r = $mods->cambiar($id, array_values(array_diff($marcados, $base)), array_values(array_diff($base, TuSalon\Modulos::conDependencias($marcados))),
+                $r = $cuidar(fn() => $mods->cambiar($id, array_values(array_diff($marcados, $base)), array_values(array_diff($base, TuSalon\Modulos::conDependencias($marcados))),
                     $acTxt === '' ? null : (float) str_replace(',', '.', $acTxt), (string) ($_POST['motivo'] ?? ''),
-                    (superadmin()['nombre'] ?? 'Tukán') . ' <' . (superadmin()['email'] ?? '') . '>', 'panel');
+                    (superadmin()['nombre'] ?? 'Tukán') . ' <' . (superadmin()['email'] ?? '') . '>', 'panel'), fn($x) => (bool) $x['apagados']);
                 if (!$r['sin_cambios']) registrar_admin('Módulos: ' . $mods->textoCambio($r), $id);
                 aviso($r['sin_cambios'] ? 'Los módulos no cambiaron.' : 'Módulos guardados. ' . $mods->textoCambio($r) . '. Paga ' . dinero($r['detalle']['mensual']) . ' al mes.');
+                if ($avisoSus) aviso($avisoSus['texto'], $avisoSus['tipo']);
                 redirigir('admin_salon', ['id' => $id]);
             case 'pedido_modulos':   // aprobar o rechazar "Pedir este módulo" (lo mismo que el Panel Tukán Central)
                 $mods = modulos();
@@ -89,10 +113,11 @@ if (es_post()) {
                 if (!$p || (int) $p['salon_id'] !== $id || !in_array($p['estado'], ['pendiente', 'en_proceso'], true)) throw new RuntimeException('Ese pedido ya no está abierto.');
                 $quien = (superadmin()['nombre'] ?? 'Tukán') . ' <' . (superadmin()['email'] ?? '') . '>';
                 if (($_POST['resultado'] ?? '') === 'aprobar') {
-                    $r = $mods->cambiar($id, TuSalon\Modulos::limpiar($p['modulos']), [], false, 'Pedido desde Mi plan', $quien, 'panel');
+                    $r = $cuidar(fn() => $mods->cambiar($id, TuSalon\Modulos::limpiar($p['modulos']), [], false, 'Pedido desde Mi plan', $quien, 'panel'), fn($x) => (bool) $x['apagados']);
                     $mods->cerrarPedido((int) $p['id'], 'atendida', $quien, 'Aprobado');
                     registrar_admin('Pedido de módulos aprobado: ' . $mods->textoCambio($r), $id);
                     aviso('Pedido aprobado. ' . $mods->textoCambio($r) . '.');
+                    if ($avisoSus) aviso($avisoSus['texto'], $avisoSus['tipo']);
                 } else {
                     $mods->cerrarPedido((int) $p['id'], 'descartada', $quien, (string) ($_POST['respuesta'] ?? ''));
                     registrar_admin('Pedido de módulos rechazado', $id);

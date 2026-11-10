@@ -7,7 +7,7 @@
 #   tests/prueba_web_modulos.sh (Anexo B: módulos y "todo se pide demo") y tests/prueba_web_ia.sh (IA de Tukán y correo de la demo, con la
 #   API de Anthropic y el SMTP de mentira de tests/falsos/), tests/prueba_web_google_play.sh (cuenta del revisor de Google, modo app
 #   sin pagos por fuera y assetlinks). Con CAPTURAS=<carpeta> también saca las capturas.
-# Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector)
+# Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector; pago = solo pagar el plan con tarjeta)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
 # Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM, PUERTO_APAGADA, PUERTO_IA, PUERTO_SMTP y
 # (prueba_web_central.sh) PUERTO_SIN, PUERTO_SOLO y PUERTO_CON (si no, puertos libres al azar; fíjalos si otros procesos comparten la máquina).
@@ -63,14 +63,28 @@ P_APAGADA=${PUERTO_APAGADA:-$(puerto_libre)}
 export BASE_APAGADA="http://127.0.0.1:$P_APAGADA"
 env $SITIO TUKAN_IA_ENV="$TMPW/no_existe_ia.env" TUKAN_CORREO_ENV="$TMPW/no_existe_correo.env" php -S "127.0.0.1:$P_APAGADA" -t public tests/router.php > "$TMPW/servidor_apagado.log" 2>&1 &
 PIDS="$PIDS $!"
+# «Pagar mi plan con tarjeta» (tests/prueba_web_pago_plan.sh): el mismo programa conectado a un Panel Tukán Central SIMULADO
+P_PANEL=${PUERTO_PANEL:-$(puerto_libre)}; P_PAGO=${PUERTO_PAGO:-$(puerto_libre)}
+export PANEL_SIM="http://127.0.0.1:$P_PANEL" PANEL_SIM_DIR="$TMPW/panel" BASE_PAGO="http://127.0.0.1:$P_PAGO"
+php -S "127.0.0.1:$P_PANEL" tests/panel_simulado.php > "$TMPW/panel_simulado.log" 2>&1 &
+PIDS="$PIDS $!"
+env $SITIO TUSALON_URL=$BASE_PAGO TUKAN_CENTRAL_URL=$PANEL_SIM GOOGLE_PLAY_ACTIVO=1 TUKAN_IA_ENV="$TMPW/no_existe_ia.env" TUKAN_CORREO_ENV="$TMPW/no_existe_correo.env" php -S "127.0.0.1:$P_PAGO" -t public tests/router.php > "$TMPW/servidor_pago.log" 2>&1 &
+PIDS="$PIDS $!"
 trap 'kill $PIDS 2>/dev/null; rm -rf "$TMPW"' EXIT
-esperar "$BASE/?r=login" && esperar "$BASE_APAGADA/?r=login" || exit 1
+esperar "$BASE/?r=login" && esperar "$BASE_APAGADA/?r=login" && esperar "$BASE_PAGO/?r=login" || exit 1
 
 FALLO=0
 if [ "${1:-}" = "tufactura" ]; then   # solo la factura electrónica con TuFactura
   echo "==================== prueba_web_tufactura ===================="
   bash tests/prueba_web_tufactura.sh || FALLO=1
   if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then echo "Avisos de PHP:"; grep -iE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log | head; FALLO=1; fi
+  [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
+  exit "$FALLO"
+fi
+if [ "${1:-}" = "pago" ]; then   # solo pagar el plan con tarjeta desde Mi plan
+  echo "==================== prueba_web_pago_plan ===================="
+  bash tests/prueba_web_pago_plan.sh || FALLO=1
+  if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then echo "Avisos de PHP:"; grep -iE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log | head -20; FALLO=1; fi
   [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
   exit "$FALLO"
 fi
@@ -103,6 +117,10 @@ if [ "${1:-}" != "central" ]; then
   fi
 fi
 
+if [ "${1:-}" != "central" ]; then
+  echo; echo "==================== prueba_web_pago_plan (pagar el plan con tarjeta desde Mi plan, con el Panel Tukán Central simulado) ===================="
+  bash tests/prueba_web_pago_plan.sh || FALLO=1
+fi
 echo; echo "==================== prueba_web_tufactura (factura electrónica con TuFactura) ===================="
 bash tests/prueba_web_tufactura.sh || FALLO=1
 echo

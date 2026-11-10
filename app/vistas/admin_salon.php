@@ -55,6 +55,12 @@ $metodos = ['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'payphone' =
 <?php $cat = modulos()->catalogo(); $md = $modDetalle; ?>
 <section class="bloque" id="modulos">
     <h2>Módulos <small class="suave">(apagar no borra datos)</small></h2>
+    <?php /* «Conviene sugerirle el Completo» (decisión de Dimitry, 10 nov 2026): lo mismo que ve el dueño en su Mi plan */
+    $totSug = count(array_diff(TuSalon\Modulos::ids(), TuSalon\Modulos::FUERA_DE_PLANES));
+    $comSug = TukanPagoPlan::completo(modulos()->planes(), $totSug);
+    $filaSug = modulos()->salon((int) $s['id']);
+    echo $comSug !== null && $filaSug ? TukanPagoPlan::htmlSugerencia(TukanPagoPlan::sugerirCompleto(modulos()->planes(), $totSug, (string) $filaSug['plan_codigo'], (float) $md['mensual'],
+        (float) modulos()->detalle($filaSug, $comSug)['mensual'], $md['precio_acordado'] !== null), '', '', '', '', true) : ''; ?>
     <?php if ($md['demo']): ?><p class="aviso">Está en demo: ve <?= count($md['activos']) === count($cat) ? 'todos los módulos' : count($md['activos']) . ' módulos' ?>. Lo que marques aquí es lo que ve la demo y lo que tendrá al pagar.</p><?php endif; ?>
     <?php foreach ($modPedidos as $p): ?>
         <div class="aviso franja-solicitudes" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
