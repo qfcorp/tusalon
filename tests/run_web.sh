@@ -67,6 +67,13 @@ trap 'kill $PIDS 2>/dev/null; rm -rf "$TMPW"' EXIT
 esperar "$BASE/?r=login" && esperar "$BASE_APAGADA/?r=login" || exit 1
 
 FALLO=0
+if [ "${1:-}" = "tufactura" ]; then   # solo la factura electrónica con TuFactura
+  echo "==================== prueba_web_tufactura ===================="
+  bash tests/prueba_web_tufactura.sh || FALLO=1
+  if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then echo "Avisos de PHP:"; grep -iE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log | head; FALLO=1; fi
+  [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
+  exit "$FALLO"
+fi
 if [ "${1:-}" != "central" ]; then
   echo "==================== prueba_web ===================="
   bash tests/prueba_web.sh || FALLO=1
@@ -96,6 +103,8 @@ if [ "${1:-}" != "central" ]; then
   fi
 fi
 
+echo; echo "==================== prueba_web_tufactura (factura electrónica con TuFactura) ===================="
+bash tests/prueba_web_tufactura.sh || FALLO=1
 echo
 if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then
   echo "AVISOS DE PHP en los sitios de prueba:"; grep -hiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log | sort | uniq -c | head -30

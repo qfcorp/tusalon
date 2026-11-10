@@ -90,11 +90,11 @@ $nuevo = function (string $nombre, string $plan, bool $pagado = true) use ($db):
 titulo('1. Catálogo, base y dependencias');
 $todos = Modulos::ids();
 $ids = array_values(array_diff($todos, Modulos::FUERA_DE_PLANES));   // los que entran en los planes ('*')
-check('15 módulos, todos entran en los planes (el Asistente IA viene en Completa = *)', [15, 15, []], [count($todos), count($ids), Modulos::FUERA_DE_PLANES]);
+check('16 módulos; todos entran en los planes menos la factura electrónica (TuFactura se vende aparte; el Asistente IA viene en Completa = *)', [16, 15, ['facturacion']], [count($todos), count($ids), Modulos::FUERA_DE_PLANES]);
 check('Cada módulo con ícono, nombre, grupo conocido, descripción, precio y descuento', true, array_filter(Modulos::CATALOGO, fn($m) =>
-    $m[0] === '' || mb_strlen($m[1]) < 3 || !isset(Modulos::GRUPOS[$m[2]]) || mb_strlen($m[3]) < 20 || ($m[4] <= 0 && $m[1] !== 'Asistente IA') || $m[5] < 0 || $m[5] > $m[4]) === []);
+    $m[0] === '' || mb_strlen($m[1]) < 3 || !isset(Modulos::GRUPOS[$m[2]]) || mb_strlen($m[3]) < 20 || ($m[4] <= 0 && !in_array($m[1], ['Asistente IA', 'Factura electrónica con TuFactura'], true)) || $m[5] < 0 || $m[5] > $m[4]) === []);
 check('Asistente IA: grupo Extras y $5 en el catálogo (en Básica es extra; en Completa, incluido)', ['extras', 5.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
-check('Solo el Asistente IA no cuenta entre los módulos a elegir (TuSalón no tiene sedes; Telegram es un módulo normal)', ['asistente_ia'], Modulos::FUERA_DEL_CUPO);
+check('Solo el Asistente IA y la factura electrónica no cuentan entre los módulos a elegir (TuSalón no tiene sedes; Telegram es un módulo normal)', ['facturacion', 'asistente_ia'], Modulos::FUERA_DEL_CUPO);
 check('Las dependencias existen y no se depende de uno mismo', true, array_filter(Modulos::CATALOGO, fn($m) => array_diff($m[6], $ids) !== []) === []
       && !array_filter(array_keys(Modulos::CATALOGO), fn($id) => in_array($id, Modulos::CATALOGO[$id][6], true)));
 check('Ids en minúsculas y _', [], array_values(array_filter($ids, fn($id) => !preg_match('/^[a-z_]+$/', $id))));
@@ -199,7 +199,7 @@ check('Apagar no borra datos: el inventario de un salón que lo apaga sigue ahí
 // ---------------------------------------------------------------------------------------------
 titulo('5. Demos: todo encendido (o lo que eligió el súper usuario)');
 $dm = $nuevo('Demo Todo', 'basica', false);
-check('Demo de Básica: ve todos los módulos (también el Asistente IA)', $todos, $mods->activos($dm));
+check('Demo de Básica: ve todos los módulos (también el Asistente IA; la factura electrónica va a pedido)', array_values(array_diff($todos, Modulos::SOLO_A_PEDIDO)), $mods->activos($dm));
 check('… pero lo que pagaría al contratar es el plan ($25)', 25.0, $mods->detalle($mods->salon($dm))['mensual']);
 $db->exec("UPDATE salones SET modulos_demo = 'anticipos' WHERE id = $dm");
 check('Demo con módulos elegidos (con sus dependencias)', ['reservas_linea', 'anticipos'], $mods->activos($dm));
@@ -281,7 +281,7 @@ check('Pedido de otro salón → 404 (aislamiento)', [404, 'no_encontrado'], [$e
 titulo('8. Conector v2: modulos, cliente.modulos, cambiar_modulos, guardar_modulos, finanzas.por_modulo');
 $planes->suscribir($b, 'basica', 'mensual', new DateTimeImmutable('today'), 'transferencia');   // paga: cuenta en mensual_estimado y MRR
 $r = $pedir('modulos');
-check('modulos: base, catálogo y planes', [200, count(Modulos::BASE), 15, ['basica', 'completa']], [$r[0], count($r[1]['base']), count($r[1]['modulos']), array_column($r[1]['planes'], 'codigo')]);
+check('modulos: base, catálogo (con la factura electrónica) y planes', [200, count(Modulos::BASE), 16, ['basica', 'completa']], [$r[0], count($r[1]['base']), count($r[1]['modulos']), array_column($r[1]['planes'], 'codigo')]);
 check('… cada módulo con la forma del Anexo B', ['id', 'nombre', 'icono', 'descripcion', 'precio_mensual', 'descuento', 'depende_de', 'grupo', 'grupo_nombre', 'orden'], array_keys($r[1]['modulos'][0]));
 $cl = $pedir('cliente', ['id' => (string) $b])[1]['cliente'];
 check('cliente.modulos: los extra del salón', ['ficha_tecnica', 'equipo_ilimitado'], $cl['modulos']['extra']);
@@ -346,7 +346,7 @@ check('El mismo pedido otra vez → 409', [409, 'conflicto'], [$ej('crear_demo',
 check('crear_demo con un módulo que no existe → 422 datos.modulos', [422, 'datos.modulos'], [$ej('crear_demo', ['nombre' => 'X Salón', 'contacto_nombre' => 'Xavi', 'email' => 'x1@prueba.ec', 'telefono' => '0991234567', 'modulos' => ['oro']])[0],
       $ej('crear_demo', ['nombre' => 'X Salón', 'contacto_nombre' => 'Xavi', 'email' => 'x2@prueba.ec', 'telefono' => '0991234567', 'modulos' => ['oro']])[1]['campo']]);
 $r = $ej('crear_demo', ['nombre' => 'Demo Completa', 'contacto_nombre' => 'Eva', 'email' => 'eva@prueba.ec', 'telefono' => '0991234567']);
-check('crear_demo sin módulos: todos', Modulos::ids(), $r[1]['cliente']['modulos']['activos']);
+check('crear_demo sin módulos: todos (menos la factura electrónica)', array_values(array_diff(Modulos::ids(), Modulos::SOLO_A_PEDIDO)), $r[1]['cliente']['modulos']['activos']);
 $idX = $pd->crear(['nombre' => 'Luis', 'salon' => 'Barbería Luis', 'ciudad' => 'Loja', 'whatsapp' => '0997654321', 'email' => 'luis@prueba.ec']);
 $r = $ej('atender_solicitud', ['solicitud_id' => "demo_pedida:$idX", 'resultado' => 'descartada']);
 check('Descartar un pedido de demo', [200, 'descartada'], [$r[0], $pd->pedido($idX)['estado']]);
@@ -446,7 +446,7 @@ check('El Panel Tukán Central recibe los módulos a elegir y el precio de cada 
        array_key_exists('precio_modulo_extra', $pc['completa'] ?? []) ? $pc['completa']['precio_modulo_extra'] : 'x', $pc['basica']['limites'] ?? null]);
 $r = $pedir('modulos')[1];
 $pm = array_column($r['planes'] ?? [], null, 'codigo');
-check('Lectura «modulos»: fuera_del_cupo (para el total en vivo del Central) y los módulos a elegir de cada plan', [['asistente_ia'], 3, 5.0, 0, null],
+check('Lectura «modulos»: fuera_del_cupo (para el total en vivo del Central) y los módulos a elegir de cada plan', [['facturacion', 'asistente_ia'], 3, 5.0, 0, null],
       [$r['fuera_del_cupo'] ?? null, $pm['basica']['modulos_elegir'] ?? null, $pm['basica']['precio_modulo_extra'] ?? null, $pm['completa']['modulos_elegir'] ?? null,
        array_key_exists('precio_modulo_extra', $pm['completa'] ?? []) ? $pm['completa']['precio_modulo_extra'] : 'x']);
 $cm = $pedir('cliente', ['id' => (string) $b])[1]['cliente']['modulos'] ?? [];

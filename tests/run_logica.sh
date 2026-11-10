@@ -45,5 +45,8 @@ php tests/prueba_ia.php || FALLO=1
 echo
 echo "==================== prueba_google_play (planes de \$20 y \$45 en Google, assetlinks y cuenta del revisor) ===================="
 php tests/prueba_google_play.php || FALLO=1
+echo
+echo "==================== prueba_tufactura (factura electrónica con TuFactura: módulo apagado, conectar, facturar a mano y solo, sin repetir) ===================="
+php tests/prueba_tufactura.php || FALLO=1
 [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
 [ "$FALLO" -eq 0 ]

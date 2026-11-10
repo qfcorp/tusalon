@@ -96,6 +96,7 @@ $pideTerminos = $esDuenoAqui && !$adminViendo && !TukanLegal::aceptado(db(), (st
         <a href="<?= e(url('cuentas')) ?>">Cuentas del equipo</a>
         <?php if (modulo('recepcion')): ?><a href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
         <a href="<?= e(url('administradores')) ?>">Administradores</a>
+        <a href="<?= e(url('tufactura')) ?>">🧾 Factura electrónica</a>
         <a href="<?= e(url('completa')) ?>">Mi plan</a>
         <?php endif; ?>
         <?php if (!es_peluquero($u) && modulo('asistente_ia')): ?><a href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>

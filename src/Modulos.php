@@ -50,14 +50,17 @@ final class Modulos
      * Módulos que no entran en ningún plan (ni con '*'): se cotizan aparte. Ninguno desde el 21 oct 2026: el Asistente IA
      * viene incluido en Completa ('*'); en Básica sigue como extra por cotización.
      */
-    public const FUERA_DE_PLANES = [];
+    /** Vienen APAGADOS aunque la demo tenga «todos los módulos» (9 nov 2026): la factura electrónica con TuFactura se vende aparte. */
+    public const SOLO_A_PEDIDO = ['facturacion'];
+
+    public const FUERA_DE_PLANES = ['facturacion'];
 
     /**
      * Planes de $20 y $45 (decisión de Dimitry, 28 oct 2026; migración 011): el plan Básica trae `planes.modulos_elegir`
      * módulos a elección del salón y cada uno más cuesta `planes.precio_modulo_extra`. Estos módulos NO cuentan entre los
      * que elige: siempre se cobran a su precio del catálogo (Asistente IA $5). TuSalón no tiene módulo de sedes.
      */
-    public const FUERA_DEL_CUPO = ['asistente_ia'];
+    public const FUERA_DEL_CUPO = ['facturacion', 'asistente_ia'];
 
     /** Personas que atienden sin el módulo "equipo_ilimitado" (si el plan no pone otro número). */
     public const PERSONAS_SIN_MODULO = 3;
@@ -95,6 +98,8 @@ final class Modulos
             'Lo más vendido, el mejor peluquero, las estrellas, las horas y días más vacíos y las faltas. Te llega solo el día 1 de cada mes.', 3.0, 1.0, []],
         'telegram' => ['📲', 'Avisos automáticos por Telegram', 'avisos',
             'Recordatorio automático al cliente el día anterior, pedido de calificación después del servicio, saludo de cumpleaños y avisos de cada reserva a tu equipo con botones Aceptar y Rechazar.', 3.0, 1.0, []],
+        'facturacion' => ['🧾', 'Factura electrónica con TuFactura', 'dinero',
+            'Cada cobro sale como factura electrónica autorizada por el SRI, con un toque o sola al cobrar, y le llega al cliente por correo con el PDF y el XML. Se conecta con tu cuenta de TuFactura (TuFactura se contrata aparte con Tukán Software).', 0.0, 0.0, []],
         // Incluido en Completa ('*'). En Básica es un extra de $5 al mes que no cuenta entre los módulos a elegir (migración 011).
         'asistente_ia' => ['✨', 'Asistente IA', 'extras',
             'Arma la cita a partir del mensaje de WhatsApp del cliente con una hora libre de tu agenda, escribe el mensaje para los clientes que no vuelven y responde las dudas al instante.', 5.0, 0.0, []],
@@ -111,7 +116,7 @@ final class Modulos
         'cliente_salir' => '', 'mi_cuenta' => 'reservas_linea', 'foto' => 'reservas_linea', 'payphone' => 'anticipos',
         // del salón
         'inicio' => '', 'agenda' => '', 'cita' => '', 'cita_nueva' => '', 'clientes' => '', 'cliente' => '', 'servicios' => '',
-        'equipo' => '', 'caja' => '', 'cobrar' => '', 'cuentas' => '', 'completa' => '', 'salir' => '',
+        'equipo' => '', 'caja' => '', 'cobrar' => '', 'cuentas' => '', 'completa' => '', 'tufactura' => '', 'salir' => '',
         'prueba_terminada' => '', 'horario' => '', 'solicitudes' => '', 'horario_peluquero' => '', 'avisos_clientes' => '',
         'play_compra' => '',
         'mi_portal' => 'portal_peluquero', 'fotos' => 'reservas_linea', 'reporte' => 'reportes', 'inventario' => 'inventario',
@@ -280,7 +285,7 @@ final class Modulos
         if ($demo) {
             $elegidos = $s['modulos_demo'] ?? null;
             $elegidos = $elegidos === null ? '' : trim((string) $elegidos);
-            $activos = $elegidos === '' ? self::ids() : ($elegidos === self::NINGUNO ? [] : self::conDependencias(self::limpiar($elegidos)));
+            $activos = $elegidos === '' ? array_values(array_diff(self::ids(), self::SOLO_A_PEDIDO)) : ($elegidos === self::NINGUNO ? [] : self::conDependencias(self::limpiar($elegidos)));
         } else {
             $activos = $contratados;
         }
@@ -391,7 +396,7 @@ final class Modulos
         if (!$sinCambios) {
             $this->db->prepare('UPDATE salones SET modulos_extra = ?, modulos_quitados = ?, precio_acordado = ?, modulos_demo = ? WHERE id = ?')
                      ->execute([implode(',', $extra), implode(',', $quitados), $acordado,
-                                $demo === null ? $s['modulos_demo'] : ($demo === self::ids() ? null : ($demo === [] ? self::NINGUNO : implode(',', $demo))), $salonId]);
+                                $demo === null ? $s['modulos_demo'] : ($demo === array_values(array_diff(self::ids(), self::SOLO_A_PEDIDO)) ? null : ($demo === [] ? self::NINGUNO : implode(',', $demo))), $salonId]);
             self::$cache = [];
             $despues = $this->detalle($this->salon($salonId));
             $this->db->prepare('INSERT INTO modulos_cambios (salon_id, quien, origen, encendidos, apagados, precio_antes, precio_despues, acordado_antes, acordado, motivo)

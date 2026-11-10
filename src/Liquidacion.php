@@ -129,6 +129,8 @@ final class Liquidacion
             if ($propia) {
                 $this->db->commit();
             }
+            if (!class_exists(FacturaTukan::class)) require_once __DIR__ . '/FacturaTukan.php';
+            FacturaTukan::alCobrar($this->db, (int) $venta['salon_id'], $ventaId);   // TuFactura (módulo facturacion): factura sola si el negocio lo eligió
             return $ventaId;
         } catch (\Throwable $e) {
             if ($propia) {

@@ -279,7 +279,7 @@ check('Origen', ['central', 'super'], [$x['origen'], $por[$O1]['origen']]);
 check('cliente.modulos (§B.2): Básica pagada = solo la base', [[], [], [], [], 25.0, 0.0, 0.0, null, 25.0],
       [$x['modulos']['del_plan'], $x['modulos']['extra'], $x['modulos']['quitados'], $x['modulos']['activos'], $x['modulos']['precio_plan'],
        $x['modulos']['precio_extra'], $x['modulos']['descuento'], $x['modulos']['precio_acordado'], $x['modulos']['mensual']]);
-check('cliente.modulos: una demo ve todos', TuSalon\Modulos::ids(), $por[$P1]['modulos']['activos']);
+check('cliente.modulos: una demo ve todos (menos la factura electrónica, que va a pedido)', array_values(array_diff(TuSalon\Modulos::ids(), TuSalon\Modulos::SOLO_A_PEDIDO)), $por[$P1]['modulos']['activos']);
 check('Quien no paga: mensual_estimado 0', [0.0, 0.0], [$por[$P1]['mensual_estimado'], $por[$V1]['mensual_estimado']]);
 check('Suma de mensual_estimado = MRR de finanzas', $pedir('finanzas')[1]['mrr'], round(array_sum(array_column($lista, 'mensual_estimado')), 2));
 check('Dinero como número con decimales', true, str_contains(json_encode($r[1], FLAGS), '"total":250.0'));
