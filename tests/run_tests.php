@@ -968,7 +968,7 @@ check('Código del producto', 'tusalon_completa_mensual', GooglePlay::producto('
 check('Leer el código', ['basica', 'anual'], GooglePlay::leerProducto('tusalon_basica_anual'));
 check('Un código ajeno no se acepta', null, GooglePlay::leerProducto('otra_app_plan'));
 check('Precio sugerido: $35 en la web -> $41,99 en Google Play', 41.99, GooglePlay::precioSugerido(35));
-check('Precio sugerido: $25 -> $29,99', 29.99, GooglePlay::precioSugerido(25));
+check('Precio fijado por Tukán: $25 -> $28,99 (Completo al mes)', 28.99, GooglePlay::precioSugerido(25));
 check('Semestral Completa $175 -> $205,99', 205.99, GooglePlay::precioSugerido(175));
 // Cuenta de servicio de prueba (llave RSA nueva) y Google simulado
 $llave = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);

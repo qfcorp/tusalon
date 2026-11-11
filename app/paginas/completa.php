@@ -68,21 +68,29 @@ $prorrateoCompleto = function () use ($mods, $u, $sid, $planCompleto, $pagoPuede
     $e = $pagoPuede ? TukanPagoPlan::estado((string) $sid, (string) $u['email']) : null;
     return TukanPagoPlan::prorrateo((float) $mods->detalle($f, $planCompleto)['mensual'], (float) $mods->detalle($f)['mensual'], $u['activo_hasta'] ?? null, null, (float) ($e['iva'] ?? 15));
 };
-if (es_post() && ($_POST['accion'] ?? '') === 'pagar_mejora') {
+if (es_post() && in_array($_POST['accion'] ?? '', ['pagar_mejora', 'pasar_sin_cobro'], true)) {
     verificar_csrf();
     try {
         if (!es_dueno_o_admin($u)) throw new RuntimeException('Solo el dueño puede cambiar el plan.');
         if (en_app_play()) throw new RuntimeException('En la app el plan se paga con Google Play.');
         $pr = $prorrateoCompleto();
         if ($pr === null) throw new RuntimeException('Ya no hay un cambio de plan por pagar.');
+        $nomCompleto = (string) $mods->planes()[$planCompleto]['nombre'];
+        if ($pr['subtotal'] < 1) {   // menos de $1 (o $0: ya paga igual o más que el plan nuevo): no se cobra y pasa directo, aunque no haya pago con tarjeta
+            (new \TuSalon\PanelTukan(db()))->cambiarPlan($sid, $planCompleto);
+            db()->prepare('INSERT INTO registro_admin (admin_id, salon_id, accion) VALUES (NULL, ?, ?)')->execute([$sid, 'Pasó al plan ' . $nomCompleto . ' desde Mi plan: la diferencia era menor a $1 y no se cobró']);
+            aviso('La diferencia es menor a $1: no se cobra. Ya tienes el plan ' . $nomCompleto . '.');
+            redirigir('completa');
+        }
+        if ($_POST['accion'] === 'pasar_sin_cobro') throw new RuntimeException('Ese cambio de plan sí tiene un valor: revisa el cálculo.');
         $pagoEstado = $pagoPuede ? TukanPagoPlan::estado((string) $sid, (string) $u['email']) : null;
         if (!TukanPagoPlan::activo($pagoEstado)) throw new RuntimeException('El pago con tarjeta no está disponible por ahora. Usa «Enviar por WhatsApp».');
-        $nomCompleto = (string) $mods->planes()[$planCompleto]['nombre'];
         $neg = db()->query('SELECT ruc, telefono FROM salones WHERE id = ' . $sid)->fetch() ?: [];
         $mj = TukanPagoPlan::mejora(['cliente_id' => (string) $sid, 'nombre' => (string) ($u['salon'] ?? ''), 'plan' => $planCompleto, 'plan_nombre' => $nomCompleto,
             'subtotal' => $pr['subtotal'], 'hasta' => $pr['hasta'], 'comprador' => ['nombre' => (string) $u['nombre'], 'correo' => (string) $u['email'], 'telefono' => (string) ($neg['telefono'] ?? '')],
             'ruc' => (string) ($neg['ruc'] ?? ''), 'volver' => \TuSalon\Agenda::urlBase() . url('completa')], (string) $u['email']);
         if ($mj['resultado'] === 'pagar') {
+            TukanPagoPlan::mejoraPendiente(db(), (string) $sid, (int) ($mj['cobro']['id'] ?? 0), $planCompleto);   // si paga y no vuelve a Mi plan, la tarea de cada hora la aplica
             header('Location: ' . $mj['url']);   // la página segura de pago (Plux). El plan cambia cuando el pago queda aprobado.
             exit;
         }

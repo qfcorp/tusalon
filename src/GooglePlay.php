@@ -68,12 +68,19 @@ final class GooglePlay
         return [$m[1], $m[2]];
     }
 
+    /** Precio web del período => precio en Google Play fijado a mano por Tukán (no sale de la fórmula). */
+    public const PRECIOS_FIJADOS = ['25.00' => 28.99, '125.00' => 144.99, '250.00' => 289.99];
+
     /**
      * Precio sugerido en Google Play para que, después de la comisión, quede lo mismo que en la web.
      * Ej. $35 / (1 - 0,15) = $41,18 -> $41,99
      */
     public static function precioSugerido(float $precioWeb, float $comision = 0.15): float
     {
+        // (10 nov 2026) Dimitry fijó el Completo en Google Play: $28,99 al mes / $144,99 6 meses / $289,99 1 año (web: $25 / $125 / $250).
+        // Son los mismos productos de suscripción; solo se cambia el precio en Play Console. Lo demás sigue con la fórmula.
+        $fijado = self::PRECIOS_FIJADOS[number_format($precioWeb, 2, '.', '')] ?? null;
+        if ($fijado !== null && abs($comision - 0.15) < 0.0001) return $fijado;
         $bruto = $precioWeb / (1 - $comision);
         return floor($bruto) + 0.99;
     }

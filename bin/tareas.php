@@ -37,6 +37,29 @@ if (!$candado || !flock($candado, LOCK_EX | LOCK_NB)) { echo "Ya hay una tarea c
 $ahora = new DateTimeImmutable($argv[1] ?? 'now');
 $db = TuSalon\Db::conectar();
 $r = (new TuSalon\Automaticas($db))->correr($ahora);
+// Subir de plan pagando el prorrateo con tarjeta (src/TukanPagoPlan.php): si el dueño pagó y no volvió a abrir Mi plan, el plan se
+// aplica aquí. Solo pregunta al Panel Tukán Central por quienes fueron a pagar una mejora en los últimos días; si el Panel no contesta, nada.
+require_once RAIZ . '/src/TukanCancelarPlan.php';
+require_once RAIZ . '/src/TukanPagoPlan.php';
+try {
+    $mejoras = TukanPagoPlan::aplicarMejorasPendientes($db, function (string $cid, array $cobro) use ($db): bool {
+        $st = $db->prepare('SELECT plan_codigo FROM salones WHERE id = ?');
+        $st->execute([(int) $cid]);
+        $actual = $st->fetchColumn();
+        if ($actual === false || $actual === (string) $cobro['plan']) return true;   // ya no existe o ya lo tiene: nada que hacer
+        try {
+            (new TuSalon\PanelTukan($db))->cambiarPlan((int) $cid, (string) $cobro['plan']);
+        } catch (RuntimeException) {
+            return true;   // ese plan ya no existe: no se insiste
+        }
+        $db->prepare('INSERT INTO registro_admin (admin_id, salon_id, accion) VALUES (NULL, ?, ?)')
+           ->execute([(int) $cid, 'Pasó al plan ' . $cobro['plan'] . ': prorrateo pagado con tarjeta (cobro ' . (int) $cobro['id'] . '), aplicado por la tarea de cada hora']);
+        return true;
+    });
+    if ($mejoras) echo "Cambios de plan pagados con tarjeta aplicados: $mejoras\n";
+} catch (Throwable $e) {
+    echo 'Cambios de plan pagados: ' . $e->getMessage() . "\n";
+}
 // Planes pagados en la app de Google Play: renovaciones y cancelaciones
 $gp = TuSalon\GooglePlay::activo() ? (new TuSalon\GooglePlay($db))->revisarRenovaciones($ahora) : ['renovadas' => 0, 'revisadas' => 0];
 echo $ahora->format('Y-m-d H:i') . " · salones {$r['salones']} · recordatorios {$r['recordatorios']} · cumpleaños {$r['cumpleanos']}"

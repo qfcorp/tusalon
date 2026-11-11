@@ -438,6 +438,39 @@ check('Panel caído: «sin_panel», con mensaje y sin romper nada', ['sin_panel'
 TukanCancelarPlan::$config = $conf;
 check('Un cobro de mejora de otro cliente no se aplica a este', null, TukanPagoPlan::mejoraPagada($db, (string) $ss, $estado($ss)));
 
+titulo('14. Menos de $1 pasa directo sin cobro, y la tarea de cada hora aplica la mejora pagada');
+$p0 = TukanPagoPlan::prorrateo(25.0, 27.99, '2026-11-25', '2026-11-10');
+$h = TukanPagoPlan::htmlProrrateo($p0, 'Completo', '<input type="hidden" name="csrf" value="x">', '/?r=mi_plan', false, 'https://wa.me/593000000000?text=hola');
+check('Ya paga igual o más que el Completo ($0): botón «Pasarme ahora (no se cobra)», aunque no haya pago con tarjeta', true, str_contains($h, 'value="pasar_sin_cobro"') && str_contains($h, '>Pasarme ahora (no se cobra)</button>'));
+check('… con «La diferencia es menor a $1: no se cobra»', true, str_contains($h, 'La diferencia es menor a $1: no se cobra.'));
+check('… sin botón de tarjeta ni de WhatsApp (no hay nada que pagar)', [false, false], [str_contains($h, 'pagar_mejora'), str_contains($h, 'Enviar por WhatsApp')]);
+$p99 = TukanPagoPlan::prorrateo(25.0, 12.99, '2026-11-12', '2026-11-10');   // 2 días: $0,80
+check('Diferencia de $0,80 (2 días): también pasa sin cobro', [0.8, true], [$p99['subtotal'], str_contains(TukanPagoPlan::htmlProrrateo($p99, 'Completo', 'x', '/', true, 'https://wa.me/1?text=a'), 'pasar_sin_cobro')]);
+check('Diferencia de $1 o más: se cobra (tarjeta o WhatsApp), sin el botón de pasar gratis', false, str_contains(TukanPagoPlan::htmlProrrateo($p, 'Completo', 'x', '/', true, 'https://wa.me/1?text=a'), 'pasar_sin_cobro'));
+// La tarea de cada hora: aplica la mejora pagada de quien no volvió a abrir Mi plan
+$th = $nuevo('Cliente Que No Vuelve', $BAS);
+$db->prepare('UPDATE ' . TABLA . " SET estado = 'activo', activo_hasta = ? WHERE id = ?")->execute([$hastaM, $th]);
+$mh = TukanPagoPlan::mejora(['cliente_id' => (string) $th, 'nombre' => 'Cliente Que No Vuelve'] + $datosM, 'duena@prueba.ec');
+TukanPagoPlan::mejoraPendiente($db, (string) $th, (int) $mh['cobro']['id'], $COM);
+$aplicados = [];
+$aplicar = function (string $cid, array $cobro) use (&$aplicados, $panelP): bool { $panelP->cambiarPlan((int) $cid, (string) $cobro['plan']); $aplicados[] = [$cid, (int) $cobro['id']]; return true; };
+check('Tarea de cada hora, todavía sin pagar: no aplica nada', [0, $BAS], [TukanPagoPlan::aplicarMejorasPendientes($db, $aplicar), $fila($th)['plan_codigo']]);
+$control(['aprobar' => (int) $mh['cobro']['id']]);
+check('Pagó y no volvió a Mi plan: la tarea aplica el plan', [1, $COM, $hastaM], [TukanPagoPlan::aplicarMejorasPendientes($db, $aplicar), $fila($th)['plan_codigo'], $fila($th)['activo_hasta']]);
+check('… solo a ese cliente y ese cobro', [[(string) $th, (int) $mh['cobro']['id']]], $aplicados);
+check('La hora siguiente ya no hay nada que aplicar', [0, 1], [TukanPagoPlan::aplicarMejorasPendientes($db, $aplicar), count($aplicados)]);
+check('… y Mi plan tampoco la vuelve a aplicar', null, TukanPagoPlan::mejoraPagada($db, (string) $th, $estado($th)));
+$tp = $nuevo('Cliente Pendiente Panel Caído', $BAS);
+TukanPagoPlan::mejoraPendiente($db, (string) $tp, 9999, $COM);
+TukanCancelarPlan::$config = ['url' => 'http://127.0.0.1:' . $libre()] + $conf;
+check('Con el Panel caído la tarea no rompe nada (lo intenta a la hora siguiente)', 0, TukanPagoPlan::aplicarMejorasPendientes($db, $aplicar));
+TukanCancelarPlan::$config = $conf;
+// Google Play: precios fijados por Tukán para el Completo (mismos productos)
+$GP = $clase('GooglePlay');
+check('Google Play, Completo: $28,99 al mes / $144,99 6 meses / $289,99 1 año', [28.99, 144.99, 289.99], [$GP::precioSugerido(25), $GP::precioSugerido(125), $GP::precioSugerido(250)]);
+check('Google Play, Básico: $15,99 / $76,99 / $152,99', [15.99, 76.99, 152.99], [$GP::precioSugerido(12.99), $GP::precioSugerido(64.95), $GP::precioSugerido(129.90)]);
+check('Los códigos de los productos no cambian', [true, true], [str_ends_with($GP::producto($COM, 'mensual'), "_{$COM}_mensual"), str_ends_with($GP::producto($BAS, 'anual'), "_{$BAS}_anual")]);
+
 proc_terminate($proc);
 array_map('unlink', glob("$simDir/*") ?: []);
 @rmdir($simDir);

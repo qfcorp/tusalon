@@ -310,6 +310,7 @@ final class TukanPagoPlan
     /**
      * El cálculo a la vista con sus dos botones: «Pagar $Y con tarjeta» (solo si el Panel tiene el pago encendido; manda accion=pagar_mejora)
      * y «Enviar por WhatsApp» ($waUrl = enlace de WhatsApp de Tukán con el texto listo; '' = sin botón, p. ej. en la app de Google Play).
+     * Si la diferencia es menor a $1 (o $0: ya paga igual o más que el plan nuevo) solo sale «Pasarme ahora (no se cobra)» (accion=pasar_sin_cobro).
      */
     public static function htmlProrrateo(array $p, string $plan, string $csrf, string $accion, bool $conTarjeta, string $waUrl): string
     {
@@ -317,6 +318,10 @@ final class TukanPagoPlan
             . self::e($plan) . ':</strong> te faltan <span data-dias>' . (int) $p['dias'] . '</span> ' . ($p['dias'] === 1 ? 'día' : 'días') . ' (hasta el ' . self::e(self::fecha($p['hasta'])) . '). Diferencia: <span data-subtotal>'
             . self::dinero((float) $p['subtotal']) . '</span> + IVA = <strong data-total>' . self::dinero((float) $p['total']) . '</strong>.</p>'
             . '<p style="margin:0 0 8px">Tu fecha de vencimiento no cambia. Desde tu próxima renovación pagas el plan ' . self::e($plan) . '.</p><div class="acciones">';
+        if ((float) $p['subtotal'] < 1) {   // menos de $1 (o nada): no se cobra y pasa directo, haya o no pago con tarjeta
+            return $h . '<form method="post" action="' . self::e($accion) . '" style="display:inline">' . $csrf . '<input type="hidden" name="accion" value="pasar_sin_cobro">'
+                . '<button class="boton boton-chico" type="submit">Pasarme ahora (no se cobra)</button></form></div><p class="suave" data-sin-cobro style="margin:8px 0 0">La diferencia es menor a $1: no se cobra.</p></div>';
+        }
         if ($conTarjeta) {
             $h .= '<form method="post" action="' . self::e($accion) . '" style="display:inline">' . $csrf . '<input type="hidden" name="accion" value="pagar_mejora">'
                 . '<button class="boton boton-chico" type="submit">Pagar ' . self::dinero((float) $p['total']) . ' con tarjeta</button></form>';
@@ -359,8 +364,8 @@ final class TukanPagoPlan
         $pagadas = array_filter(is_array($estado['cobros'] ?? null) ? $estado['cobros'] : [],
             fn($c) => is_array($c) && ($c['origen'] ?? '') === 'mejora' && ($c['estado'] ?? '') === 'pagado' && is_string($c['plan'] ?? null) && $c['plan'] !== '');
         if (!$pagadas) return null;
-        $db->exec('CREATE TABLE IF NOT EXISTS tukan_mejoras (cliente_id VARCHAR(80) NOT NULL, cobro_id INTEGER NOT NULL, plan VARCHAR(60) NOT NULL, aplicada VARCHAR(40) NOT NULL, PRIMARY KEY (cliente_id, cobro_id))');
-        $st = $db->prepare('SELECT cobro_id FROM tukan_mejoras WHERE cliente_id = ?');
+        self::asegurarMejoras($db);
+        $st = $db->prepare("SELECT cobro_id FROM tukan_mejoras WHERE cliente_id = ? AND aplicada <> ''");
         $st->execute([$clienteId]);
         $ya = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
         usort($pagadas, fn($a, $b) => (int) $a['id'] <=> (int) $b['id']);
@@ -368,10 +373,48 @@ final class TukanPagoPlan
         return null;
     }
 
+    /** La tabla de las mejoras (se crea sola): una fila por cobro; «aplicada» vacía = todavía esperando el pago. */
+    private static function asegurarMejoras(PDO $db): void
+    {
+        $db->exec("CREATE TABLE IF NOT EXISTS tukan_mejoras (cliente_id VARCHAR(80) NOT NULL, cobro_id INTEGER NOT NULL, plan VARCHAR(60) NOT NULL, pedida VARCHAR(40) NOT NULL DEFAULT '',
+                   aplicada VARCHAR(40) NOT NULL DEFAULT '', PRIMARY KEY (cliente_id, cobro_id))");
+    }
+
+    /** Anota que el cliente fue a pagar esa mejora (para que la tarea de cada hora la aplique si paga y no vuelve a abrir Mi plan). */
+    public static function mejoraPendiente(PDO $db, string $clienteId, int $cobroId, string $plan): void
+    {
+        self::asegurarMejoras($db);
+        $db->prepare("INSERT INTO tukan_mejoras (cliente_id, cobro_id, plan, pedida, aplicada) VALUES (?, ?, ?, ?, '') ON CONFLICT (cliente_id, cobro_id) DO NOTHING")->execute([$clienteId, $cobroId, $plan, date('c')]);
+    }
+
     /** Anota que ese cobro de mejora ya se aplicó (para no aplicarlo dos veces). */
     public static function marcarMejora(PDO $db, string $clienteId, int $cobroId, string $plan): void
     {
-        $db->prepare('INSERT INTO tukan_mejoras (cliente_id, cobro_id, plan, aplicada) VALUES (?, ?, ?, ?) ON CONFLICT (cliente_id, cobro_id) DO NOTHING')->execute([$clienteId, $cobroId, $plan, date('c')]);
+        self::asegurarMejoras($db);
+        $db->prepare("INSERT INTO tukan_mejoras (cliente_id, cobro_id, plan, pedida, aplicada) VALUES (?, ?, ?, ?, ?)
+                      ON CONFLICT (cliente_id, cobro_id) DO UPDATE SET aplicada = EXCLUDED.aplicada WHERE tukan_mejoras.aplicada = ''")->execute([$clienteId, $cobroId, $plan, date('c'), date('c')]);
+    }
+
+    /**
+     * Para la tarea de cada hora: de los clientes que fueron a pagar una mejora en los últimos $dias días y todavía no se aplicó, pregunta
+     * al Panel y, si ya está pagada, la aplica con $aplicar = fn(string $clienteId, array $cobro): bool (true = aplicada o ya no hace falta).
+     * Devuelve cuántas aplicó. Si el Panel no contesta, no pasa nada: se intenta en la hora siguiente.
+     */
+    public static function aplicarMejorasPendientes(PDO $db, callable $aplicar, int $dias = 15): int
+    {
+        self::asegurarMejoras($db);
+        $st = $db->prepare("SELECT DISTINCT cliente_id FROM tukan_mejoras WHERE aplicada = '' AND pedida >= ?");
+        $st->execute([date('c', time() - $dias * 86400)]);
+        $n = 0;
+        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $cid) {
+            $cid = (string) $cid;
+            for ($i = 0; $i < 5 && ($c = self::mejoraPagada($db, $cid, self::estado($cid, '', true))) !== null; $i++) {
+                if (!$aplicar($cid, $c)) break;
+                self::marcarMejora($db, $cid, (int) $c['id'], (string) $c['plan']);
+                $n++;
+            }
+        }
+        return $n;
     }
 
     private static function e(mixed $s): string

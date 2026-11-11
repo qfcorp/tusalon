@@ -44,9 +44,9 @@ Usa **exactamente** estos códigos (el sistema los reconoce por el nombre):
 | `tusalon_basica_mensual` | Básica | 1 mes | $12,99 | **$15,99** |
 | `tusalon_basica_semestral` | Básica | 6 meses | $64,95 | **$76,99** |
 | `tusalon_basica_anual` | Básica | 1 año | $129,90 | **$152,99** |
-| `tusalon_completa_mensual` | Completa | 1 mes | $25 | **$29,99** |
-| `tusalon_completa_semestral` | Completa | 6 meses | $125 | **$147,99** |
-| `tusalon_completa_anual` | Completa | 1 año | $250 | **$294,99** |
+| `tusalon_completa_mensual` | Completa | 1 mes | $25 | **$28,99** |
+| `tusalon_completa_semestral` | Completa | 6 meses | $125 | **$144,99** |
+| `tusalon_completa_anual` | Completa | 1 año | $250 | **$289,99** |
 
 Precios del 6 nov 2026: Básica $12 + IVA (la base + 3 módulos a elegir; cada módulo más $5) y Completa $25 + IVA (todo, con el Asistente IA).
 En Google Play solo se venden los dos planes: los módulos que el salón elige en la Básica los enciende Tukán desde el panel.
@@ -189,3 +189,5 @@ Están en el repositorio **qfcorp/tukan-apps**: `tienda/tusalon/TEXTOS_GOOGLE_PL
 - El Básico pasa de $12 a **$12,99** al mes ($64,95 por 6 meses, $129,90 por 1 año), más IVA.
 - En Google Play: **$15,99 / $76,99 / $152,99**. El Completo no cambia: $29,99 / $147,99 / $294,99.
 - Si los productos ya estaban creados en Play Console con $14,99 / $70,99 / $141,99, hay que cambiarles el precio ahí.
+
+- **10 nov 2026: Dimitry fijó Básico $15,99 y Completo $28,99; se cambia el precio en Play Console de los productos que ya existen.** Básico $15,99 al mes / $76,99 6 meses / $152,99 1 año. Completo $28,99 al mes / $144,99 6 meses / $289,99 1 año (antes $29,99 / $147,99 / $294,99). No se crea ni se renombra ningún producto. El Completo ya no sale de la fórmula de la comisión: está fijado en `GooglePlay::PRECIOS_FIJADOS`.

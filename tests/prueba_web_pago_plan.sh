@@ -419,14 +419,46 @@ check "… queda anotado en el registro del negocio que ve Tukán" "1" "$(sql "S
 sql "UPDATE $TABLA SET plan_codigo = '$BAS' WHERE id = $S8" > /dev/null   # como si Tukán lo devolviera después
 get "r=$RUTA" > /dev/null
 check "Se aplica UNA sola vez: el mismo cobro no vuelve a cambiar el plan" "$BAS|1" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S8")|$(sql "SELECT count(*) FROM tukan_mejoras WHERE cliente_id='$S8'")"
-# Menos de $1: no se cobra y el plan cambia
+# Menos de $1 (aquí $0: ya paga más que el Completo): pasa directo sin cobro y sin preguntarle al Panel
 E9="pagominimo$RANDOM@prueba.ec"; S9=$(demo "$NEGOCIO Minimo" "$E9" "$BAS" "" pagado)
 pone $S9 "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"   # ya paga $27,99: pasar al Completo ($25) no cuesta nada
 entrar "$E9"
-NM=$(cuantos mejora)
-post "r=$RUTA" -d accion=pagar_mejora > /dev/null; get "r=$RUTA" > /dev/null
-check "Diferencia menor a \$1: el Panel contesta «minimo» y el plan cambia sin cobro" "$COM|$((NM+1))" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S9")|$(cuantos mejora)"
-contiene "… y lo dice: «La diferencia es menor a \$1: no se cobra»" "$TMP/pag.html" 'La diferencia es menor a \$1: no se cobra'
+get "r=$RUTA&completo=prorrateo" > /dev/null
+contiene "Ya paga más que el Completo: botón «Pasarme ahora (no se cobra)»" "$TMP/pag.html" ">Pasarme ahora (no se cobra)</button>"
+contiene "… «La diferencia es menor a \$1: no se cobra»" "$TMP/pag.html" 'La diferencia es menor a \$1: no se cobra'
+no_contiene "… sin botón de pagar con tarjeta ni de WhatsApp" "$TMP/pag.html" 'value="pagar_mejora"\|Enviar por WhatsApp'
+NM=$(cuantos mejora); V9=$(sql "SELECT activo_hasta FROM $TABLA WHERE id=$S9")
+post "r=$RUTA" -d accion=pasar_sin_cobro > /dev/null; get "r=$RUTA" > /dev/null
+check "«Pasarme ahora»: el plan cambia sin cobro, el vencimiento no, y no se pide nada al Panel" "$COM|$V9|$NM" "$(sql "SELECT plan_codigo||'|'||activo_hasta FROM $TABLA WHERE id=$S9")|$(cuantos mejora)"
+contiene "… y lo dice: «La diferencia es menor a \$1: no se cobra»" "$TMP/pag.html" 'La diferencia es menor a \$1: no se cobra. Ya tienes el plan'
+check "… queda anotado en el registro del negocio" "1" "$(sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S9 AND accion LIKE '%menor a \$1 y no se cobró'")"
+# Lo mismo con el Panel caído (el sitio de siempre)
+E9B="pagominimob$RANDOM@prueba.ec"; S9B=$(demo "$NEGOCIO Minimo Sin Panel" "$E9B" "$BAS" "" pagado)
+pone $S9B "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"
+BASE=$BASE0; entrar "$E9B"
+get "r=$RUTA&completo=prorrateo" > /dev/null
+contiene "Con el Panel caído también sale «Pasarme ahora (no se cobra)»" "$TMP/pag.html" ">Pasarme ahora (no se cobra)</button>"
+post "r=$RUTA" -d accion=pasar_sin_cobro > /dev/null
+check "… y pasa directo al Completo" "$COM" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S9B")"
+# Quien sí debe pagar no puede usar «pasar sin cobro»
+E9C="pagosicobra$RANDOM@prueba.ec"; S9C=$(demo "$NEGOCIO Si Cobra" "$E9C" "$BAS" "" pagado)
+entrar "$E9C"; post "r=$RUTA" -d accion=pasar_sin_cobro > /dev/null
+check "Con diferencia de \$1 o más, «pasar sin cobro» no cambia el plan" "$BAS" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S9C")"
+BASE=$BASE_PAGO
+# La tarea de cada hora aplica la mejora pagada de quien no volvió a abrir Mi plan
+entrar "$E9C"
+r=$(post "r=$RUTA" -d accion=pagar_mejora); C9C=${r##*c=}
+check "Va a pagar la diferencia: queda anotada como pendiente" "1" "$(sql "SELECT count(*) FROM tukan_mejoras WHERE cliente_id='$S9C' AND cobro_id=$C9C AND aplicada=''")"
+tarea() { env ${PRE}_DB_NAME=$DB ${PRE}_DB_USER=$U ${PRE}_DB_PASS=$PGPASSWORD TUKAN_CENTRAL_URL=$PANEL_SIM php bin/tareas.php > "$TMP/tareas.log" 2>&1; }
+tarea
+check "Tarea de cada hora sin que haya pagado: el plan no cambia" "$BAS" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S9C")"
+control "{\"aprobar\":$C9C}"
+V9C=$(sql "SELECT activo_hasta FROM $TABLA WHERE id=$S9C")
+tarea
+check "Pagó y no volvió a Mi plan: la tarea de cada hora aplica el plan (vencimiento igual)" "$COM|$V9C" "$(sql "SELECT plan_codigo||'|'||activo_hasta FROM $TABLA WHERE id=$S9C")"
+contiene "… y lo dice en su registro" "$TMP/tareas.log" "Cambios de plan pagados con tarjeta aplicados: 1"
+no_contiene "… sin errores de PHP en la tarea" "$TMP/tareas.log" "Fatal\|Warning"
+check "… anotado en el registro del negocio y una sola vez" "1|1" "$(sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S9C AND accion LIKE '%aplicado por la tarea de cada hora'")|$(tarea; sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S9C AND accion LIKE '%aplicado por la tarea de cada hora'")"
 # Plan vencido: sin prorrateo, paga el plan entero
 E10="pagovencido$RANDOM@prueba.ec"; S10=$(demo "$NEGOCIO Vencido" "$E10" "$BAS" "" pagado)
 sql "UPDATE $TABLA SET activo_hasta = CURRENT_DATE - 1 WHERE id = $S10" > /dev/null

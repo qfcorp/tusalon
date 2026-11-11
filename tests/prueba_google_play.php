@@ -44,7 +44,7 @@ $planes = new Planes($db);
 $precios = array_map('floatval', $db->query('SELECT codigo, precio_mensual FROM planes ORDER BY codigo')->fetchAll(PDO::FETCH_KEY_PAIR));
 check('Los planes son Básica $12,99 y Completa $25', ['basica' => 12.99, 'completa' => 25.0], $precios);
 $esperado = ['basica' => ['mensual' => 15.99, 'semestral' => 76.99, 'anual' => 152.99],
-             'completa' => ['mensual' => 29.99, 'semestral' => 147.99, 'anual' => 294.99]];
+             'completa' => ['mensual' => 28.99, 'semestral' => 144.99, 'anual' => 289.99]];
 foreach ($esperado as $plan => $porPeriodo) {
     foreach ($porPeriodo as $periodo => $google) {
         $prod = GooglePlay::producto($plan, $periodo);
