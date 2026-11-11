@@ -94,7 +94,7 @@ def accion(pg, cual):
     elif cual == 'preguntar_ayuda':   # la respuesta sale de la pregunta frecuente del salón de ejemplo (sin IA)
         pg.fill('#pregunta', '¿Cómo registro un pago?')
         with pg.expect_navigation():
-            pg.click('form button[type=submit]')
+            pg.click('form[action*="r=ayuda"] button[type=submit]')   # el formulario de la Ayuda (no el de los términos)
         pg.wait_for_load_state('networkidle')
     elif cual in ('ocultar_precios', 'ocultar_precios_bajar'):
         pg.add_style_tag(content=OCULTAR_PLAN + ' { display: none !important; }')

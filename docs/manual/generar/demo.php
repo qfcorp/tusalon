@@ -313,6 +313,11 @@ require_once RAIZ . '/src/tukan_ia.php';
 (new TukanIaFaqPdo($db))->agregar('¿Cómo registro un pago?',
     "1. Abre la cita en la **Agenda** y toca **Cobrar** (para alguien sin cita, toca **Cobrar** en **Hoy**).\n2. Revisa los servicios y el precio, y agrega la propina si la dejó.\n3. Elige cómo pagó (efectivo, transferencia, DeUna o tarjeta) y toca **Cobrar**.\nEl pago entra a la caja del día y a las cuentas del equipo.");
 
+// Términos y privacidad de Tukán ya aceptados por las dos dueñas que pagan (como un cliente real; la demo los acepta en Mi plan)
+require_once RAIZ . '/src/TukanLegal.php';
+TukanLegal::aceptar($db, (string) $sid, 'demo@tusalon.tukanec.com');
+TukanLegal::aceptar($db, (string) $b['salon_id'], 'basica@tusalon.tukanec.com');
+
 // ---------------------------------------------------------------- Datos para las capturas
 $tok = fn(int $id) => (string) $q('SELECT token FROM citas WHERE id = ?', [$id])->fetchColumn();
 $atendida = (int) $q("SELECT c.id FROM citas c WHERE c.salon_id = ? AND c.estado = 'atendida' AND c.cliente_id = ? AND NOT EXISTS (SELECT 1 FROM calificaciones k WHERE k.cita_id = c.id) ORDER BY c.inicio DESC LIMIT 1", [$sid, $cli['andrea']])->fetchColumn();
