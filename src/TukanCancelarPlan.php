@@ -150,7 +150,7 @@ final class TukanCancelarPlan
                 . $tu('Sigues usando todo hasta el fin del período que ya pagaste.', 'Sigue usando todo hasta el fin del período que ya pagó.') . '</p></section>';
         }
         if ($estado) {
-            // (10 nov 2026, Dimitry: «debe salir algún mensaje… aplasté dos veces porque no pasaba nada») confirmación clara, en verde
+            // (10 nov 2026, pedido del dueño de Tukán: «debe salir algún mensaje… aplasté dos veces porque no pasaba nada») confirmación clara, en verde
             $f = self::fecha($estado['hasta'] ?? null);
             $avisada = (int) ($estado['avisada'] ?? 0) === 1;
             return $h . '<div class="aviso aviso-ok tc-cancelado" role="status" style="border-left:4px solid #1F8A4C;background:#E3F4EA;color:#14213D;padding:12px 14px;border-radius:10px">'
