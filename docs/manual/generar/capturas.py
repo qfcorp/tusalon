@@ -172,6 +172,8 @@ def main():
                                          .map(e => e.textContent).join('\\n')""")
             for m in PRECIO_SOFTWARE.finditer(visible):
                 fallas.append(f'{nombre}: se ve un precio del software o la palabra prohibida: «{m.group(0)}»')
+            if completa:   # página completa: la barra de arriba (fija al bajar) no se repite en medio de la foto
+                pg.add_style_tag(content='.tk-arriba { position: static !important; }')
             pg.screenshot(path=str(SAL / f'{nombre}.png'), full_page=completa)
             print('captura', nombre)
         nav.close()

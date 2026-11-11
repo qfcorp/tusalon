@@ -607,3 +607,6 @@ body.admin { background: var(--fondo); }
     .tk .tk-cifra .tk-cifra-valor { font-size: 21px; overflow-wrap: anywhere; }
     .tk .tk-cifra .tk-cifra-detalle { font-size: 11.5px; }
 }
+/* Lo que es solo del celular o solo de la computadora (los botones del kit no lo pisan) */
+@media (min-width: 900px) { .tk .solo-celular { display: none !important; } }
+@media (max-width: 899px) { .tk .solo-ancho { display: none !important; } }
