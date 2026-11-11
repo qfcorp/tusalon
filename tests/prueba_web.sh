@@ -58,13 +58,13 @@ get "r=registro" > /dev/null
 contiene "El formulario público es «Solicitar demo»" "$TMP/pag.html" "Solicitar demo"
 no_gratis "Solicitar demo"
 contiene "Ofrece elegir los módulos que le interesan" "$TMP/pag.html" 'name="modulos\[\]" value="reservas_linea"'
-r=$(post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Ana Pide" --data-urlencode "salon=Barbería Pedida" --data-urlencode "ciudad=Quito" \
+r=$(post "r=registro" --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Ana Pide" --data-urlencode "salon=Barbería Pedida" --data-urlencode "ciudad=Quito" \
      -d whatsapp=0991230000 --data-urlencode "email=pide$RANDOM@prueba.ec" --data-urlencode "necesita=Somos dos" -d "modulos[]=reservas_linea")
 check "Pedir demo vuelve a la misma página" "302 $BASE/?r=registro" "$r"
 get "r=registro" > /dev/null
-contiene "… y dice que la clave le llega al correo" "$TMP/pag.html" "En unos minutos te llega al correo tu clave"
+contiene "… y dice que la clave le llega al correo" "$TMP/pag.html" "Cuando esté lista te llega al correo tu clave"
 check "El pedido queda guardado y NO crea un salón" "1|0" "$(sql "SELECT count(*) FROM pedidos_demo WHERE salon='Barbería Pedida'")|$(sql "SELECT count(*) FROM salones WHERE nombre='Barbería Pedida'")"
-r=$(post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=A" --data-urlencode "salon=X" -d whatsapp=1 -d email=malo)
+r=$(post "r=registro" --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=A" --data-urlencode "salon=X" -d whatsapp=1 -d email=malo)
 contiene "Datos incompletos: mensaje claro" "$TMP/post.html" "Escribe tu ciudad"
 JAR=$JAR_GUARDA
 get "r=login" > /dev/null

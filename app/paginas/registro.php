@@ -1,7 +1,7 @@
 <?php
 /**
  * "Solicitar demo" (antes: registro abierto con periodo de prueba). Todo se pide demo:
- * (10 nov 2026) Demos automáticas: 7 datos obligatorios y aviso al instante al Panel, que crea la demo de 3 días y manda la clave al correo.
+ * (10 nov 2026) Demos automáticas: 6 datos obligatorios (un solo teléfono: el celular) y aviso al instante al Panel, que crea la demo de 3 días y manda la clave al correo.
  * este formulario NO crea un salón. Guarda el pedido (PedidosDemo) y Tukán lo atiende desde el Panel Tukán Central
  * (solicitud demo_pedida → crear_demo) o desde su propio panel (Inicio → Pedidos de demo).
  */
@@ -11,12 +11,12 @@ if (usuario()) {
 $errores = [];
 $enviado = !empty($_SESSION['demo_pedida']);
 unset($_SESSION['demo_pedida']);
-$d = ['nombre' => '', 'nombre_comercial' => '', 'telefono' => '', 'celular' => '', 'direccion' => '', 'ciudad' => '', 'email' => '', 'necesita' => '', 'modulos' => []];
+$d = ['nombre' => '', 'nombre_comercial' => '', 'celular' => '', 'direccion' => '', 'ciudad' => '', 'email' => '', 'necesita' => '', 'modulos' => []];
 $porCampo = [];   // campo => mensaje (se muestra junto a cada campo)
 
 if (es_post()) {
     verificar_csrf();
-    foreach (['nombre', 'nombre_comercial', 'telefono', 'celular', 'direccion', 'ciudad', 'email', 'necesita'] as $k) $d[$k] = trim((string) ($_POST[$k] ?? ''));
+    foreach (['nombre', 'nombre_comercial', 'celular', 'direccion', 'ciudad', 'email', 'necesita'] as $k) $d[$k] = trim((string) ($_POST[$k] ?? ''));
     if ($d['nombre_comercial'] === '') $d['nombre_comercial'] = trim((string) ($_POST['salon'] ?? ''));   // nombres de antes del formulario
     if ($d['celular'] === '') $d['celular'] = trim((string) ($_POST['whatsapp'] ?? ''));
     $d['modulos'] = \TuSalon\Modulos::limpiar(array_map('strval', (array) ($_POST['modulos'] ?? [])));

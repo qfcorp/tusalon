@@ -7,7 +7,7 @@ declare(strict_types=1);
  * Panel Tukán Central. El archivo es IGUAL en los cinco programas de la familia (si se cambia en uno, se copia a los demás).
  *
  * Qué trae:
- *   - validar(): los 7 datos obligatorios del pedido de demo, con el mensaje de cada campo (contrato de las demos automáticas).
+ *   - validar(): los 6 datos obligatorios del pedido de demo, con el mensaje de cada campo (contrato de las demos automáticas).
  *   - avisar(): aviso al instante al Panel (demo_aviso.php, token v2 de tipo «demo» firmado con el secreto del Panel) para que
  *     la demo salga en segundos. Espera 5 segundos como máximo; si el Panel no contesta no pasa nada (lo verá en su revisión).
  *   - servirPdf(): /manual.pdf y /primeros_pasos.pdf públicos, desde los PDF de docs/.
@@ -15,29 +15,31 @@ declare(strict_types=1);
  */
 final class TukanDemos
 {
-    /** Los 7 datos obligatorios, con estas claves exactas (así los recibe el Panel en el detalle de la solicitud demo_pedida). */
-    public const CAMPOS = ['nombre', 'nombre_comercial', 'telefono', 'celular', 'direccion', 'ciudad', 'email'];
-    public const GRACIAS = '¡Listo! En unos minutos te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.';
+    /**
+     * Los 6 datos obligatorios (10 nov 2026, 19:45, Dimitry: «con un teléfono es suficiente»): un solo teléfono, el celular.
+     * Al Panel se le manda además «telefono» con el mismo valor del celular (DETALLE), por compatibilidad.
+     */
+    public const CAMPOS = ['nombre', 'nombre_comercial', 'celular', 'direccion', 'ciudad', 'email'];
+    public const DETALLE = ['nombre', 'nombre_comercial', 'telefono', 'celular', 'direccion', 'ciudad', 'email'];
+    public const GRACIAS = '¡Listo! Estamos preparando tu demo: toma entre 5 y 10 minutos aproximadamente. Cuando esté lista te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.';
     public const AVISO_CORREO = 'Te enviaremos la clave de tu demo a este correo: escríbelo bien.';
     public const AVISO_DIAS = 'La demo dura 3 días.';
+    public const AVISO_MINUTOS = 'Preparar tu demo toma entre 5 y 10 minutos aproximadamente.';
 
     /**
-     * Limpia y revisa los 7 datos. Devuelve [datos limpios, errores (campo => mensaje)]. $negocio = cómo se llama el negocio en
+     * Limpia y revisa los 6 datos. Devuelve [datos limpios, errores (campo => mensaje)]. $negocio = cómo se llama el negocio en
      * este programa («spa», «salón»…), para el mensaje. El correo sale en minúsculas y sin espacios; los teléfonos, solo números y +.
      */
     public static function validar(array $d, string $negocio = 'negocio'): array
     {
         $t = fn(string $k, int $max) => mb_substr(trim((string) preg_replace('/\s+/u', ' ', is_scalar($d[$k] ?? '') ? (string) ($d[$k] ?? '') : '')), 0, $max);
         $tel = fn(string $k) => (string) preg_replace('/[\s().-]+/', '', $t($k, 30));
-        $r = ['nombre' => $t('nombre', 80), 'nombre_comercial' => $t('nombre_comercial', 120), 'telefono' => $tel('telefono'), 'celular' => $tel('celular'),
+        $r = ['nombre' => $t('nombre', 80), 'nombre_comercial' => $t('nombre_comercial', 120), 'celular' => $tel('celular'),
               'direccion' => $t('direccion', 200), 'ciudad' => $t('ciudad', 80), 'email' => strtolower((string) preg_replace('/\s+/u', '', $t('email', 120)))];
         $e = [];
         if (mb_strlen($r['nombre']) < 2) $e['nombre'] = 'Escribe tu nombre y apellido.';
         if (mb_strlen($r['nombre_comercial']) < 3) $e['nombre_comercial'] = 'Escribe el nombre de tu ' . $negocio . '.';
         $digitos = fn(string $v) => strlen((string) preg_replace('/\D/', '', $v));
-        if (!preg_match('/^\+?\d+$/', $r['telefono']) || $digitos($r['telefono']) < 7 || $digitos($r['telefono']) > 15) {
-            $e['telefono'] = 'Escribe un teléfono de contacto: solo números (de 7 a 15).';
-        }
         $c = $r['celular'];
         if (!preg_match('/^\+?\d+$/', $c) || $digitos($c) < 9 || $digitos($c) > 15) {
             $e['celular'] = 'Escribe tu celular: solo números (por ejemplo 0991234567).';

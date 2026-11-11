@@ -24,7 +24,7 @@
             <?php foreach ($errores as $err): ?><div><?= e($err) ?></div><?php endforeach; ?>
         </div>
     <?php endif; ?>
-    <p class="suave" data-demo-dias><strong><?= e(TukanDemos::AVISO_DIAS) ?></strong> Todos los datos son obligatorios.</p>
+    <p class="suave" data-demo-dias><strong><?= e(TukanDemos::AVISO_DIAS) ?></strong> <span data-demo-minutos><?= e(TukanDemos::AVISO_MINUTOS) ?></span> Todos los datos son obligatorios.</p>
     <div class="fila-campos">
         <div class="campo">
             <label for="nombre">Tu nombre y apellido</label>
@@ -37,17 +37,10 @@
             <?php if (isset($porCampo['nombre_comercial'])): ?><small class="error-campo" data-error="nombre_comercial" style="color:#b42318;display:block"><?= e($porCampo['nombre_comercial']) ?></small><?php endif; ?>
         </div>
     </div>
-    <div class="fila-campos">
-        <div class="campo">
-            <label for="telefono">Teléfono de contacto</label>
-            <input type="tel" id="telefono" name="telefono" value="<?= e($d['telefono']) ?>" placeholder="022345678" autocomplete="tel" maxlength="20" pattern="[0-9+ ()\-]{7,20}" required<?= isset($porCampo['telefono']) ? ' aria-invalid="true"' : '' ?>>
-            <?php if (isset($porCampo['telefono'])): ?><small class="error-campo" data-error="telefono" style="color:#b42318;display:block"><?= e($porCampo['telefono']) ?></small><?php endif; ?>
-        </div>
-        <div class="campo">
-            <label for="celular">Celular</label>
+    <div class="campo">
+            <label for="celular">Celular / WhatsApp</label>
             <input type="tel" id="celular" name="celular" value="<?= e($d['celular']) ?>" placeholder="0991234567" autocomplete="mobile tel" maxlength="20" pattern="[0-9+ ()\-]{9,20}" required<?= isset($porCampo['celular']) ? ' aria-invalid="true"' : '' ?>>
             <?php if (isset($porCampo['celular'])): ?><small class="error-campo" data-error="celular" style="color:#b42318;display:block"><?= e($porCampo['celular']) ?></small><?php endif; ?>
-        </div>
     </div>
     <div class="fila-campos">
         <div class="campo">

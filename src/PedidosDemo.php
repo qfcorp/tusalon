@@ -28,12 +28,12 @@ final class PedidosDemo
     /** Valida y guarda un pedido. Devuelve su id. */
     public function crear(array $d, string $ip = ''): int
     {
-        // Los 7 datos obligatorios de las demos automáticas (TukanDemos::validar, 10 nov 2026). Se aceptan también los nombres de
+        // Los 6 datos obligatorios (un solo teléfono: el celular) de las demos automáticas (TukanDemos::validar, 10 nov 2026). Se aceptan también los nombres de
         // antes del formulario: «salon» = nombre comercial y «whatsapp» = celular.
         if (!isset($d['nombre_comercial'])) $d['nombre_comercial'] = $d['salon'] ?? '';
         if (!isset($d['celular'])) $d['celular'] = $d['whatsapp'] ?? '';
         [$v, $this->errores] = \TukanDemos::validar($d, 'salón o barbería');
-        [$nombre, $salon, $telefono, $wa, $direccion, $ciudad, $email] = [$v['nombre'], $v['nombre_comercial'], $v['telefono'], $v['celular'], $v['direccion'], $v['ciudad'], $v['email']];
+        [$nombre, $salon, $telefono, $wa, $direccion, $ciudad, $email] = [$v['nombre'], $v['nombre_comercial'], $v['celular'], $v['celular'], $v['direccion'], $v['ciudad'], $v['email']];
         $necesita = mb_substr(trim((string) ($d['necesita'] ?? '')), 0, 600);
         if ($this->errores) throw new RuntimeException(implode(' ', $this->errores));
         if ($ip !== '') {

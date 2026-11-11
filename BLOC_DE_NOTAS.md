@@ -340,7 +340,7 @@ Pedido de Dimitry: el interesado llena TODOS sus datos, la clave le llega al cor
 - **«3 días en todo» (decisión de Dimitry):** toda demo dura 3 días: la del formulario, la que crea el Panel (también si no dice cuántos días) y la que Tukán crea a mano en el panel de este programa («Nuevo»). Todas usan el ajuste `dias_prueba`, que queda en 3. Tukán puede seguir alargando una demo («Dar más días de demo») y cambiar el valor por defecto en Planes y precios.
 - **Entrega al Panel:** la solicitud `demo_pedida` (acciones `solicitudes` y `solicitud` del conector v2) trae las 7 claves en `detalle`, además de lo que ya traía.
 - **Aviso al instante:** al guardar el pedido se llama a `{TUKAN_CENTRAL_URL}/demo_aviso.php` con token v2 de tipo `demo` (firmado con `TukanCentral::firmar`) y cuerpo `{"accion":"demo_pedida","id":"demo_pedida:N"}`. Espera 5 segundos como máximo; si el Panel no contesta no se muestra ningún error y el pedido queda guardado.
-- **Página de gracias:** «¡Listo! En unos minutos te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.»
+- **Página de gracias:** «¡Listo! Estamos preparando tu demo: toma entre 5 y 10 minutos aproximadamente. Cuando esté lista te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.»
 - **PDF públicos:** `/manual.pdf` y `/primeros_pasos.pdf` (sin sesión, `application/pdf`, se descargan con el nombre del archivo de `docs/`).
 - **Dentro del programa:** tarjeta en el Inicio mientras la cuenta es demo («Tu demo dura hasta el dd/mm. Descarga el manual y la guía de primeros pasos») y los dos botones en Ayuda para todos.
 - **Cómo está hecho:** `src/TukanDemos.php` (archivo IGUAL en los cinco programas de la familia), `src/PedidosDemo.php`, `app/paginas/registro.php`, `app/vistas/registro.php`, `public/index.php`, inicio y ayuda.
@@ -375,3 +375,16 @@ Dimitry: «Si pagó con transferencia igual paga. Si quiere pagar con tarjeta de
 - **El cliente al día no puede pagar el Completo entero** desde «Pagar con tarjeta» (recibiría gratis los días que faltan): si lo elige, se lo lleva al cálculo de la diferencia.
 - **Tarea de cada hora (`bin/tareas.php`):** si el dueño pagó el prorrateo con tarjeta y no volvió a abrir Mi plan, la tarea le pregunta al Panel (solo por quienes fueron a pagar una mejora en los últimos 15 días, tabla `tukan_mejoras`) y aplica el plan. Si el Panel no contesta, lo intenta a la hora siguiente.
 - **Google Play:** mismos productos de suscripción (no se crea ni se renombra ninguno); solo cambia el precio. Básico $15,99 / $76,99 / $152,99 y Completo **$28,99 / $144,99 / $289,99** (antes $29,99 / $147,99 / $294,99). El Completo queda fijado en `GooglePlay::PRECIOS_FIJADOS` (ya no sale de la fórmula); lo muestra Planes y precios del panel de Tukán. `docs/GOOGLE_PLAY.md` y las pruebas al día. **Falta (Dimitry):** cambiar esos precios a mano en Play Console.
+
+### Corrección del 10 nov (19:45): UN solo teléfono en «Solicitar demo»
+Dimitry: «No hay que poner teléfono fijo; con un teléfono es suficiente».
+- Se quitó el campo «Teléfono» (fijo) del formulario, de sus validaciones y de sus mensajes. Queda **«Celular / WhatsApp»**.
+- Son **6 datos obligatorios**: nombre, nombre comercial, celular, dirección, ciudad y correo (lo que arriba dice «7 datos» quedó en 6).
+- Al Panel, en el `detalle` de `demo_pedida`, van `celular` y, por compatibilidad, `telefono` con el MISMO valor del celular. La columna `telefono` de `pedidos_demo` se queda (guarda el celular).
+- Manual, PDF y pruebas al día.
+
+### Cambio del 10 nov (19:48): la demo tarda entre 5 y 10 minutos
+Dimitry: «Debes indicar que el proceso de creación de demos demora entre 5 a 10 minutos aproximadamente, para que no espere inmediatamente».
+- En el formulario, junto a «La demo dura 3 días.»: «Preparar tu demo toma entre 5 y 10 minutos aproximadamente.»
+- La página de gracias dice: «¡Listo! Estamos preparando tu demo: toma entre 5 y 10 minutos aproximadamente. Cuando esté lista te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.»
+- Manual y pruebas al día.

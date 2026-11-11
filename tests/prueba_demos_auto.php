@@ -2,8 +2,8 @@
 declare(strict_types=1);
 
 /**
- * Demos automáticas de 3 días (src/TukanDemos.php y PedidosDemo, 10 nov 2026): los 7 datos obligatorios del pedido campo por campo,
- * correo y celular malos, el pedido completo guardado y entregado al Panel con las 7 claves exactas (acciones «solicitudes» y
+ * Demos automáticas de 3 días (src/TukanDemos.php y PedidosDemo, 10 nov 2026): los 6 datos obligatorios del pedido (un solo teléfono: el celular) campo por campo,
+ * correo y celular malos, el pedido completo guardado y entregado al Panel con sus claves exactas (acciones «solicitudes» y
  * «solicitud» del conector v2), el aviso al instante al Panel SIMULADO (tests/panel_simulado.php) y qué pasa si el Panel no
  * contesta, la demo de 3 días que crea el Panel y la tarjeta con los dos PDF. Borra y recrea la base de prueba.
  * Uso: lo corre tests/run_logica.sh.
@@ -41,15 +41,17 @@ $db->exec(file_get_contents(RAIZ . '/db/schema.sql'));
 $migs = glob(RAIZ . '/db/migraciones/*.sql') ?: [];
 foreach ($migs as $m) $db->exec(file_get_contents($m));
 $cuenta = fn(string $sql) => (int) $db->query($sql)->fetchColumn();
-$bueno = ['nombre' => 'Ana Pérez', 'nombre_comercial' => 'Negocio de Ana', 'telefono' => '022345678', 'celular' => '0991234567',
+$bueno = ['nombre' => 'Ana Pérez', 'nombre_comercial' => 'Negocio de Ana', 'celular' => '0991234567',
           'direccion' => 'Av. Amazonas N34-12 y Colón', 'ciudad' => 'Quito', 'email' => 'ana@prueba.ec'];
 
-titulo('1. Los 7 datos obligatorios, campo por campo');
-check('Las claves son las del contrato', ['nombre', 'nombre_comercial', 'telefono', 'celular', 'direccion', 'ciudad', 'email'], TukanDemos::CAMPOS);
+titulo('1. Los 6 datos obligatorios, campo por campo (un solo teléfono: el celular)');
+check('Los obligatorios son 6, sin teléfono fijo', ['nombre', 'nombre_comercial', 'celular', 'direccion', 'ciudad', 'email'], TukanDemos::CAMPOS);
+check('Al Panel van además con «telefono» (el mismo celular)', ['nombre', 'nombre_comercial', 'telefono', 'celular', 'direccion', 'ciudad', 'email'], TukanDemos::DETALLE);
+check('Un teléfono fijo que llegue de un formulario viejo se ignora (ni se exige ni se valida)', [], TukanDemos::validar(['telefono' => 'no tengo'] + $bueno)[1]);
 [$v, $e] = TukanDemos::validar($bueno);
 check('Pedido completo: sin errores', [], $e);
-check('… y devuelve los 7 datos', TukanDemos::CAMPOS, array_keys($v));
-check('Formulario vacío: falta cada uno de los 7', TukanDemos::CAMPOS, array_keys(TukanDemos::validar([])[1]));
+check('… y devuelve los 6 datos', TukanDemos::CAMPOS, array_keys($v));
+check('Formulario vacío: falta cada uno de los 6', TukanDemos::CAMPOS, array_keys(TukanDemos::validar([])[1]));
 foreach (TukanDemos::CAMPOS as $c) {
     check("Falta solo «{$c}»: el error es de ese campo", [$c], array_keys(TukanDemos::validar([$c => ''] + $bueno)[1]));
 }
@@ -66,38 +68,35 @@ check('Celular corto', ['celular'], array_keys($err(['celular' => '09912345'])))
 check('Celular de Ecuador que no empieza con 09', ['celular'], array_keys($err(['celular' => '0291234567'])));
 check('Celular +593 que no es celular', ['celular'], array_keys($err(['celular' => '+59322345678'])));
 check('Celular con letras', ['celular'], array_keys($err(['celular' => '09912abc67'])));
-check('Teléfono de 7 números: vale', [], $err(['telefono' => '2345678']));
-check('Teléfono de 6 números: no', ['telefono'], array_keys($err(['telefono' => '234567'])));
-check('Teléfono de 16 números: no', ['telefono'], array_keys($err(['telefono' => '1234567890123456'])));
-check('Teléfono con letras: no', ['telefono'], array_keys($err(['telefono' => 'no tengo'])));
 check('Dirección muy corta: no', ['direccion'], array_keys($err(['direccion' => 'Sur'])));
 check('Nombre comercial muy corto: no', ['nombre_comercial'], array_keys($err(['nombre_comercial' => 'X'])));
 check('El mensaje nombra el negocio de este programa', true, str_contains(TukanDemos::validar([], 'salón')[1]['nombre_comercial'], 'tu salón'));
+check('El formulario avisa cuánto tarda', 'Preparar tu demo toma entre 5 y 10 minutos aproximadamente.', TukanDemos::AVISO_MINUTOS);
 check('Textos fijos del contrato', ['Te enviaremos la clave de tu demo a este correo: escríbelo bien.', 'La demo dura 3 días.',
-      '¡Listo! En unos minutos te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.'], [TukanDemos::AVISO_CORREO, TukanDemos::AVISO_DIAS, TukanDemos::GRACIAS]);
+      '¡Listo! Estamos preparando tu demo: toma entre 5 y 10 minutos aproximadamente. Cuando esté lista te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.'], [TukanDemos::AVISO_CORREO, TukanDemos::AVISO_DIAS, TukanDemos::GRACIAS]);
 
 titulo('2. El pedido se guarda solo si está completo');
 $PD = $clase('PedidosDemo');
 $pd = new $PD($db);
 $msg = '';
-try { $pd->crear(['nombre' => 'Ana Pérez', 'nombre_comercial' => 'Negocio de Ana', 'celular' => '0991234567', 'ciudad' => 'Quito', 'email' => 'ana@prueba.ec']); } catch (RuntimeException $x) { $msg = $x->getMessage(); }
-check('Sin teléfono ni dirección: rechazado', ['telefono', 'direccion'], array_keys($pd->errores));
-check('… con el mensaje de cada campo', true, str_contains($msg, 'teléfono de contacto') && str_contains($msg, 'dirección'));
+try { $pd->crear(['nombre' => 'Ana Pérez', 'nombre_comercial' => 'Negocio de Ana', 'ciudad' => 'Quito', 'email' => 'ana@prueba.ec']); } catch (RuntimeException $x) { $msg = $x->getMessage(); }
+check('Sin celular ni dirección: rechazado', ['celular', 'direccion'], array_keys($pd->errores));
+check('… con el mensaje de cada campo', true, str_contains($msg, 'celular') && str_contains($msg, 'dirección'));
 check('… y no se guardó nada', 0, $cuenta('SELECT count(*) FROM pedidos_demo'));
 try { $pd->crear(['email' => 'malo'] + $bueno); } catch (RuntimeException) {}
 check('Correo malo: rechazado y nada guardado', [['email'], 0], [array_keys($pd->errores), $cuenta('SELECT count(*) FROM pedidos_demo')]);
 $id = $pd->crear(['email' => ' ANA@Prueba.ec', 'necesita' => 'Somos 3'] + $bueno, '203.0.113.7');
 $f = $db->query("SELECT * FROM pedidos_demo WHERE id = $id")->fetch(PDO::FETCH_ASSOC);
-check('Completo: guardado con los 7 datos', ['Ana Pérez', 'Negocio de Ana', '022345678', '0991234567', 'Av. Amazonas N34-12 y Colón', 'Quito', 'ana@prueba.ec'],
+check('Completo: guardado con sus datos (el teléfono es el celular)', ['Ana Pérez', 'Negocio de Ana', '0991234567', '0991234567', 'Av. Amazonas N34-12 y Colón', 'Quito', 'ana@prueba.ec'],
       [$f['nombre'], $f[NEG], $f['telefono'], $f['whatsapp'], $f['direccion'], $f['ciudad'], $f['email']]);
 check('… queda como pedido nuevo y sin errores', ['nueva', []], [$f['estado'], $pd->errores]);
 check('Guardar un pedido NO crea la cuenta (la crea el Panel)', 0, $cuenta('SELECT count(*) FROM ' . TABLA));
-$id2 = $pd->crear(['nombre' => 'Luis Mora', NEG => 'Negocio de Luis', 'telefono' => '042345678', 'whatsapp' => '0987654321', 'direccion' => 'Calle 10 y Av. 4', 'ciudad' => 'Guayaquil', 'email' => 'luis@prueba.ec']);
+$id2 = $pd->crear(['nombre' => 'Luis Mora', NEG => 'Negocio de Luis', 'whatsapp' => '0987654321', 'direccion' => 'Calle 10 y Av. 4', 'ciudad' => 'Guayaquil', 'email' => 'luis@prueba.ec']);
 check('También acepta los nombres de antes («' . NEG . '» y «whatsapp»)', ['Negocio de Luis', '0987654321'], array_values($db->query('SELECT ' . NEG . ", whatsapp FROM pedidos_demo WHERE id = $id2")->fetch(PDO::FETCH_ASSOC)));
 check('El mismo correo con el pedido abierto: se actualiza, no se repite', [$id, 'Av. Nueva 55'],
       [$pd->crear(['direccion' => 'Av. Nueva 55'] + $bueno), $db->query("SELECT direccion FROM pedidos_demo WHERE id = $id")->fetchColumn()]);
 
-titulo('3. El Panel lo lee con las 7 claves exactas (conector v2)');
+titulo('3. El Panel lo lee con sus claves exactas: celular y telefono con el mismo valor (conector v2)');
 $SECRETO = str_repeat('ab12', 16);
 $ID = strtolower(PRE) . '-prueba';
 putenv('TUKAN_CENTRAL_ID=' . $ID);
@@ -116,12 +115,12 @@ $pedir = function (string $accion, array $cuerpo) use ($db, $TC, $V2, $ID, $SECR
 $r = $pedir('solicitudes', ['tipos' => ['demo_pedida'], 'por_pagina' => 50]);
 $s = array_values(array_filter($r[1]['solicitudes'] ?? [], fn($x) => $x['id'] === "demo_pedida:$id"))[0] ?? null;
 check('«solicitudes»: el pedido sale como demo_pedida pendiente', [200, 'demo_pedida', 'pendiente'], [$r[0], $s['tipo'] ?? null, $s['estado'] ?? null]);
-$siete = ['nombre' => 'Ana Pérez', 'nombre_comercial' => 'Negocio de Ana', 'telefono' => '022345678', 'celular' => '0991234567', 'direccion' => 'Av. Nueva 55', 'ciudad' => 'Quito', 'email' => 'ana@prueba.ec'];
-check('… con las 7 claves exactas en el detalle', $siete, array_intersect_key(array_merge(array_flip(TukanDemos::CAMPOS), $s['detalle'] ?? []), array_flip(TukanDemos::CAMPOS)));
+$siete = ['nombre' => 'Ana Pérez', 'nombre_comercial' => 'Negocio de Ana', 'telefono' => '0991234567', 'celular' => '0991234567', 'direccion' => 'Av. Nueva 55', 'ciudad' => 'Quito', 'email' => 'ana@prueba.ec'];
+check('… con las claves exactas en el detalle (telefono = celular)', $siete, array_intersect_key(array_merge(array_flip(TukanDemos::DETALLE), $s['detalle'] ?? []), array_flip(TukanDemos::DETALLE)));
 check('… y sigue mandando lo propio (lo que necesita, módulos)', ['Somos 3', true], [$s['detalle']['necesita'] ?? null, array_key_exists('modulos', $s['detalle'] ?? [])]);
 $r = $pedir('solicitud', ['id' => "demo_pedida:$id"]);
 $uno = $r[1]['solicitud'] ?? [];
-check('«solicitud» (una sola): las mismas 7 claves', [200, $siete], [$r[0], array_intersect_key(array_merge(array_flip(TukanDemos::CAMPOS), $uno['detalle'] ?? []), array_flip(TukanDemos::CAMPOS))]);
+check('«solicitud» (una sola): las mismas claves', [200, $siete], [$r[0], array_intersect_key(array_merge(array_flip(TukanDemos::DETALLE), $uno['detalle'] ?? []), array_flip(TukanDemos::DETALLE))]);
 check('… y trae la acción «crear_demo» con los datos llenos', true, in_array('crear_demo', array_column($uno['acciones_posibles'] ?? [], 'accion'), true));
 
 titulo('4. Aviso al instante al Panel (demo_aviso.php)');

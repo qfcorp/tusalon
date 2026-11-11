@@ -319,13 +319,13 @@ check('finanzas.mrr = suma de mensual_estimado', round(array_sum(array_column($p
 // ---------------------------------------------------------------------------------------------
 titulo('9. Todo se pide demo: pedido del formulario → demo_pedida → crear_demo con plan y módulos');
 $pd = new PedidosDemo($db);
-check('Pedido sin celular → error', true, str_contains(lanza(fn() => $pd->crear(['telefono' => '022345678', 'direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Ana', 'salon' => 'Salón Ana', 'ciudad' => 'Quito', 'email' => 'ana@x.ec'])), 'celular'));
-$idD = $pd->crear(['telefono' => '022345678', 'direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Ana Pérez', 'salon' => 'Salón Ana', 'ciudad' => 'Quito', 'whatsapp' => '0991234567', 'email' => 'Ana@Prueba.ec',
+check('Pedido sin celular → error', true, str_contains(lanza(fn() => $pd->crear(['direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Ana', 'salon' => 'Salón Ana', 'ciudad' => 'Quito', 'email' => 'ana@x.ec'])), 'celular'));
+$idD = $pd->crear(['direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Ana Pérez', 'salon' => 'Salón Ana', 'ciudad' => 'Quito', 'whatsapp' => '0991234567', 'email' => 'Ana@Prueba.ec',
                    'necesita' => 'Somos 4', 'modulos' => ['reservas_linea', 'oro']], '203.0.113.5');
 check('Pedido guardado (sin crear salón)', ['nueva', 'reservas_linea', 0], [$pd->pedido($idD)['estado'], $pd->pedido($idD)['modulos'], $cuenta("SELECT count(*) FROM salones WHERE nombre = 'Salón Ana'")]);
-check('Mismo correo: actualiza, no repite', $idD, $pd->crear(['telefono' => '022345678', 'direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Ana Pérez', 'salon' => 'Salón Ana', 'ciudad' => 'Quito', 'whatsapp' => '0991234567', 'email' => 'ana@prueba.ec'], '203.0.113.5'));
-for ($i = 0; $i < 5; $i++) { try { $pd->crear(['telefono' => '022345678', 'direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Robot', 'salon' => 'Robot ' . $i, 'ciudad' => 'Xa', 'whatsapp' => '0990000000', 'email' => "r$i@x.ec"], '203.0.113.9'); } catch (RuntimeException) {} }
-check('Máximo 5 pedidos por hora por IP', true, str_contains(lanza(fn() => $pd->crear(['telefono' => '022345678', 'direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Robot', 'salon' => 'Robot 9', 'ciudad' => 'Xa', 'whatsapp' => '0990000000', 'email' => 'r9@x.ec'], '203.0.113.9')), 'Ya recibimos'));
+check('Mismo correo: actualiza, no repite', $idD, $pd->crear(['direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Ana Pérez', 'salon' => 'Salón Ana', 'ciudad' => 'Quito', 'whatsapp' => '0991234567', 'email' => 'ana@prueba.ec'], '203.0.113.5'));
+for ($i = 0; $i < 5; $i++) { try { $pd->crear(['direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Robot', 'salon' => 'Robot ' . $i, 'ciudad' => 'Xa', 'whatsapp' => '0990000000', 'email' => "r$i@x.ec"], '203.0.113.9'); } catch (RuntimeException) {} }
+check('Máximo 5 pedidos por hora por IP', true, str_contains(lanza(fn() => $pd->crear(['direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Robot', 'salon' => 'Robot 9', 'ciudad' => 'Xa', 'whatsapp' => '0990000000', 'email' => 'r9@x.ec'], '203.0.113.9')), 'Ya recibimos'));
 $s = array_values(array_filter($pedir('solicitudes', ['tipos' => ['demo_pedida']])[1]['solicitudes'], fn($x) => $x['id'] === "demo_pedida:$idD"))[0] ?? null;
 check('Llega al Central como demo_pedida (pendiente, alta)', ['pedido', 'pendiente', 'nueva', 'alta', 'Salón Ana'], [$s['categoria'], $s['estado'], $s['estado_producto'], $s['prioridad'], $s['quien']['organizacion']]);
 check('… con WhatsApp, Crear demo (datos llenos) y Marcar', ['whatsapp', 'crear_demo', 'atender_solicitud'], array_column($s['acciones_posibles'], 'accion'));
@@ -348,7 +348,7 @@ check('crear_demo con un módulo que no existe → 422 datos.modulos', [422, 'da
       $ej('crear_demo', ['nombre' => 'X Salón', 'contacto_nombre' => 'Xavi', 'email' => 'x2@prueba.ec', 'telefono' => '0991234567', 'modulos' => ['oro']])[1]['campo']]);
 $r = $ej('crear_demo', ['nombre' => 'Demo Completa', 'contacto_nombre' => 'Eva', 'email' => 'eva@prueba.ec', 'telefono' => '0991234567']);
 check('crear_demo sin módulos: todos (menos la factura electrónica)', array_values(array_diff(Modulos::ids(), Modulos::SOLO_A_PEDIDO)), $r[1]['cliente']['modulos']['activos']);
-$idX = $pd->crear(['telefono' => '022345678', 'direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Luis', 'salon' => 'Barbería Luis', 'ciudad' => 'Loja', 'whatsapp' => '0997654321', 'email' => 'luis@prueba.ec']);
+$idX = $pd->crear(['direccion' => 'Av. Amazonas N34-12', 'nombre' => 'Luis', 'salon' => 'Barbería Luis', 'ciudad' => 'Loja', 'whatsapp' => '0997654321', 'email' => 'luis@prueba.ec']);
 $r = $ej('atender_solicitud', ['solicitud_id' => "demo_pedida:$idX", 'resultado' => 'descartada']);
 check('Descartar un pedido de demo', [200, 'descartada'], [$r[0], $pd->pedido($idX)['estado']]);
 check('… y ya no se puede crear su demo', 409, $ej('crear_demo', ['nombre' => 'Barbería Luis', 'contacto_nombre' => 'Luis', 'email' => 'luis@prueba.ec', 'telefono' => '0997654321', 'solicitud_id' => "demo_pedida:$idX"])[0]);

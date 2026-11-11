@@ -236,7 +236,7 @@ c96_txt "… mensaje en español" "$(c96_json error)" "forma de pago"
 echo "6. Solicitudes: pedido de demo del formulario público y pedido de módulos desde Mi plan"
 JAR_GUARDA6=$JAR; JAR="$TMP/c_pide"; rm -f "$JAR"
 EPIDE="pide$RANDOM@prueba.ec"
-post "r=registro" -d telefono=022345678 --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Lucía Pide" --data-urlencode "salon=Barbería V2 Pedida" --data-urlencode "ciudad=Ambato" \
+post "r=registro" --data-urlencode "direccion=Av. Amazonas N34-12" --data-urlencode "nombre=Lucía Pide" --data-urlencode "salon=Barbería V2 Pedida" --data-urlencode "ciudad=Ambato" \
      -d whatsapp=0991239999 --data-urlencode "email=$EPIDE" -d "modulos[]=anticipos" > /dev/null
 PD=$(sql "SELECT id FROM pedidos_demo WHERE email='$EPIDE'")
 check "El formulario «Solicitar demo» guarda el pedido sin crear el salón" "1 0" "$(sql "SELECT count(*) FROM pedidos_demo WHERE email='$EPIDE'") $(sql "SELECT count(*) FROM usuarios WHERE email='$EPIDE'")"
