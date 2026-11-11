@@ -178,7 +178,7 @@ sql "INSERT INTO cita_servicios (cita_id, servicio_id, precio) VALUES ($SOL, $SE
 entrar "$EMAIL_REC" claveRosa1
 JAR_REC=$JAR
 check "Recepción entra al inicio" "200" "$(get "r=inicio")"
-contiene "Saluda a recepción" "$TMP/pag.html" "Hola, Rosa"
+contiene "Saluda a recepción (Buenos días/tardes/noches)" "$TMP/pag.html" ", Rosa 👋"
 no_contiene "No ve la ganancia del local" "$TMP/pag.html" "Ganancia del local"
 no_contiene "No ve el día del dueño" "$TMP/pag.html" "Tu día como dueño"
 no_contiene "El menú no tiene Equipo" "$TMP/pag.html" ">Equipo<"

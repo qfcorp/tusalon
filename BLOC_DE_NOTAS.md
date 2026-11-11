@@ -1,6 +1,13 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 6 de noviembre de 2026
+Última actualización: 10 de noviembre de 2026
+
+## 10 nov 2026 — Identidad gráfica común de Tukán (pedido de Dimitry: «todos con la misma lógica y la misma identidad gráfica»)
+- Kit común `public/assets/tukan-ui.css` y `tukan-ui.js` (idénticos en todos los programas); TuSalón conserva su verde `#1E5A4C`.
+- Barra de arriba verde con el nombre del salón, usuario, rol y Salir; menú azul noche con secciones y emoji (☰ en el celular; se quitó la barra de abajo y la pantalla «Más»).
+- Inicio: saludo según la hora, avisos, **Primeros pasos** (6 pasos calculados, «Ocultar» por salón en `ajustes`), cifras en tarjetas oscuras, Próximas citas, Pendientes de hoy, Tu día como dueño y accesos rápidos.
+- Las demás pantallas internas llevan las clases del kit; el portal público, la cuenta del cliente, el Panel Tukán, PDF y correos no cambian.
+- Detalle: `docs/LINEA_GRAFICA.md`. Manual: «la pantalla Inicio» y el menú nuevo (antes «Hoy» y «Más»).
 
 ## 6 nov 2026 — Precios nuevos para todos los programas Tukán (decisión de Dimitry)
 - **Básico $12 + IVA** con 3 módulos a elegir; **cada módulo más $5 + IVA**; **Completo $25 + IVA** con todo y el Asistente IA.

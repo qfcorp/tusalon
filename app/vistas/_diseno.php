@@ -110,9 +110,7 @@ $iniciales = 'Ts';
             <div class="tk-menu-titulo"><?= e($grupo) ?></div>
             <?php foreach ($opciones as $op): [$r, $ico, $texto] = $op; $globito = $op[3] ?? null; ?>
                 <a href="<?= e(url($r)) ?>"<?= $activa === $r ? ' class="activo"' : '' ?><?= $rutaActual === $r ? ' aria-current="page"' : '' ?>>
-                    <span class="tk-ico" aria-hidden="true"><?= $ico ?></span> <?= e($texto) ?>
-                    <?php if ($globito): ?><span class="tk-globito contador" aria-label="<?= (int) $globito ?> sin leer"><?= (int) $globito ?></span><?php endif; ?>
-                </a>
+                    <span class="tk-ico" aria-hidden="true"><?= $ico ?></span> <?= e($texto) ?><?php if ($globito): ?> <span class="tk-globito contador" aria-label="<?= (int) $globito ?> sin leer"><?= (int) $globito ?></span><?php endif; ?></a>
             <?php endforeach; ?>
         <?php endforeach; ?>
         <a href="<?= e(url('salir')) ?>"><span class="tk-ico" aria-hidden="true">🚪</span> Cerrar sesión</a>

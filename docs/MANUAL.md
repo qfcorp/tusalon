@@ -49,7 +49,7 @@ Necesita PostgreSQL local (usuario `tusalon`, clave `prueba`, que pueda crear ba
 |---|---|
 | `docs/manual/generar/generar.sh` | Todo el proceso: base `tusalon_manual_prueba` nueva, servidor de prueba, capturas, PDF y revisión. Al final apaga el servidor y borra la base |
 | `docs/manual/generar/demo.php` | El salón de ejemplo «Salón Demo Tukán» (plan Completa) con su equipo de 4 tipos, dos administradores (uno sin acceso), un mes de cobros, citas, solicitudes en línea, anticipo, inventario, paquetes, tarjetas, puntos y ficha técnica; más «Barbería Solo Base» (Básica) y «Peluquería en Demo». El salón de ejemplo tiene el módulo «Asistente IA» y una pregunta frecuente escrita a mano: las capturas se toman SIN IA (`TUKAN_IA_ENV` apunta a un archivo que no existe) y la Ayuda responde con esa pregunta |
-| `docs/manual/generar/capturas.py` | 44 capturas reales (celular 390 px y computadora 1280 px; la 42 es Más → Administradores, la 43 la Ayuda y la 44 el Asistente IA) como dueña, recepción, peluquero y cliente. Falla si en una captura se ve un precio del software o la palabra prohibida |
+| `docs/manual/generar/capturas.py` | 44 capturas reales (celular 390 px y computadora 1280 px; la 42 es Menú → Administradores, la 43 la Ayuda y la 44 el Asistente IA) como dueña, recepción, peluquero y cliente. Falla si en una captura se ve un precio del software o la palabra prohibida |
 | `docs/manual/generar/pdf.py` | Convierte `manual.html` en el PDF A4 con portada, índice con páginas y pie |
 | `docs/manual/generar/revisar.py` | Revisa el HTML, el PDF y este archivo: falla si aparece la palabra prohibida o un precio del software |
 | `docs/manual/generar/imagenes/` | Fotos de ejemplo para la ficha técnica y el comprobante del anticipo |
@@ -76,7 +76,7 @@ Con este módulo, cada venta cobrada sale como **factura electrónica autorizada
 3. Si quieres, marca **Facturar automático al cobrar**. Revisa también si tus precios ya traen IVA y la tarifa (15 %, 5 % o 0 %).
 
 **Facturar**
-- **A mano:** toca **Facturar**, en **Más → Factura electrónica**.
+- **A mano:** toca **Facturar**, en el menú → Dinero → **Factura electrónica**.
 - **Sola:** con «automático» encendido, cada cobro sale facturado al momento.
 - La factura va a nombre de la cédula o el RUC del cliente. Si no los tiene, va a consumidor final.
 - El total es exactamente lo que cobraste. Cuando la cuenta del SRI no lo permite, queda 1 centavo menos.

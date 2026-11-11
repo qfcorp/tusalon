@@ -11,7 +11,7 @@ use RuntimeException;
  * importadas del SRI. Alimentan los gastos del panel del dueño.
  * TuSalón no emite facturas.
  *
- * Tres formas de importarlas (pantalla Más → Gastos y facturas, plan Completa):
+ * Tres formas de importarlas (menú → Gastos y facturas, plan Completa):
  *  - los XML que manda el proveedor o se bajan de SRI en línea (uno, varios o un .zip),
  *  - el reporte TXT "Comprobantes electrónicos recibidos" de SRI en línea (luego se completan con el SRI),
  *  - pegando claves de acceso (se descargan del servicio público del SRI).

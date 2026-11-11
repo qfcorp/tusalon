@@ -7,7 +7,7 @@ Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, em
 
 **Todo es por módulos** y **todo se pide demo**:
 - Cada salón tiene la **base** (agenda, clientes, servicios, equipo con los 4 tipos, cuentas del equipo, cobros y caja, horarios, hasta 3 personas) y los **módulos** que contrate. Cada módulo se enciende o se apaga por salón y su precio es por cotización; **apagar nunca borra datos**.
-- **Administradores (21 oct 2026):** el dueño puede crear **hasta 4 administradores** (rol `admin`) con su mismo nivel en todo el programa. Son cuentas de acceso: no atienden citas, **no cuentan en el límite de personas** y no dependen de ningún módulo. Se crean en Más → **Administradores** (`/?r=administradores`, también desde Equipo). Lo único exclusivo del dueño es su cuenta: nadie más la cambia ni la desactiva (es la identidad del salón ante Tukán).
+- **Administradores (21 oct 2026):** el dueño puede crear **hasta 4 administradores** (rol `admin`) con su mismo nivel en todo el programa. Son cuentas de acceso: no atienden citas, **no cuentan en el límite de personas** y no dependen de ningún módulo. Se crean en el menú → Equipo → **Administradores** (`/?r=administradores`, también desde Equipo). Lo único exclusivo del dueño es su cuenta: nadie más la cambia ni la desactiva (es la identidad del salón ante Tukán).
 - No hay registro abierto ni periodo de prueba: el formulario público es **Solicitar demo**. Tukán prepara la demo (con todos los módulos o los que elija) desde el Panel Tukán Central o desde su propio panel.
 
 ### Módulos y planes
@@ -43,14 +43,14 @@ Planes (28 oct 2026): **Básica** = la base + **3 módulos que el salón elige**
 ## Direcciones
 | Quién | Dirección |
 |---|---|
-| Dueño, administradores y recepción | `/` (entrar con correo y contraseña; los administradores los crea el dueño en Más → Administradores, hasta 4; la cuenta de recepción en Más → Recepción, módulo «Cuenta de recepción») |
+| Dueño, administradores y recepción | `/` (entrar con correo y contraseña; los administradores los crea el dueño en el menú → Equipo → Administradores, hasta 4; la cuenta de recepción en el menú → Equipo → Recepción, módulo «Cuenta de recepción») |
 | Quien alquila el puesto | Su portal → **Mis clientes** (módulo «Clientes privados de quien alquila») |
 | Quien quiere TuSalón | `/?r=registro` → **Solicitar demo** (nombre, salón, ciudad, WhatsApp, correo, qué necesita y módulos de interés). No crea el salón: llega a Tukán como pedido de demo |
-| Dueño: su plan | Más → **Mi plan** (`/?r=completa`): sus módulos, lo que paga por su plan y los que puede agregar («Precio por cotización» y «Pedir cotización», que llega al Panel Tukán Central como `cambio_modulos`) |
+| Dueño: su plan | Menú → Configuración → **Mi plan** (`/?r=completa`): sus módulos, lo que paga por su plan y los que puede agregar («Precio por cotización» y «Pedir cotización», que llega al Panel Tukán Central como `cambio_modulos`) |
 | Peluquero | `/` con el acceso que le crea el dueño → su portal |
 | Clientes (reservas) | `/?r=reservar&s=<nombre-del-salón>` |
 | Tukán (super administrador) | `/?r=admin_entrar` · cuenta creada con `php bin/crear_admin.php` en el servidor · o con un clic desde el Panel Tukán Central |
-| Ayuda (todos) | Menú **Ayuda** (`/?r=ayuda`; en el celular: Más → Ayuda) |
+| Ayuda (todos) | Menú **Ayuda** (`/?r=ayuda`; en el celular se abre el menú con ☰) |
 | Asistente IA (módulo) | Menú **✨ Asistente IA** (`/?r=asistente`) · también **✨ Mensaje con IA** en Avisos a clientes |
 | Tukán: preguntas de la Ayuda | Panel Tukán → **Preguntas frecuentes (IA)** (`/?r=admin_faq`): aprobar, editar, borrar y agregar a mano |
 | Tukán: demo por correo | Panel Tukán → Nueva demo → en la ficha, **Enviar por correo** (desde info@tukansoftware.com) |

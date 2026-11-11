@@ -49,10 +49,22 @@ SID=$(sql "SELECT salon_id FROM usuarios WHERE email='$EMAIL'")
 check "Demo por 3 días" "$(date -d '+3 days' +%F)" "$(sql "SELECT prueba_hasta FROM salones WHERE id=$SID")"
 check "Se crean 5 servicios de ejemplo" "5" "$(sql "SELECT count(*) FROM servicios WHERE salon_id=$SID")"
 get "r=inicio" > /dev/null
-contiene "Inicio saluda al dueño" "$TMP/pag.html" "Hola, Dimitry"
+contiene "Inicio saluda al dueño (Buenos días/tardes/noches según la hora)" "$TMP/pag.html" ", Dimitry 👋"
 contiene "Muestra la franja de la demo" "$TMP/pag.html" "Demo: te quedan 3 días"
 no_gratis() { if grep -qi "prueba gratis\|días gratis\|sin tarjeta" "$TMP/pag.html"; then FALLAS=$((FALLAS+1)); echo "  FALLA $1: promete algo gratis"; else OK=$((OK+1)); echo "  OK    $1: no promete nada gratis"; fi; }
 no_gratis "Inicio de la demo"
+# Identidad gráfica Tukán (10 nov 2026): diseño del kit, primeros pasos calculados con los datos y «Ocultar» por salón
+contiene "Inicio con el kit común (barra del color del programa)" "$TMP/pag.html" 'class="tk-arriba"'
+contiene "… y el menú con secciones" "$TMP/pag.html" 'class="tk-menu-titulo">Configuración'
+contiene "Primeros pasos en el inicio" "$TMP/pag.html" "Primeros pasos"
+contiene "… los servicios de ejemplo ya cuentan como hechos" "$TMP/pag.html" 'class="hecho"><span class="tk-check">✓</span><span class="tk-paso-texto">Agrega tus servicios'
+contiene "… y el equipo falta, con su botón «Hacerlo»" "$TMP/pag.html" 'Agrega a tu equipo (quienes atienden en el salón)</span>'
+contiene "Cifras del día en tarjetas" "$TMP/pag.html" 'class="tk-cifra-titulo">Entró a la caja hoy'
+r=$(post "r=inicio" --data-urlencode "accion=ocultar_pasos")
+check "«Ocultar» los primeros pasos vuelve al inicio" "302 $BASE/?r=inicio" "$r"
+check "… y queda guardado para el salón" "1" "$(sql "SELECT valor FROM ajustes WHERE clave='pasos_ocultos_$SID'")"
+get "r=inicio" > /dev/null
+if grep -q "Primeros pasos" "$TMP/pag.html"; then FALLAS=$((FALLAS+1)); echo "  FALLA Ya no salen los primeros pasos"; else OK=$((OK+1)); echo "  OK    Ya no salen los primeros pasos"; fi
 JAR_REG="$TMP/c_reg"; JAR_GUARDA=$JAR; JAR=$JAR_REG
 get "r=registro" > /dev/null
 contiene "El formulario público es «Solicitar demo»" "$TMP/pag.html" "Solicitar demo"
