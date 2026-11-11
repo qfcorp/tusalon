@@ -4,7 +4,7 @@ $cat = modulos()->catalogo();
 $m = $cat[$modulo] ?? null;
 $esDueno = es_dueno_o_admin($u);
 ?>
-<section class="bloque bloque-modulo" style="max-width:640px">
+<section class="tk-tarjeta bloque bloque-modulo" style="max-width:640px">
     <p class="etiqueta-plan">No está en tu plan</p>
     <h1><?= e(($m['icono'] ?? '') . ' ' . ($m['nombre'] ?? 'Esta función')) ?></h1>
     <p><?= e($m['descripcion'] ?? '') ?></p>
@@ -12,15 +12,15 @@ $esDueno = es_dueno_o_admin($u);
         <?php /* Regla del dueño: el precio de un módulo que el salón no tiene no se muestra; se pide cotización */ ?>
         <?php if (!en_app_play() && $m): ?><p>Pide la cotización y Tukán te escribe con el valor para agregarlo a tu plan.</p><?php endif; ?>
         <p class="suave">Si lo usaste antes, tus datos están guardados: al encenderlo vuelve todo como estaba.</p>
-        <div class="acciones">
+        <div class="tk-acciones acciones">
             <?php if (!en_app_play() && $m): ?>
                 <form method="post" action="<?= e(url('completa')) ?>"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($modulo) ?>">
-                    <button class="boton" type="submit">Pedir cotización</button></form>
+                    <button class="tk-boton boton" type="submit">Pedir cotización</button></form>
             <?php endif; ?>
-            <a class="boton boton-claro" href="<?= e(url('completa', ['modulo' => $modulo])) ?>">Ver Mi plan</a>
+            <a class="tk-boton secundario boton boton-claro" href="<?= e(url('completa', ['modulo' => $modulo])) ?>">Ver Mi plan</a>
         </div>
     <?php else: ?>
         <p class="suave">Pídele al dueño del salón que lo agregue a su plan.</p>
-        <div class="acciones"><a class="boton boton-claro" href="<?= e(url(es_peluquero($u) ? 'mi_portal' : 'inicio')) ?>">Volver</a></div>
+        <div class="tk-acciones acciones"><a class="tk-boton secundario boton boton-claro" href="<?= e(url(es_peluquero($u) ? 'mi_portal' : 'inicio')) ?>">Volver</a></div>
     <?php endif; ?>
 </section>

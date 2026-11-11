@@ -1,5 +1,5 @@
 <?php use TuSalon\Agenda; ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <div>
         <h1>Avisos a clientes</h1>
         <p>Recordatorios, cumpleaños y clientes que no vuelven. Toca el botón verde y se abre WhatsApp con el mensaje listo.</p>
@@ -7,9 +7,9 @@
 </div>
 
 <div class="rejilla rejilla-2">
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Recordar las citas de mañana (<?= count($manana) ?>)</h2>
-        <?php if (!$manana): ?><p class="vacio">No hay citas para mañana.</p><?php else: ?>
+        <?php if (!$manana): ?><p class="tk-vacio vacio">No hay citas para mañana.</p><?php else: ?>
             <ul class="lista">
                 <?php foreach ($manana as $c): $ini = new DateTimeImmutable($c['inicio']); ?>
                     <li style="flex-wrap:wrap">
@@ -21,14 +21,14 @@
                                 <?php else: ?>sin recordar<?php endif; ?>
                                 <?= $c['cliente_telegram'] ? ' · Telegram' : '' ?></div>
                         </div>
-                        <div class="acciones">
+                        <div class="tk-acciones acciones">
                             <?php if ($c['wa'] && !$c['confirmada_cliente_en']): ?>
-                                <a class="boton boton-wa boton-chico" href="<?= e($c['wa']) ?>" target="_blank" rel="noopener">WhatsApp</a>
+                                <a class="tk-boton ok chico boton boton-wa boton-chico" href="<?= e($c['wa']) ?>" target="_blank" rel="noopener">WhatsApp</a>
                             <?php elseif (!$c['wa']): ?><small>Sin celular</small><?php endif; ?>
                             <?php if (!$c['recordatorio_en'] && !$c['confirmada_cliente_en']): ?>
                                 <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="recordado">
                                     <input type="hidden" name="cita" value="<?= (int) $c['id'] ?>">
-                                    <button class="boton boton-claro boton-chico" type="submit">Ya lo envié</button></form>
+                                    <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit">Ya lo envié</button></form>
                             <?php endif; ?>
                         </div>
                     </li>
@@ -39,20 +39,20 @@
         <?php endif; ?>
     </section>
 
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>🎂 Cumpleaños de hoy (<?= count($cumples) ?>)</h2>
-        <?php if (!$cumples): ?><p class="vacio">Hoy no cumple años ningún cliente.</p><?php else: ?>
+        <?php if (!$cumples): ?><p class="tk-vacio vacio">Hoy no cumple años ningún cliente.</p><?php else: ?>
             <ul class="lista">
                 <?php foreach ($cumples as $c): ?>
                     <li>
                         <div style="flex:1"><div class="principal-linea"><?= e($c['nombre']) ?></div>
                             <div class="linea-sub"><?= $c['saludado'] ? 'Ya saludado este año' : 'Por saludar' ?></div></div>
-                        <div class="acciones">
-                            <?php if ($c['wa']): ?><a class="boton boton-wa boton-chico" href="<?= e($c['wa']) ?>" target="_blank" rel="noopener">Saludar</a><?php endif; ?>
+                        <div class="tk-acciones acciones">
+                            <?php if ($c['wa']): ?><a class="tk-boton ok chico boton boton-wa boton-chico" href="<?= e($c['wa']) ?>" target="_blank" rel="noopener">Saludar</a><?php endif; ?>
                             <?php if (!$c['saludado']): ?>
                                 <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="saludado">
                                     <input type="hidden" name="cliente" value="<?= (int) $c['id'] ?>">
-                                    <button class="boton boton-claro boton-chico" type="submit">Listo</button></form>
+                                    <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit">Listo</button></form>
                             <?php endif; ?>
                         </div>
                     </li>
@@ -63,24 +63,24 @@
     </section>
 </div>
 
-<section class="bloque">
+<section class="tk-tarjeta bloque">
     <h2>Clientes por recuperar <small class="suave">(no vienen hace <?= $semanas ?> semanas o más)</small></h2>
     <?php if (!modulo('recuperar_clientes')): ?>
         <?= aviso_modulo('recuperar_clientes') ?>
     <?php elseif (!$recuperar): ?>
-        <p class="vacio">¡Bien! Todos tus clientes frecuentes han vuelto.</p>
+        <p class="tk-vacio vacio">¡Bien! Todos tus clientes frecuentes han vuelto.</p>
     <?php else: ?>
         <ul class="lista">
             <?php foreach ($recuperar as $c): ?>
                 <li>
                     <div style="flex:1"><div class="principal-linea"><?= e($c['nombre']) ?></div>
                         <div class="linea-sub">Última vez hace <?= (int) $c['semanas'] ?> semanas · <?= (int) $c['visitas'] ?> <?= (int) $c['visitas'] === 1 ? 'visita' : 'visitas' ?></div></div>
-                    <?php if ($c['wa']): ?><a class="boton boton-wa boton-chico" href="<?= e($c['wa']) ?>" target="_blank" rel="noopener">Invitar a volver</a>
+                    <?php if ($c['wa']): ?><a class="tk-boton ok chico boton boton-wa boton-chico" href="<?= e($c['wa']) ?>" target="_blank" rel="noopener">Invitar a volver</a>
                     <?php else: ?><small>Sin celular</small><?php endif; ?>
                     <?php if (modulo('asistente_ia')): ?>
                         <form method="post" action="<?= e(url('asistente')) ?>#recuperar"><?= campo_csrf() ?><input type="hidden" name="accion" value="recuperar">
                             <input type="hidden" name="cliente" value="<?= (int) $c['id'] ?>">
-                            <button class="boton boton-claro boton-chico" type="submit">✨ Mensaje con IA</button></form>
+                            <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit">✨ Mensaje con IA</button></form>
                     <?php endif; ?>
                 </li>
             <?php endforeach; ?>

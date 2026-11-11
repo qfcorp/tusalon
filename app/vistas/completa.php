@@ -17,7 +17,7 @@ $activos = array_values(array_filter($catalogo, fn($m) => in_array($m['id'], $de
 $disponibles = array_values(array_filter($catalogo, fn($m) => !in_array($m['id'], $detalle['contratados'], true)));
 $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <div>
         <h1>Mi plan</h1>
         <p>Plan <strong><?= e($plan['nombre']) ?></strong><?= $esDemo ? ' · <strong>Demo</strong> con todos los módulos encendidos para que pruebes' : '' ?>
@@ -33,7 +33,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 <?= $play ? '' : ($pagoHtml ?? '') /* «Paga tu plan con tarjeta» (src/TukanPagoPlan.php): vacío si el Panel no lo tiene encendido */ ?>
 
 <?php if (!$play): ?>
-<section class="bloque" id="total">
+<section class="tk-tarjeta bloque" id="total">
     <h2><?= $esDemo ? 'Lo que pagarías al contratar' : 'Lo que pagas al mes' ?></h2>
     <ul class="lista">
         <li><span>Plan <?= e($plan['nombre']) ?></span><span class="monto"><?= dinero($detalle['precio_plan']) ?></span></li>
@@ -48,7 +48,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
         <?php endif; ?>
     </ul>
     <p class="total-plan"><span>Total al mes</span><span data-total-mensual><?= dinero($detalle['mensual']) ?></span></p>
-    <table class="tabla" style="margin-top:12px">
+    <table class="tk-tabla tabla" style="margin-top:12px">
         <?php foreach ($filas as $per => $txt): $c = $precios[$per]; ?>
             <tr><td><?= e($txt) ?></td><td class="der"><strong><?= dinero($c['monto']) ?></strong><br><small><?= dinero($c['precio_por_mes']) ?> al mes</small></td>
                 <td class="der"><a class="boton boton-chico <?= $per === 'mensual' ? 'boton-claro' : '' ?>" href="<?= e($wa("Hola, quiero " . ($esDemo ? 'contratar' : 'renovar') . " TuSalón ($txt) para mi salón \"{$u['salon']}\" ({$u['email']}).")) ?>" target="_blank" rel="noopener"><?= $esDemo ? 'Contratar' : 'Renovar' ?></a></td></tr>
@@ -59,7 +59,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 <?php endif; ?>
 
 <?php if ($pedidos): ?>
-<section class="bloque" id="pedidos">
+<section class="tk-tarjeta bloque" id="pedidos">
     <h2>Tus pedidos de módulos</h2>
     <ul class="lista">
         <?php foreach (array_slice($pedidos, 0, 8) as $p):
@@ -72,21 +72,21 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 </section>
 <?php endif; ?>
 
-<section class="bloque">
+<section class="tk-tarjeta bloque">
     <h2><?= $esDemo ? 'Todo lo que tiene tu demo' : 'Tus módulos encendidos' ?></h2>
     <?php if (!$activos): ?>
-        <p class="vacio"><?= ($detalle['por_elegir'] ?? 0) > 0 ? 'Tu plan trae la base (abajo) y ' . ((int) $detalle['por_elegir'] === 1 ? '1 módulo' : (int) $detalle['por_elegir'] . ' módulos') . ' a tu elección' . ($play ? '.' : ': elígelos abajo.') : 'Tu plan trae solo la base (abajo). Agrega los módulos que necesites.' ?></p>
+        <p class="tk-vacio vacio"><?= ($detalle['por_elegir'] ?? 0) > 0 ? 'Tu plan trae la base (abajo) y ' . ((int) $detalle['por_elegir'] === 1 ? '1 módulo' : (int) $detalle['por_elegir'] . ' módulos') . ' a tu elección' . ($play ? '.' : ': elígelos abajo.') : 'Tu plan trae solo la base (abajo). Agrega los módulos que necesites.' ?></p>
     <?php else: ?>
     <ul class="modulos">
         <?php foreach ($activos as $m): ?>
         <li class="modulo modulo-activo" id="modulo-<?= e($m['id']) ?>" data-modulo="<?= e($m['id']) ?>">
             <span class="modulo-icono" aria-hidden="true"><?= e($m['icono']) ?></span>
             <div class="modulo-cuerpo"><strong><?= e($m['nombre']) ?></strong><p><?= e($m['descripcion']) ?></p></div>
-            <div class="modulo-lado"><span class="etq etq-confirmada"><?= e($esDemo && !in_array($m['id'], $detalle['contratados'], true) ? 'Solo en la demo' : $etiqueta($m['id'])) ?></span>
+            <div class="modulo-lado"><span class="tk-chip etq etq-confirmada"><?= e($esDemo && !in_array($m['id'], $detalle['contratados'], true) ? 'Solo en la demo' : $etiqueta($m['id'])) ?></span>
                 <?php if ($esDemo && !in_array($m['id'], $detalle['contratados'], true) && !$play): ?>
                     <?php if (isset($abiertos[$m['id']])): ?><small>Ya lo pediste</small><?php else: ?>
                     <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
-                        <button class="boton boton-claro boton-chico" type="submit">Lo quiero · Pedir cotización</button></form>
+                        <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit">Lo quiero · Pedir cotización</button></form>
                     <?php endif; ?>
                 <?php endif; ?></div>
         </li>
@@ -96,7 +96,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 </section>
 
 <?php if (!$esDemo && $disponibles): ?>
-<section class="bloque" id="agregar">
+<section class="tk-tarjeta bloque" id="agregar">
     <h2>Módulos que puedes agregar</h2>
     <p class="suave">Si lo usaste antes, tus datos están guardados: al encenderlo vuelve todo como estaba.</p>
     <ul class="modulos">
@@ -107,10 +107,10 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
                 <?php if ($m['depende_de']): ?><p class="suave">Necesita: <?= e(implode(', ', array_map([modulos(), 'nombre'], $m['depende_de']))) ?> (se agrega solo).</p><?php endif; ?></div>
             <div class="modulo-lado">
                 <?php if (!$play): ?><span class="modulo-precio"><?= e($etiqueta($m['id'])) ?></span><?php endif; ?>
-                <?php if ($pedido): ?><span class="etq etq-pendiente">Pedido</span>
+                <?php if ($pedido): ?><span class="tk-chip etq etq-pendiente">Pedido</span>
                 <?php elseif (!$play): ?>
                     <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
-                        <button class="boton boton-chico" type="submit">Pedir cotización</button></form>
+                        <button class="tk-boton chico boton boton-chico" type="submit">Pedir cotización</button></form>
                 <?php endif; ?>
             </div>
         </li>
@@ -119,7 +119,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 </section>
 <?php endif; ?>
 
-<section class="bloque">
+<section class="tk-tarjeta bloque">
     <h2>Lo que siempre tienes</h2>
     <ul style="margin:0;padding-left:20px">
         <?php foreach (TuSalon\Modulos::BASE as $b): ?><li><?= e($b) ?></li><?php endforeach; ?>
@@ -131,12 +131,12 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
     $compras = $gp->deSalon((int) $u['salon_id']);
     $nombres = array_map(fn($p) => $p['nombre'], $planes);
 ?>
-<section class="bloque" id="pago-play" data-csrf="<?= e(token_csrf()) ?>" data-volver="<?= e(url('inicio')) ?>">
+<section class="tk-tarjeta bloque" id="pago-play" data-csrf="<?= e(token_csrf()) ?>" data-volver="<?= e(url('inicio')) ?>">
     <h2>Paga tu plan con Google Play</h2>
     <p class="aviso" id="play-estado" role="status">Cargando los precios de Google Play…</p>
     <div class="rejilla rejilla-2">
         <?php foreach (['basica', 'completa'] as $pc): if (!isset($planes[$pc])) continue; ?>
-        <div class="bloque" style="<?= $pc === 'completa' ? 'border-color:var(--verde);box-shadow:0 0 0 2px var(--verde-claro)' : '' ?>">
+        <div class="tk-tarjeta bloque" style="<?= $pc === 'completa' ? 'border-color:var(--verde);box-shadow:0 0 0 2px var(--verde-claro)' : '' ?>">
             <h3><?= e($planes[$pc]['nombre']) ?></h3>
             <p class="suave"><?= $planes[$pc]['modulos'] ? count($planes[$pc]['modulos']) . ' módulos incluidos' : ((int) ($planes[$pc]['modulos_elegir'] ?? 0) > 0 ? 'La base + ' . (int) $planes[$pc]['modulos_elegir'] . ' módulos a tu elección' : 'Solo la base') ?></p>
             <div class="opciones">
@@ -153,7 +153,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
     <p class="suave">El pago lo hace Google Play con tu cuenta de Google. Se renueva solo; lo cancelas cuando quieras en Play Store → Pagos y suscripciones.</p>
 </section>
 <?php if ($compras): ?>
-<section class="bloque">
+<section class="tk-tarjeta bloque">
     <h2>Tus pagos con Google Play</h2>
     <ul class="lista"><?php foreach ($compras as $c): ?>
         <li><span><?= e($nombres[$c['plan_codigo']] ?? $c['plan_codigo']) ?> · <?= e($c['periodo']) ?><br><small><?= in_array($c['estado'], TuSalon\GooglePlay::ACTIVOS, true) ? ($c['renueva_sola'] ? 'Se renueva el ' : 'Termina el ') : 'Terminó el ' ?><?= $c['expira'] ? (new DateTimeImmutable($c['expira']))->format('d/m/Y') : '' ?></small></span>

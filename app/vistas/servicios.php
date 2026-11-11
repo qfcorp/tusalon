@@ -3,29 +3,29 @@ $campos = function (array $s, string $sufijo) use ($profesionales, $quienHace) {
     $pago = $s['pago_profesional'] ?? null;
     $quien = isset($s['id']) ? ($quienHace[(int) $s['id']] ?? []) : [];
     ob_start(); ?>
-    <div class="campo"><label for="n<?= $sufijo ?>">Nombre del servicio</label>
+    <div class="tk-campo campo"><label for="n<?= $sufijo ?>">Nombre del servicio</label>
         <input type="text" id="n<?= $sufijo ?>" name="nombre" value="<?= e($s['nombre'] ?? '') ?>" placeholder="Corte degradado" required></div>
     <div class="fila-campos">
-        <div class="campo"><label for="p<?= $sufijo ?>">Precio al cliente</label>
+        <div class="tk-campo campo"><label for="p<?= $sufijo ?>">Precio al cliente</label>
             <input type="number" id="p<?= $sufijo ?>" name="precio" value="<?= e($s['precio'] ?? '') ?>" step="0.01" min="0" required></div>
-        <div class="campo"><label for="g<?= $sufijo ?>">Pago al peluquero</label>
+        <div class="tk-campo campo"><label for="g<?= $sufijo ?>">Pago al peluquero</label>
             <input type="number" id="g<?= $sufijo ?>" name="pago_profesional" value="<?= e($pago ?? '') ?>" step="0.01" min="0">
             <small>Lo que le pagas a un empleado por hacerlo. Vacío = usa su % de comisión.</small></div>
     </div>
     <div class="fila-campos">
-        <div class="campo"><label for="d<?= $sufijo ?>">Duración (minutos)</label>
+        <div class="tk-campo campo"><label for="d<?= $sufijo ?>">Duración (minutos)</label>
             <input type="number" id="d<?= $sufijo ?>" name="duracion_minutos" value="<?= (int) ($s['duracion_minutos'] ?? 30) ?>" min="5" step="5" required></div>
         <label class="opcion" style="align-self:end;margin-bottom:14px">
             <input type="checkbox" name="reserva_online" value="1" <?= ($s['reserva_online'] ?? true) ? 'checked' : '' ?>>
             <span><strong>Se puede reservar en línea</strong></span></label>
     </div>
-    <div class="campo"><label for="x<?= $sufijo ?>">Explicación para el cliente <small>(opcional)</small></label>
+    <div class="tk-campo campo"><label for="x<?= $sufijo ?>">Explicación para el cliente <small>(opcional)</small></label>
         <textarea id="x<?= $sufijo ?>" name="descripcion" rows="3" maxlength="600"
                   placeholder="Qué incluye, cómo se hace, qué resultado esperar. Ej.: Lavado, corte con máquina y tijera, perfilado de barba y peinado."><?= e($s['descripcion'] ?? '') ?></textarea>
         <small>El cliente la ve al reservar, junto con la duración.</small></div>
     <?php if ($profesionales): ?>
     <input type="hidden" name="quien_enviado" value="1">
-    <fieldset class="campo quien-hace">
+    <fieldset class="tk-campo campo quien-hace">
         <legend>¿Quién lo hace? <small>(y precio si es distinto)</small></legend>
         <?php foreach ($profesionales as $p):
             $pid = (int) $p['id'];
@@ -43,20 +43,20 @@ $campos = function (array $s, string $sufijo) use ($profesionales, $quienHace) {
     <?php return ob_get_clean();
 };
 ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <div>
         <h1>Servicios y precios</h1>
         <p>Crea todos los servicios que ofreces, con lo que cobras y lo que pagas al peluquero.</p>
     </div>
 </div>
-<?php if ($error): ?><p class="aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
+<?php if ($error): ?><p class="tk-aviso mal aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
 
 <div class="rejilla rejilla-2">
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Tus servicios (<?= count($servicios) ?>)</h2>
-        <?php if (!$servicios): ?><p class="vacio">Agrega tu primer servicio.</p><?php endif; ?>
+        <?php if (!$servicios): ?><p class="tk-vacio vacio">Agrega tu primer servicio.</p><?php endif; ?>
         <div class="desliza">
-        <table class="tabla">
+        <table class="tk-tabla tabla">
             <thead><tr><th>Servicio</th><th class="der">Cliente paga</th><th class="der">Al peluquero</th><th class="der">Queda al local</th><th></th></tr></thead>
             <tbody>
             <?php foreach ($servicios as $s):
@@ -71,7 +71,7 @@ $campos = function (array $s, string $sufijo) use ($profesionales, $quienHace) {
                                 <input type="hidden" name="accion" value="editar">
                                 <input type="hidden" name="id" value="<?= $s['id'] ?>">
                                 <?= $campos($s, (string) $s['id']) ?>
-                                <button class="boton boton-chico" type="submit">Guardar cambios</button>
+                                <button class="tk-boton chico boton boton-chico" type="submit">Guardar cambios</button>
                             </form>
                         </details>
                     </td>
@@ -83,7 +83,7 @@ $campos = function (array $s, string $sufijo) use ($profesionales, $quienHace) {
                             <?= campo_csrf() ?>
                             <input type="hidden" name="accion" value="activar">
                             <input type="hidden" name="id" value="<?= $s['id'] ?>">
-                            <button class="boton boton-claro boton-chico" type="submit"><?= $s['activo'] ? 'Ocultar' : 'Mostrar' ?></button>
+                            <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit"><?= $s['activo'] ? 'Ocultar' : 'Mostrar' ?></button>
                         </form>
                     </td>
                 </tr>
@@ -94,11 +94,11 @@ $campos = function (array $s, string $sufijo) use ($profesionales, $quienHace) {
         <p class="suave" style="margin-top:12px">El pago fijo se aplica a los <strong>empleados</strong>. Quien trabaja por porcentaje se lleva su % y quien alquila se queda con todo.</p>
     </section>
 
-    <form method="post" class="bloque">
+    <form method="post" class="tk-tarjeta bloque">
         <?= campo_csrf() ?>
         <input type="hidden" name="accion" value="crear">
         <h2>Agregar servicio</h2>
         <?= $campos([], 'nuevo') ?>
-        <button class="boton boton-ancho" type="submit">Agregar servicio</button>
+        <button class="tk-boton boton boton-ancho" type="submit">Agregar servicio</button>
     </form>
 </div>

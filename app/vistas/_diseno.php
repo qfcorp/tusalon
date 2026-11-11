@@ -1,46 +1,82 @@
 <?php
-/** @var string $contenido @var string $titulo @var ?array $u */
+/**
+ * Diseño general de TuSalón con la identidad gráfica común de Tukán (10 nov 2026): barra de arriba del color del programa,
+ * menú azul noche con secciones y emojis (public/assets/tukan-ui.css y tukan-ui.js, idénticos en todos los programas Tukán).
+ * Ver docs/LINEA_GRAFICA.md. @var string $contenido @var string $titulo @var ?array $u
+ */
+require_once dirname(__DIR__, 2) . '/src/TukanLegal.php';   // enlaces Términos · Privacidad del menú y aviso de términos
 $rutaActual = $_GET['r'] ?? 'inicio';
-$menu = [
-    'inicio'   => ['Hoy',      'M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z'],
-    'agenda'   => ['Agenda',   'M7 3v3M17 3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z'],
-    'caja'     => ['Caja',     'M3 7h18v12H3zM3 11h18M7 15h3'],
-    'clientes' => ['Clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'],
-    'equipo'   => ['Equipo',   'M6 20v-8M6 8V4M12 20v-4M12 12V4M18 20v-10M18 6V4M4 12h4M10 16h4M16 10h4'],
-];
-$masActivo = in_array($rutaActual, ['equipo', 'servicios', 'cuentas', 'completa', 'horario', 'inventario', 'paquetes', 'tarjetas', 'puntos', 'clientes', 'cliente', 'ficha', 'reporte', 'avisos_clientes', 'gastos', 'recepcion', 'administradores', 'ayuda', 'asistente'], true);
+// Pantallas que cuelgan de una opción del menú (para marcarla como activa)
+$padre = ['cita' => 'agenda', 'cita_nueva' => 'agenda', 'cliente' => 'clientes', 'ficha' => 'clientes', 'fotos' => 'clientes',
+          'horario_peluquero' => 'equipo', 'comprobante' => 'solicitudes'];
+$activa = $padre[$rutaActual] ?? $rutaActual;
 $pendientesCampana = 0;
+$grupos = [];
 if ($u) {
     $pendientesCampana = (new \TuSalon\Notificaciones(db()))->sinLeer((int) $u['id']);
+    $globo = $pendientesCampana > 0 ? $pendientesCampana : null;
     if (es_peluquero($u)) {
-        $menu = [
-            'mi_portal'   => ['Mi día', 'M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z'],
-            'solicitudes' => ['Solicitudes', 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4'],
+        $grupos['Mi trabajo'] = [
+            ['mi_portal', '📊', 'Mi día'],
+            ['solicitudes', '🔔', 'Solicitudes', $globo],
         ];
         if (($u['tipo_profesional'] ?? '') === 'alquiler' && modulo('clientes_privados', $u)) {
-            $menu['mis_clientes'] = ['Mis clientes', 'M16 19v-1a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v1M10 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a4 4 0 0 0-3-3.9M15 4.1a3 3 0 0 1 0 5.8'];
+            $grupos['Mi trabajo'][] = ['mis_clientes', '👥', 'Mis clientes'];
         }
+        $grupos['Ayuda'] = [['ayuda', '❓', 'Ayuda']];
     } elseif (es_recepcion($u)) {
-        $masActivo = false;
-        $menu = ['inicio' => $menu['inicio'], 'agenda' => $menu['agenda'],
-                 'solicitudes' => ['Solicitudes', 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4'],
-                 'caja' => $menu['caja'], 'clientes' => $menu['clientes']];
-    } else {
-        $menu = ['inicio' => $menu['inicio'], 'agenda' => $menu['agenda'],
-                 'solicitudes' => ['Solicitudes', 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 21h4'],
-                 'caja' => $menu['caja'], 'equipo' => $menu['equipo']];
+        $grupos['Principal'] = [
+            ['inicio', '📊', 'Inicio'],
+            ['agenda', '📅', 'Agenda'],
+            ['solicitudes', '🔔', 'Solicitudes', $globo],
+            ['caja', '💵', 'Caja'],
+        ];
+        $grupos['Clientes'] = [
+            ['clientes', '👥', 'Clientes'],
+            ['avisos_clientes', '📣', 'Avisos a clientes'],
+        ];
+        $grupos['Ayuda'] = array_values(array_filter([
+            modulo('asistente_ia') ? ['asistente', '✨', 'Asistente IA'] : null,
+            ['ayuda', '❓', 'Ayuda'],
+        ]));
+    } else {   // dueño y administradores
+        $grupos['Principal'] = [
+            ['inicio', '📊', 'Inicio'],
+            ['agenda', '📅', 'Agenda'],
+            ['solicitudes', '🔔', 'Solicitudes', $globo],
+            ['caja', '💵', 'Caja'],
+        ];
+        $grupos['Clientes y ventas'] = array_values(array_filter([
+            ['clientes', '👥', 'Clientes'],
+            ['avisos_clientes', '📣', 'Avisos a clientes'],
+            modulo('inventario') ? ['inventario', '📦', 'Inventario'] : null,
+            modulo('paquetes_regalo') ? ['paquetes', '🎁', 'Paquetes'] : null,
+            modulo('paquetes_regalo') ? ['tarjetas', '🎟️', 'Tarjetas de regalo'] : null,
+            modulo('puntos') ? ['puntos', '⭐', 'Puntos'] : null,
+        ]));
+        $grupos['Equipo'] = array_values(array_filter([
+            ['equipo', '💇', 'Equipo'],
+            ['cuentas', '🧮', 'Cuentas del equipo'],
+            modulo('recepcion') ? ['recepcion', '🛎️', 'Recepción'] : null,
+            ['administradores', '🛡️', 'Administradores'],
+        ]));
+        $grupos['Dinero'] = array_values(array_filter([
+            modulo('reportes') ? ['reporte', '📈', 'Reporte del mes'] : null,
+            modulo('gastos_sri') ? ['gastos', '🧾', 'Gastos y facturas'] : null,
+            ['tufactura', '🧾', 'Factura electrónica'],
+        ]));
+        $grupos['Configuración'] = array_values(array_filter([
+            ['servicios', '✂️', 'Servicios y precios'],
+            ['horario', '🕘', 'Horario y reservas en línea'],
+            ['completa', '💳', 'Mi plan'],
+            modulo('asistente_ia') ? ['asistente', '✨', 'Asistente IA'] : null,
+            ['ayuda', '❓', 'Ayuda'],
+        ]));
     }
 }
 $avisos = tomar_avisos();
-$esDuenoAqui = es_dueno_o_admin($u);
-$diasPrueba = $esDuenoAqui ? dias_prueba($u) : null;
-$estadoCuenta = $esDuenoAqui ? planes()->estadoCuenta($u) : null;
-$diasPlan = ($estadoCuenta === 'activo' && !empty($u['activo_hasta']))
-    ? (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($u['activo_hasta']))->days : null;
-$adminViendo = !empty($_SESSION['admin_viendo']) && superadmin();
-// (7 nov 2026) El dueño acepta los términos y la privacidad de Tukán (src/TukanLegal.php); se acepta desde Mi plan
-require_once dirname(__DIR__, 2) . '/src/TukanLegal.php';
-$pideTerminos = $esDuenoAqui && !$adminViendo && !TukanLegal::aceptado(db(), (string) $u['salon_id']);
+$roles = ['dueno' => 'Dueño', 'admin' => 'Administrador', 'recepcion' => 'Recepción', 'profesional' => 'Peluquero'];
+$iniciales = 'Ts';
 ?>
 <!doctype html>
 <html lang="es">
@@ -54,83 +90,57 @@ $pideTerminos = $esDuenoAqui && !$adminViendo && !TukanLegal::aceptado(db(), (st
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="TuSalón">
 <title><?= e($titulo) ?></title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/app.css?v=14">
+<link rel="stylesheet" href="/assets/tukan-ui.css?v=1">
+<link rel="stylesheet" href="/assets/app.css?v=15">
+<style>:root{ --tk-color:#1E5A4C; --tk-color-claro:#7FD1B9; --tk-color-texto:#ffffff; }</style>
 </head>
-<body class="<?= $u ? 'con-sesion' : 'sin-sesion' ?>">
+<body class="tk <?= $u ? 'con-sesion' : 'sin-sesion' ?>">
 <?php if ($u): ?>
-<aside class="lateral" aria-label="Menú principal">
-    <a class="marca" href="<?= e(url('inicio')) ?>">
-        <span class="marca-sello" aria-hidden="true">Ts</span>
-        <span class="marca-texto">
-            <strong><?= e($u['salon']) ?></strong>
-            <small><?= $u['estado'] === 'prueba' ? 'Demo' : 'Plan ' . e(modulos()->planes()[$u['plan_codigo']]['nombre'] ?? $u['plan_codigo']) ?></small>
-        </span>
-    </a>
-    <nav class="menu">
-        <?php foreach ($menu as $r => [$texto, $icono]): ?>
-            <a href="<?= e(url($r)) ?>" class="<?= ($rutaActual === $r || ($r === 'equipo' && $masActivo)) ? 'activo' : '' ?>"
-               <?= $rutaActual === $r ? 'aria-current="page"' : '' ?>>
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="<?= $icono ?>"/></svg>
-                <span><?= $r === 'equipo' ? '<span class="solo-ancho">Equipo</span><span class="solo-celular">Más</span>' : e($texto) ?></span>
-                <?php if ($r === 'solicitudes' && $pendientesCampana > 0): ?><span class="contador" aria-label="<?= $pendientesCampana ?> sin leer"><?= $pendientesCampana ?></span><?php endif; ?>
-            </a>
-        <?php endforeach; ?>
-    </nav>
-    <div class="lateral-pie">
-        <?php if (es_recepcion($u)): ?>
-        <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
-        <?php elseif (es_dueno_o_admin($u)): ?>
-        <a href="<?= e(url('clientes')) ?>">Clientes</a>
-        <a href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
-        <?php if (modulo('reportes')): ?><a href="<?= e(url('reporte')) ?>">Reporte del mes</a><?php endif; ?>
-        <?php if (modulo('gastos_sri')): ?><a href="<?= e(url('gastos')) ?>">Gastos y facturas</a><?php endif; ?>
-        <a href="<?= e(url('servicios')) ?>">Servicios y precios</a>
-        <?php if (modulo('inventario')): ?><a href="<?= e(url('inventario')) ?>">Inventario</a><?php endif; ?>
-        <?php if (modulo('paquetes_regalo')): ?><a href="<?= e(url('paquetes')) ?>">Paquetes</a><?php endif; ?>
-        <?php if (modulo('paquetes_regalo')): ?><a href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a><?php endif; ?>
-        <?php if (modulo('puntos')): ?><a href="<?= e(url('puntos')) ?>">Puntos</a><?php endif; ?>
-        <a href="<?= e(url('horario')) ?>">Horario y reservas en línea</a>
-        <a href="<?= e(url('cuentas')) ?>">Cuentas del equipo</a>
-        <?php if (modulo('recepcion')): ?><a href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
-        <a href="<?= e(url('administradores')) ?>">Administradores</a>
-        <a href="<?= e(url('tufactura')) ?>">🧾 Factura electrónica</a>
-        <a href="<?= e(url('completa')) ?>">Mi plan</a>
-        <?php endif; ?>
-        <?php if (!es_peluquero($u) && modulo('asistente_ia')): ?><a href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>
-        <a href="<?= e(url('ayuda')) ?>">Ayuda</a>
-        <a href="<?= e(url('salir')) ?>">Cerrar sesión</a>
-        <p class="pie-legal"><?= TukanLegal::enlaces(url('privacidad')) ?></p>
+<header class="tk-arriba">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <button class="tk-boton-menu" type="button" aria-label="Abrir el menú" aria-expanded="false">☰</button>
+        <a class="tk-marca" href="<?= e(url(es_peluquero($u) ? 'mi_portal' : 'inicio')) ?>"><span class="tk-logo" aria-hidden="true"><?= $iniciales ?></span>
+            <span><b><?= e($u['salon']) ?></b><small>TuSalón · <?= $u['estado'] === 'prueba' ? 'Demo' : 'Plan ' . e(modulos()->planes()[$u['plan_codigo']]['nombre'] ?? $u['plan_codigo']) ?></small></span></a>
     </div>
-</aside>
-<?php endif; ?>
-
-<main class="principal" id="contenido">
-    <?php if ($diasPrueba !== null && $diasPrueba >= 0): ?>
-        <p class="franja-prueba">
-            Demo: <?= $diasPrueba === 0 ? 'termina hoy' : "te quedan $diasPrueba " . ($diasPrueba === 1 ? 'día' : 'días') ?>.
-            <a href="<?= e(url('completa')) ?>">Contratar mi plan</a>
-        </p>
-    <?php endif; ?>
-    <?php if ($adminViendo): ?>
-        <p class="franja-admin">Estás viendo <strong><?= e($u['salon']) ?></strong> como administrador de Tukán.
-            <a href="<?= e(url('admin_volver')) ?>">Volver al panel</a></p>
-    <?php endif; ?>
-    <?php if ($estadoCuenta === 'por_vencer'): ?>
-        <p class="franja-prueba">Tu plan venció el <?= (new DateTimeImmutable($u['activo_hasta']))->format('d/m') ?>. Renueva en los próximos días para no perder el acceso.
-            <a href="<?= e(url('completa')) ?>">Renovar</a></p>
-    <?php elseif ($diasPlan !== null && $diasPlan <= 5): ?>
-        <p class="franja-prueba">Tu plan vence <?= $diasPlan === 0 ? 'hoy' : "en $diasPlan " . ($diasPlan === 1 ? 'día' : 'días') ?>.
-            <a href="<?= e(url('completa')) ?>">Renovar</a></p>
-    <?php endif; ?>
-    <?php if ($pideTerminos): ?><?= TukanLegal::aviso(campo_csrf(), url('completa'), url('privacidad')) ?><?php endif; ?>
+    <div class="tk-usuario"><span class="tk-nombre">👤 <?= e($u['nombre']) ?></span><span class="tk-rol"><?= e($roles[$u['rol']] ?? $u['rol']) ?></span><a class="tk-salir" href="<?= e(url('salir')) ?>">Salir</a></div>
+</header>
+<div class="tk-cuerpo">
+    <nav class="tk-menu" aria-label="Menú principal">
+        <?php foreach ($grupos as $grupo => $opciones): if (!$opciones) continue; ?>
+            <div class="tk-menu-titulo"><?= e($grupo) ?></div>
+            <?php foreach ($opciones as $op): [$r, $ico, $texto] = $op; $globito = $op[3] ?? null; ?>
+                <a href="<?= e(url($r)) ?>"<?= $activa === $r ? ' class="activo"' : '' ?><?= $rutaActual === $r ? ' aria-current="page"' : '' ?>>
+                    <span class="tk-ico" aria-hidden="true"><?= $ico ?></span> <?= e($texto) ?>
+                    <?php if ($globito): ?><span class="tk-globito contador" aria-label="<?= (int) $globito ?> sin leer"><?= (int) $globito ?></span><?php endif; ?>
+                </a>
+            <?php endforeach; ?>
+        <?php endforeach; ?>
+        <a href="<?= e(url('salir')) ?>"><span class="tk-ico" aria-hidden="true">🚪</span> Cerrar sesión</a>
+        <p class="pie-legal tk-menu-legal"><?= TukanLegal::enlaces(url('privacidad')) ?></p>
+    </nav>
+    <div class="tk-fondo-menu"></div>
+    <main class="tk-contenido" id="contenido">
+        <?php ob_start(); foreach ($avisos as $a): ?>
+            <p class="tk-aviso <?= $a['tipo'] === 'error' ? 'mal' : 'ok' ?> aviso aviso-<?= e($a['tipo']) ?>" role="status"><?= e($a['texto']) ?></p>
+        <?php endforeach; $avisosHtml = ob_get_clean(); ?>
+        <?php if (empty($tirasMostradas)) require __DIR__ . '/_tiras.php'; ?>
+        <?= $avisosHtml ?>
+        <?= $contenido ?>
+    </main>
+</div>
+<?php else: ?>
+<header class="tk-arriba">
+    <a class="tk-marca" href="<?= e(url('login')) ?>"><span class="tk-logo" aria-hidden="true"><?= $iniciales ?></span>
+        <span><b>TuSalón</b><small>La agenda y la caja de tu peluquería</small></span></a>
+</header>
+<main class="tk-contenido tk-acceso" id="contenido">
     <?php foreach ($avisos as $a): ?>
-        <p class="aviso aviso-<?= e($a['tipo']) ?>" role="status"><?= e($a['texto']) ?></p>
+        <p class="tk-aviso <?= $a['tipo'] === 'error' ? 'mal' : 'ok' ?> aviso aviso-<?= e($a['tipo']) ?>" role="status"><?= e($a['texto']) ?></p>
     <?php endforeach; ?>
     <?= $contenido ?>
 </main>
+<?php endif; ?>
+<script src="/assets/tukan-ui.js?v=1" defer></script>
 <script src="/assets/app.js?v=11" defer></script>
 </body>
 </html>

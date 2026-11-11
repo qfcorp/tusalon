@@ -505,3 +505,99 @@ body.admin { background: var(--fondo); }
 .tukan-legal-aviso label{display:inline-flex;gap:8px;align-items:center;margin-right:10px}
 .pie-legal{font-size:.85rem;opacity:.8;margin-top:10px}
 .tukan-legal-enlaces a{color:inherit}
+
+/* =====================================================================================================================
+   Identidad gráfica común de Tukán (10 nov 2026) — SOLO las pantallas internas (body.tk). El portal público de reservas,
+   el del cliente y el Panel Tukán no la usan y se ven como siempre.
+   El kit (tukan-ui.css) es idéntico en todos los programas; aquí van las pocas reglas propias de TuSalón:
+   las clases de siempre (.cabecera, .bloque, .boton, .tabla, .campo, .aviso, .etq, .cifra) toman el aspecto del kit,
+   para las pantallas y los módulos comunes (src/Tukan*.php) que todavía las usan.
+   ===================================================================================================================== */
+.tk { --verde: var(--tk-color); }
+.tk h1, .tk h2, .tk h3 { letter-spacing: 0; }
+.tk a { color: var(--tk-color); }
+.tk .tk-menu a, .tk .tk-marca, .tk .tk-salir, .tk .tk-boton, .tk .boton { color: inherit; }
+.tk .tk-boton, .tk .boton { color: var(--tk-color-texto); }
+.tk .tk-boton.secundario, .tk .boton-claro, .tk .boton-peligro { color: var(--tk-tinta); }
+.tk .tk-boton.ok, .tk .tk-boton.peligro, .tk .tk-boton.oscuro, .tk .boton-wa { color: #fff; }
+.tk .tk-menu a { color: var(--tk-menu-texto); }
+.tk .tk-menu a:hover { color: #fff; }
+.tk .tk-menu a.activo { color: var(--tk-color-texto); }
+.tk-menu-legal { color: var(--tk-menu-texto); padding: 16px 20px 0; margin: auto 0 0; font-size: 12px; }
+.tk .tk-menu-legal a { color: var(--tk-menu-texto); padding: 0; min-height: 0; display: inline; font-size: 12px; }
+.tk .tk-menu-legal a:hover { padding: 0; background: none; }
+.tk-acceso { max-width: 520px; margin: 0 auto; width: 100%; }
+
+
+/* Título de página (.cabecera = .tk-titulo-pagina) */
+.tk .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.tk .cabecera h1 { font-size: 22px; font-weight: 900; margin: 0; }
+.tk .cabecera p { font-size: 13.5px; color: var(--tk-muy-suave); margin: 4px 0 0; }
+
+/* Bloques (.bloque = .tk-tarjeta) */
+.tk .bloque { background: #fff; border: 1px solid var(--tk-linea); border-left: 5px solid var(--tk-color); border-radius: var(--tk-radio); padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.03); }
+.tk .bloque > h2:first-child, .tk .bloque > h2, .tk .tk-tarjeta > h2 { font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: .2px; margin: 0 0 14px; }
+.tk .bloque > h3 { font-size: 14px; font-weight: 800; }
+/* Bloques con una cifra grande = tarjetas oscuras del kit (.tk-cifra) */
+.tk .bloque:has(> .cifra) { background: var(--tk-noche); color: #fff; border: 0; border-left: 5px solid var(--tk-color); box-shadow: var(--tk-sombra); }
+.tk .bloque:has(> .cifra) .cifra { color: var(--tk-color-claro); font-weight: 900; }
+.tk .bloque:has(> .cifra) .cifra-nombre { color: #94a3b8; text-transform: uppercase; font-size: 11px; font-weight: 800; letter-spacing: .3px; }
+.tk .bloque:has(> .cifra) a { color: var(--tk-color-claro); }
+
+/* Botones (.boton = .tk-boton) */
+.tk .boton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; min-height: 40px; border-radius: 6px;
+             font: inherit; font-size: 13.5px; font-weight: 800; text-decoration: none; border: 1px solid transparent; cursor: pointer;
+             background: var(--tk-color); line-height: 1.2; }
+.tk .boton:hover { background: var(--tk-color); filter: brightness(.95); }
+.tk .boton-claro { background: #fff; border-color: #cbd5e1; }
+.tk .boton-claro:hover { background: var(--tk-fondo); }
+.tk .boton-peligro { background: #fff; color: var(--tk-mal); border-color: #fca5a5; }
+.tk .boton-peligro:hover { background: #fee2e2; }
+.tk .boton-wa { background: var(--tk-ok); }
+.tk .boton-wa:hover { background: var(--tk-ok); }
+.tk .boton-chico { min-height: 30px; padding: 5px 10px; font-size: 12px; border-radius: 5px; }
+.tk .boton:disabled { opacity: .6; cursor: progress; }
+
+/* Tablas (.tabla = .tk-tabla) y tablas-tarjeta del kit (no confundir con .tarjetas del portal público) */
+.tk .tabla { font-size: 13px; }
+.tk .tabla th { background: var(--tk-noche); color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; font-weight: 800; padding: 10px 12px; border-bottom: 0; }
+.tk .tabla td { padding: 10px 12px; vertical-align: middle; }
+.tk table.tarjetas { display: table; grid-template-columns: none; }
+
+/* Formularios (.campo = .tk-campo) */
+.tk .campo label, .tk .campo .etiqueta, .tk fieldset.campo legend { font-size: 12px; font-weight: 800; color: #334155; text-transform: uppercase; letter-spacing: .3px; }
+.tk input[type=text], .tk input[type=email], .tk input[type=password], .tk input[type=tel], .tk input[type=number], .tk input[type=date],
+.tk input[type=time], .tk input[type=search], .tk input[type=url], .tk select, .tk textarea {
+    border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; font-size: 14px; min-height: 42px; }
+.tk input:focus, .tk select:focus, .tk textarea:focus { border-color: var(--tk-color); background: #fff; outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tk-color) 25%, transparent); }
+.tk .opcion:has(input:checked) { border-color: var(--tk-color); background: color-mix(in srgb, var(--tk-color) 8%, #fff); }
+
+/* Avisos (.aviso = .tk-aviso) y chips (.etq = .tk-chip) */
+.tk .aviso { border-radius: var(--tk-radio); padding: 12px 16px; border-left: 5px solid var(--tk-info); font-size: 14px; font-weight: 600; }
+.tk .aviso-ok { border-left-color: var(--tk-ok); background: #dcfce7; color: #14532d; }
+.tk .aviso-error { border-left-color: var(--tk-mal); background: #fee2e2; color: #7f1d1d; }
+.tk .etq { border-radius: 4px; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; padding: 3px 8px; }
+.tk .tk-tira .tk-boton { flex: none; }
+.tk .tukan-legal-aviso { border-left: 5px solid var(--tk-aviso); border-radius: var(--tk-radio); }
+.tk .franja-admin { background: var(--tk-noche); color: #fff; border-left-color: var(--tk-aviso); }
+.tk .instalar-app { background: #fff; border: 1px solid var(--tk-linea); border-left: 5px solid var(--tk-color); border-radius: var(--tk-radio); }
+.tk .tk-pasos .tk-tarjeta-cabeza form { margin: 0; }
+.tk .tk-tabla td a:not(.tk-boton) { font-weight: 700; text-decoration: none; }
+
+@media (max-width: 768px) {
+    .tk table.tk-tabla.tarjetas, .tk table.tk-tabla.tarjetas tbody { display: block; }
+    .tk .tk-tira { flex-wrap: wrap; }
+    .tk .cabecera h1 { font-size: 20px; }
+    .tk .boton { min-height: 44px; }
+    .tk .boton-chico { min-height: 36px; }
+}
+/* Casillas y opciones dentro de un campo: tamaño normal (el kit pone los campos de texto a lo ancho) */
+.tk .tk-campo input[type=checkbox], .tk .tk-campo input[type=radio], .tk .campo input[type=checkbox], .tk .campo input[type=radio] { width: auto; min-height: 0; padding: 0; }
+.tk .tk-campo input[type=file] { background: #fff; }
+.tk .tk-campo label:has(input), .tk .campo label:has(input), .tk .tk-campo .opcion, .tk .tk-campo .opcion * { text-transform: none; letter-spacing: 0; font-size: 14px; }
+.tk .tk-campo .opcion small { font-size: 12.5px; font-weight: 400; }
+.tk .tk-campo small { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.tk .tk-arriba small { color: inherit; }
+.tk .tk-salir { color: var(--tk-noche); }
+.tk .tk-tabla .tk-boton, .tk .tk-tira .tk-boton { white-space: nowrap; }

@@ -1,15 +1,15 @@
 <?php use TuSalon\Agenda; $usaSalon = !$propio; ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <div>
         <h1>Horario de <?= e($prof['nombre']) ?></h1>
         <p>Sus días, su almuerzo y sus vacaciones. En esas horas no se le pueden reservar citas.</p>
     </div>
-    <a class="boton boton-claro boton-chico" href="<?= e(url('equipo')) ?>">← Equipo</a>
+    <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('equipo')) ?>">← Equipo</a>
 </div>
-<?php if ($error): ?><p class="aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
+<?php if ($error): ?><p class="tk-aviso mal aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
 
 <div class="rejilla rejilla-2">
-    <form method="post" class="bloque" id="form-horario-prof">
+    <form method="post" class="tk-tarjeta bloque" id="form-horario-prof">
         <?= campo_csrf() ?><input type="hidden" name="accion" value="horario">
         <h2>Días y horas</h2>
         <div class="opciones" style="margin-bottom:12px">
@@ -35,30 +35,30 @@
             <?php endfor; ?>
             <p class="suave">Deja el almuerzo vacío si no tiene hora fija.</p>
         </div>
-        <button class="boton boton-ancho" type="submit">Guardar horario</button>
+        <button class="tk-boton boton boton-ancho" type="submit">Guardar horario</button>
     </form>
 
     <div>
-        <form method="post" class="bloque">
+        <form method="post" class="tk-tarjeta bloque">
             <?= campo_csrf() ?><input type="hidden" name="accion" value="bloqueo">
             <h2>Vacaciones, permisos o días libres</h2>
             <div class="fila-campos">
-                <div class="campo"><label for="desde">Desde</label><input type="date" id="desde" name="desde" required min="<?= date('Y-m-d') ?>"></div>
-                <div class="campo"><label for="hasta">Hasta (incluido)</label><input type="date" id="hasta" name="hasta" required min="<?= date('Y-m-d') ?>"></div>
+                <div class="tk-campo campo"><label for="desde">Desde</label><input type="date" id="desde" name="desde" required min="<?= date('Y-m-d') ?>"></div>
+                <div class="tk-campo campo"><label for="hasta">Hasta (incluido)</label><input type="date" id="hasta" name="hasta" required min="<?= date('Y-m-d') ?>"></div>
             </div>
             <details style="margin-bottom:12px"><summary style="cursor:pointer;color:var(--verde)">Solo unas horas (ej. cita médica)</summary>
                 <div class="fila-campos" style="margin-top:8px">
-                    <div class="campo"><label for="hora_desde">Desde la hora</label><input type="time" id="hora_desde" name="hora_desde"></div>
-                    <div class="campo"><label for="hora_hasta">Hasta la hora</label><input type="time" id="hora_hasta" name="hora_hasta"></div>
+                    <div class="tk-campo campo"><label for="hora_desde">Desde la hora</label><input type="time" id="hora_desde" name="hora_desde"></div>
+                    <div class="tk-campo campo"><label for="hora_hasta">Hasta la hora</label><input type="time" id="hora_hasta" name="hora_hasta"></div>
                 </div></details>
-            <div class="campo"><label for="motivo">Motivo <small>(solo lo ves tú)</small></label>
+            <div class="tk-campo campo"><label for="motivo">Motivo <small>(solo lo ves tú)</small></label>
                 <input type="text" id="motivo" name="motivo" maxlength="80" placeholder="Vacaciones"></div>
-            <button class="boton boton-ancho" type="submit">Bloquear esas fechas</button>
+            <button class="tk-boton boton boton-ancho" type="submit">Bloquear esas fechas</button>
         </form>
 
-        <section class="bloque">
+        <section class="tk-tarjeta bloque">
             <h2>Próximos bloqueos</h2>
-            <?php if (!$bloqueos): ?><p class="vacio">No tiene vacaciones ni permisos programados.</p><?php else: ?>
+            <?php if (!$bloqueos): ?><p class="tk-vacio vacio">No tiene vacaciones ni permisos programados.</p><?php else: ?>
                 <ul class="lista">
                     <?php foreach ($bloqueos as $b): $d = new DateTimeImmutable($b['desde']); $h = new DateTimeImmutable($b['hasta']); ?>
                         <li><div><div class="principal-linea"><?= e($b['motivo'] ?: 'Bloqueado') ?></div>
@@ -68,7 +68,7 @@
                             <?php else: ?><?= $d->format('d/m/Y H:i') ?> → <?= $h->format('d/m/Y H:i') ?><?php endif; ?></div></div>
                             <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="borrar_bloqueo">
                                 <input type="hidden" name="id" value="<?= $b['id'] ?>">
-                                <button class="boton boton-claro boton-chico" type="submit">Quitar</button></form></li>
+                                <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit">Quitar</button></form></li>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>

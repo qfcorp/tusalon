@@ -13,9 +13,9 @@ $abierta = in_array($cita['estado'], ['reservada', 'confirmada'], true);
 $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string $confirmar = '') =>
     '<form method="post" style="display:inline">' . campo_csrf()
     . '<input type="hidden" name="estado" value="' . $estado . '">'
-    . '<button class="boton ' . $clase . '" type="submit"' . ($confirmar ? ' data-confirmar="' . e($confirmar) . '"' : '') . '>' . $texto . '</button></form>';
+    . '<button class="tk-boton boton ' . $clase . '" type="submit"' . ($confirmar ? ' data-confirmar="' . e($confirmar) . '"' : '') . '>' . $texto . '</button></form>';
 ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <div>
         <h1><?= e($cita['cliente'] ?: 'Cita sin cliente') ?></h1>
         <p><?= $ini->format('d/m/Y') ?>, <?= $ini->format('H:i') ?> a <?= $fin->format('H:i') ?> · con <?= e($cita['profesional']) ?></p>
@@ -24,7 +24,7 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
 </div>
 
 <div class="rejilla rejilla-2">
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Servicios</h2>
         <ul class="lista">
             <?php foreach ($cita['lista_servicios'] as $s): ?>
@@ -43,15 +43,15 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
                     <a class="comprobante" href="<?= e(url('comprobante', ['cita' => $cita['id']])) ?>" target="_blank"><img src="<?= e(url('comprobante', ['cita' => $cita['id']])) ?>" alt="Comprobante del anticipo" style="max-height:320px"></a>
                 <?php endif; ?>
                 <?php if (in_array($ae, ['pendiente', 'por_revisar', 'rechazado'], true) && !es_peluquero($u)): ?>
-                    <div class="acciones" style="margin-top:10px">
+                    <div class="tk-acciones acciones" style="margin-top:10px">
                         <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="anticipo_ok">
                             <select name="metodo" aria-label="Cómo pagó el anticipo" style="width:auto;margin-bottom:6px">
                                 <?php foreach (['transferencia' => 'Transferencia', 'deuna' => 'DeUna', 'efectivo' => 'Efectivo', 'payphone' => 'Payphone'] as $k => $t): ?>
                                     <option value="<?= $k ?>" <?= ($cita['anticipo_metodo'] ?: 'transferencia') === $k ? 'selected' : '' ?>><?= $t ?></option><?php endforeach; ?></select>
-                            <button class="boton boton-chico" type="submit">Recibí el anticipo</button></form>
+                            <button class="tk-boton chico boton boton-chico" type="submit">Recibí el anticipo</button></form>
                         <?php if ($ae === 'por_revisar'): ?>
                         <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="anticipo_no">
-                            <button class="boton boton-peligro boton-chico" type="submit" data-confirmar="¿El comprobante no es válido? El cliente podrá subir otro.">Comprobante no válido</button></form>
+                            <button class="tk-boton chico boton boton-peligro boton-chico" type="submit" data-confirmar="¿El comprobante no es válido? El cliente podrá subir otro.">Comprobante no válido</button></form>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -59,9 +59,9 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
         <?php endif; ?>
     </section>
 
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Qué hacer</h2>
-        <div class="acciones" style="flex-direction:column;align-items:stretch">
+        <div class="tk-acciones acciones" style="flex-direction:column;align-items:stretch">
             <?php if ($cita['estado'] === 'pendiente'): ?>
                 <p>El cliente la pidió en línea<?= in_array($cita['anticipo_estado'], ['pagado'], true) ? ' y ya pagó el anticipo' : '' ?><?= $cita['expira_en'] ? '. Si nadie responde, la hora se libera a las ' . (new DateTimeImmutable($cita['expira_en']))->format('H:i') : '' ?>.</p>
                 <form method="post" action="<?= e(url('solicitudes')) ?>" class="form-aceptar"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= (int) $cita['id'] ?>">
@@ -70,19 +70,19 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
                             <span class="con-signo">$<input type="number" name="precio[<?= (int) $sv['id'] ?>]" value="<?= e(number_format((float) $sv['precio'], 2, '.', '')) ?>"
                                    step="0.01" min="0" inputmode="decimal" aria-label="Valor de <?= e($sv['nombre']) ?>"></span></label>
                     <?php endforeach; ?>
-                    <button class="boton boton-ancho" name="accion" value="aceptar" type="submit">Aceptar cita</button>
+                    <button class="tk-boton boton boton-ancho" name="accion" value="aceptar" type="submit">Aceptar cita</button>
                     <small>Al cliente le llega este valor en la confirmación.</small></form>
                 <form method="post" action="<?= e(url('solicitudes')) ?>"><?= campo_csrf() ?><input type="hidden" name="cita" value="<?= (int) $cita['id'] ?>">
-                    <button class="boton boton-peligro boton-ancho" name="accion" value="rechazar" type="submit" data-confirmar="¿Rechazar esta solicitud?">Rechazar</button></form>
+                    <button class="tk-boton boton boton-peligro boton-ancho" name="accion" value="rechazar" type="submit" data-confirmar="¿Rechazar esta solicitud?">Rechazar</button></form>
             <?php elseif ($abierta): ?>
                 <?php if ($cita['confirmada_cliente_en']): ?>
-                    <p class="aviso aviso-ok">✅ El cliente confirmó que viene (<?= (new DateTimeImmutable($cita['confirmada_cliente_en']))->format('d/m H:i') ?>).</p>
+                    <p class="tk-aviso ok aviso aviso-ok">✅ El cliente confirmó que viene (<?= (new DateTimeImmutable($cita['confirmada_cliente_en']))->format('d/m H:i') ?>).</p>
                 <?php elseif ($cita['recordatorio_en']): ?>
                     <p class="suave">Recordatorio enviado el <?= (new DateTimeImmutable($cita['recordatorio_en']))->format('d/m H:i') ?>. Aún no confirma.</p>
                 <?php endif; ?>
-                <a class="boton" href="<?= e(url('cobrar', ['cita' => $cita['id']])) ?>">Cobrar <?= dinero($total) ?></a>
+                <a class="tk-boton boton" href="<?= e(url('cobrar', ['cita' => $cita['id']])) ?>">Cobrar <?= dinero($total) ?></a>
                 <?php if ($wa): ?>
-                    <a class="boton boton-wa" href="<?= e($wa) ?>" target="_blank" rel="noopener">Enviar recordatorio por WhatsApp</a>
+                    <a class="tk-boton ok boton boton-wa" href="<?= e($wa) ?>" target="_blank" rel="noopener">Enviar recordatorio por WhatsApp</a>
                 <?php else: ?>
                     <p class="suave">Este cliente no tiene celular. Agrégalo en <a href="<?= e(url('clientes')) ?>">Clientes</a> para mandarle recordatorios.</p>
                 <?php endif; ?>
@@ -91,17 +91,17 @@ $boton = fn(string $estado, string $texto, string $clase = 'boton-claro', string
                 <?= $boton('cancelada', 'Cancelar cita', 'boton-peligro', '¿Cancelar esta cita?') ?>
             <?php elseif ($cita['estado'] === 'atendida'): ?>
                 <p>Esta cita ya se cobró. Puedes verla en <a href="<?= e(url('caja', ['fecha' => $ini->format('Y-m-d')])) ?>">la caja de ese día</a>.</p>
-                <?php if (empty($cita['privado_oculto'])): ?><a class="boton boton-claro" href="<?= e(url('fotos', ['cita' => $cita['id']])) ?>">Fotos del servicio</a><?php endif; ?>
+                <?php if (empty($cita['privado_oculto'])): ?><a class="tk-boton secundario boton boton-claro" href="<?= e(url('fotos', ['cita' => $cita['id']])) ?>">Fotos del servicio</a><?php endif; ?>
                 <?php if ($calificacion): ?>
                     <p>Calificación del cliente: <span class="estrellas" aria-label="<?= (int) $calificacion['estrellas'] ?> de 5"><?= str_repeat('★', (int) $calificacion['estrellas']) . str_repeat('☆', 5 - (int) $calificacion['estrellas']) ?></span>
                         <?php if ($calificacion['comentario']): ?><br><small>"<?= e($calificacion['comentario']) ?>"</small><?php endif; ?></p>
                 <?php elseif ($waCalificar && $cita['cliente_id']): ?>
-                    <a class="boton boton-wa" href="<?= e($waCalificar) ?>" target="_blank" rel="noopener">Pedir calificación por WhatsApp</a>
+                    <a class="tk-boton ok boton boton-wa" href="<?= e($waCalificar) ?>" target="_blank" rel="noopener">Pedir calificación por WhatsApp</a>
                 <?php endif; ?>
             <?php else: ?>
                 <?= $boton('reservada', 'Volver a abrir la cita') ?>
             <?php endif; ?>
-            <a class="boton boton-claro" href="<?= e(url('agenda', ['fecha' => $ini->format('Y-m-d')])) ?>">Ver la agenda del día</a>
+            <a class="tk-boton secundario boton boton-claro" href="<?= e(url('agenda', ['fecha' => $ini->format('Y-m-d')])) ?>">Ver la agenda del día</a>
         </div>
     </section>
 </div>

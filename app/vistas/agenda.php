@@ -6,16 +6,16 @@ $altoHora = 72;
 $tipos = ['dueno' => 'Dueño', 'empleado' => 'Empleado', 'porcentaje' => 'Porcentaje', 'alquiler' => 'Alquila'];
 $colores = ['dueno' => '#E9B23C', 'empleado' => '#1E5A4C', 'porcentaje' => '#3A6BB0', 'alquiler' => '#8A4F94'];
 ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <h1>Agenda</h1>
     <form class="agenda-nav" method="get">
         <input type="hidden" name="r" value="agenda">
-        <a class="boton boton-claro boton-chico" href="<?= e(url('agenda', ['fecha' => $f->modify('-1 day')->format('Y-m-d')])) ?>" aria-label="Día anterior">‹</a>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('agenda', ['fecha' => $f->modify('-1 day')->format('Y-m-d')])) ?>" aria-label="Día anterior">‹</a>
         <label class="oculto" for="fecha">Fecha</label>
         <input type="date" id="fecha" name="fecha" value="<?= e($fecha) ?>" onchange="this.form.submit()">
-        <a class="boton boton-claro boton-chico" href="<?= e(url('agenda', ['fecha' => $f->modify('+1 day')->format('Y-m-d')])) ?>" aria-label="Día siguiente">›</a>
-        <?php if (!$esHoy): ?><a class="boton boton-claro boton-chico" href="<?= e(url('agenda')) ?>">Hoy</a><?php endif; ?>
-        <a class="boton boton-chico" href="<?= e(url('cita_nueva', ['fecha' => $fecha])) ?>">Nueva cita</a>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('agenda', ['fecha' => $f->modify('+1 day')->format('Y-m-d')])) ?>" aria-label="Día siguiente">›</a>
+        <?php if (!$esHoy): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('agenda')) ?>">Hoy</a><?php endif; ?>
+        <a class="tk-boton chico boton boton-chico" href="<?= e(url('cita_nueva', ['fecha' => $fecha])) ?>">Nueva cita</a>
     </form>
 </div>
 <p class="suave"><?= $dias[(int) $f->format('w')] ?> <?= $f->format('j/n/Y') ?> · Toca un espacio libre para agendar.</p>

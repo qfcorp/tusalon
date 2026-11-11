@@ -8,22 +8,22 @@ $titulos = [
 [$titulo, $texto, $motivo] = $titulos[$estadoCuenta] ?? $titulos['prueba_vencida'];
 $pausada = $estadoCuenta === 'suspendido';   // Anexo A: pausada por Tukán, con el motivo (genérico en revisión y uso indebido)
 ?>
-<section class="bloque" style="max-width:560px">
+<section class="tk-tarjeta bloque" style="max-width:560px">
     <h1><?= e($titulo) ?></h1>
     <?php if ($pausada): $wa = 'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode('Hola, mi cuenta de TuSalón está pausada (' . $u['salon'] . '). ¿Me ayudan a reactivarla?'); ?>
         <p class="aviso-pausa"><strong>Motivo:</strong> <?= e(\TuSalon\Papelera::textoPausa($u['pausa_tipo'] ?? null, $u['pausa_motivo'] ?? null)) ?></p>
         <p>Mientras está pausada no puedes trabajar en TuSalón y tu página de reservas dice "temporalmente no disponible". Tus datos están guardados.</p>
-        <div class="acciones">
-            <?php if (!en_app_play()): ?><a class="boton boton-wa" href="<?= e($wa) ?>" target="_blank" rel="noopener">Escribir a Tukán por WhatsApp (+<?= e(whatsapp_ventas()) ?>)</a>
+        <div class="tk-acciones acciones">
+            <?php if (!en_app_play()): ?><a class="tk-boton ok boton boton-wa" href="<?= e($wa) ?>" target="_blank" rel="noopener">Escribir a Tukán por WhatsApp (+<?= e(whatsapp_ventas()) ?>)</a>
             <?php else: ?><p>WhatsApp de Tukán: <strong>+<?= e(whatsapp_ventas()) ?></strong></p><?php endif; ?>
-            <a class="boton boton-claro" href="<?= e(url('salir')) ?>">Cerrar sesión</a>
+            <a class="tk-boton secundario boton boton-claro" href="<?= e(url('salir')) ?>">Cerrar sesión</a>
         </div>
 </section>
     <?php return; endif; ?>
     <p><?= e($texto) ?></p>
-    <div class="acciones">
-        <a class="boton" href="<?= e(url('completa')) ?>">Ver Mi plan</a>
-        <?php if (!en_app_play()): ?><a class="boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode("Hola, $motivo de TuSalón (" . $u['salon'] . ') y quiero contratar un plan.') ?>" target="_blank" rel="noopener">Escribir por WhatsApp</a><?php endif; ?>
-        <a class="boton boton-claro" href="<?= e(url('salir')) ?>">Cerrar sesión</a>
+    <div class="tk-acciones acciones">
+        <a class="tk-boton boton" href="<?= e(url('completa')) ?>">Ver Mi plan</a>
+        <?php if (!en_app_play()): ?><a class="tk-boton ok boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode("Hola, $motivo de TuSalón (" . $u['salon'] . ') y quiero contratar un plan.') ?>" target="_blank" rel="noopener">Escribir por WhatsApp</a><?php endif; ?>
+        <a class="tk-boton secundario boton boton-claro" href="<?= e(url('salir')) ?>">Cerrar sesión</a>
     </div>
 </section>

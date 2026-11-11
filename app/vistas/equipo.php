@@ -15,33 +15,33 @@ $resumenRegla = function (array $p) use ($num): string {
     };
 };
 ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <h1>Equipo</h1>
-    <div class="acciones">
-        <a class="boton boton-claro boton-chico" href="<?= e(url('clientes')) ?>">Clientes</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
-        <?php if (modulo('reportes')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('reporte')) ?>">Reporte del mes</a><?php endif; ?>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('servicios')) ?>">Servicios</a>
-        <?php if (modulo('inventario')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('inventario')) ?>">Inventario</a><?php endif; ?>
-        <?php if (modulo('paquetes_regalo')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('paquetes')) ?>">Paquetes</a><?php endif; ?>
-        <?php if (modulo('paquetes_regalo')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a><?php endif; ?>
-        <?php if (modulo('puntos')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('puntos')) ?>">Puntos</a><?php endif; ?>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('horario')) ?>">Horario y reservas</a>
-        <?php if (modulo('gastos_sri')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('gastos')) ?>">Gastos y facturas</a><?php endif; ?>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
-        <?php if (modulo('recepcion')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('administradores')) ?>">Administradores</a>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>
-        <?php if (modulo('asistente_ia')): ?><a class="boton boton-claro boton-chico" href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>
-        <a class="boton boton-claro boton-chico" href="<?= e(url('ayuda')) ?>">Ayuda</a>
-        <a class="boton boton-claro boton-chico solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
+    <div class="tk-acciones acciones">
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('clientes')) ?>">Clientes</a>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('avisos_clientes')) ?>">Avisos a clientes</a>
+        <?php if (modulo('reportes')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('reporte')) ?>">Reporte del mes</a><?php endif; ?>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('servicios')) ?>">Servicios</a>
+        <?php if (modulo('inventario')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('inventario')) ?>">Inventario</a><?php endif; ?>
+        <?php if (modulo('paquetes_regalo')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('paquetes')) ?>">Paquetes</a><?php endif; ?>
+        <?php if (modulo('paquetes_regalo')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('tarjetas')) ?>">Tarjetas de regalo</a><?php endif; ?>
+        <?php if (modulo('puntos')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('puntos')) ?>">Puntos</a><?php endif; ?>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('horario')) ?>">Horario y reservas</a>
+        <?php if (modulo('gastos_sri')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('gastos')) ?>">Gastos y facturas</a><?php endif; ?>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('cuentas')) ?>">Cuentas</a>
+        <?php if (modulo('recepcion')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('recepcion')) ?>">Recepción</a><?php endif; ?>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('administradores')) ?>">Administradores</a>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('completa')) ?>">Mi plan</a>
+        <?php if (modulo('asistente_ia')): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('asistente')) ?>">✨ Asistente IA</a><?php endif; ?>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('ayuda')) ?>">Ayuda</a>
+        <a class="tk-boton secundario chico boton boton-claro boton-chico solo-celular" href="<?= e(url('salir')) ?>">Salir</a>
     </div>
 </div>
 
-<?php if ($error): ?><p class="aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
+<?php if ($error): ?><p class="tk-aviso mal aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
 
 <div class="rejilla rejilla-2">
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Quiénes trabajan aquí</h2>
         <ul class="lista">
             <?php foreach ($equipo as $p): ?>
@@ -59,17 +59,17 @@ $resumenRegla = function (array $p) use ($num): string {
                                     <?= campo_csrf() ?>
                                     <input type="hidden" name="accion" value="acceso"><input type="hidden" name="id" value="<?= $p['id'] ?>">
                                     <div class="fila-campos">
-                                        <div class="campo"><label for="ae<?= $p['id'] ?>">Su correo</label>
+                                        <div class="tk-campo campo"><label for="ae<?= $p['id'] ?>">Su correo</label>
                                             <input type="email" id="ae<?= $p['id'] ?>" name="email" value="<?= e($p['acceso_email'] ?? '') ?>" required></div>
-                                        <div class="campo"><label for="ac<?= $p['id'] ?>"><?= $p['acceso_email'] ? 'Nueva contraseña' : 'Contraseña' ?></label>
+                                        <div class="tk-campo campo"><label for="ac<?= $p['id'] ?>"><?= $p['acceso_email'] ? 'Nueva contraseña' : 'Contraseña' ?></label>
                                             <input type="text" id="ac<?= $p['id'] ?>" name="clave" minlength="8" required autocomplete="off"></div>
                                     </div>
-                                    <button class="boton boton-chico" type="submit"><?= $p['acceso_email'] ? 'Cambiar contraseña' : 'Crear acceso' ?></button>
+                                    <button class="tk-boton chico boton boton-chico" type="submit"><?= $p['acceso_email'] ? 'Cambiar contraseña' : 'Crear acceso' ?></button>
                                 </form>
                                 <?php if ($p['acceso_email']): ?>
                                     <form method="post" style="margin-top:6px"><?= campo_csrf() ?>
                                         <input type="hidden" name="accion" value="quitar_acceso"><input type="hidden" name="id" value="<?= $p['id'] ?>">
-                                        <button class="boton boton-peligro boton-chico" type="submit" data-confirmar="¿Quitarle el acceso a <?= e($p['nombre']) ?>?">Quitar acceso</button></form>
+                                        <button class="tk-boton chico boton boton-peligro boton-chico" type="submit" data-confirmar="¿Quitarle el acceso a <?= e($p['nombre']) ?>?">Quitar acceso</button></form>
                                 <?php endif; ?>
                                 <?php else: ?>
                                     <div style="margin-top:6px"><?= aviso_modulo('portal_peluquero') ?></div>
@@ -90,26 +90,26 @@ $resumenRegla = function (array $p) use ($num): string {
         <div class="bloque-admins" data-seccion-administradores style="margin-top:16px;padding-top:12px;border-top:1px solid var(--linea)">
             <h3 style="margin:0 0 4px">Administradores</h3>
             <p class="linea-sub" style="margin:0 0 8px"><?= (int) $adminsActivos ?> de <?= \TuSalon\Administradores::MAXIMO ?> activos, además del dueño. Tienen tu mismo nivel y no cuentan en el límite de personas.</p>
-            <a class="boton boton-claro boton-chico" href="<?= e(url('administradores')) ?>">Ver y crear administradores</a>
+            <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('administradores')) ?>">Ver y crear administradores</a>
         </div>
     </section>
 
     <?php if (!$puedeAgregar): ?>
-        <section class="bloque">
+        <section class="tk-tarjeta bloque">
             <h2>Agregar peluquero</h2>
             <p>Tu plan permite hasta <?= (int) modulos()->maxPersonas(salon_de_usuario($u)) ?> personas, contándote a ti. Los administradores no cuentan.</p>
             <?= aviso_modulo('equipo_ilimitado') ?>
         </section>
     <?php else: ?>
-    <form method="post" class="bloque">
+    <form method="post" class="tk-tarjeta bloque">
         <?= campo_csrf() ?>
         <h2>Agregar peluquero</h2>
         <div class="fila-campos">
-            <div class="campo"><label for="nombre">Nombre</label><input type="text" id="nombre" name="nombre" required></div>
-            <div class="campo"><label for="telefono">Celular</label><input type="tel" id="telefono" name="telefono" placeholder="0991234567"></div>
+            <div class="tk-campo campo"><label for="nombre">Nombre</label><input type="text" id="nombre" name="nombre" required></div>
+            <div class="tk-campo campo"><label for="telefono">Celular</label><input type="tel" id="telefono" name="telefono" placeholder="0991234567"></div>
         </div>
 
-        <fieldset class="campo" style="border:0;padding:0">
+        <fieldset class="tk-campo campo" style="border:0;padding:0">
             <legend class="etiqueta" style="margin-bottom:6px">¿Cómo trabaja?</legend>
             <div class="opciones">
                 <label class="opcion"><input type="radio" name="tipo" value="empleado" checked>
@@ -123,21 +123,21 @@ $resumenRegla = function (array $p) use ($num): string {
 
         <div data-tipo="empleado">
             <div class="fila-campos">
-                <div class="campo"><label for="sueldo_mensual">Sueldo al mes <small>(0 si es solo comisión)</small></label>
+                <div class="tk-campo campo"><label for="sueldo_mensual">Sueldo al mes <small>(0 si es solo comisión)</small></label>
                     <input type="number" id="sueldo_mensual" name="sueldo_mensual" value="0" step="0.01" min="0"></div>
-                <div class="campo"><label for="comision_servicio_pct">Comisión de servicios (%)</label>
+                <div class="tk-campo campo"><label for="comision_servicio_pct">Comisión de servicios (%)</label>
                     <input type="number" id="comision_servicio_pct" name="comision_servicio_pct" value="40" step="0.5" min="0" max="100"></div>
             </div>
-            <div class="campo"><label for="comision_producto_pct">Comisión de productos (%)</label>
+            <div class="tk-campo campo"><label for="comision_producto_pct">Comisión de productos (%)</label>
                 <input type="number" id="comision_producto_pct" name="comision_producto_pct" value="10" step="0.5" min="0" max="100"></div>
             <label class="opcion" style="margin-bottom:14px"><input type="checkbox" name="afiliado_iess" value="1">
                 <span><strong>Está afiliado al IESS</strong><small>Queda anotado en su ficha.</small></span></label>
         </div>
 
         <div data-tipo="porcentaje">
-            <div class="campo"><label for="pct_profesional">Porcentaje para el peluquero (%)</label>
+            <div class="tk-campo campo"><label for="pct_profesional">Porcentaje para el peluquero (%)</label>
                 <input type="number" id="pct_profesional" name="pct_profesional" value="50" step="1" min="1" max="99"></div>
-            <div class="campo"><span class="etiqueta">¿Quién recibe el dinero del cliente?</span>
+            <div class="tk-campo campo"><span class="etiqueta">¿Quién recibe el dinero del cliente?</span>
                 <div class="opciones">
                     <label class="opcion"><input type="radio" name="quien_cobra" value="local" checked><span><strong>La caja del local</strong><small>Al cerrar, el local le paga su parte.</small></span></label>
                     <label class="opcion"><input type="radio" name="quien_cobra" value="profesional"><span><strong>Él directamente</strong><small>Al cerrar, él le paga al local su parte.</small></span></label>
@@ -147,15 +147,15 @@ $resumenRegla = function (array $p) use ($num): string {
 
         <div data-tipo="alquiler">
             <div class="fila-campos">
-                <div class="campo"><label for="monto_arriendo">Valor del arriendo</label>
+                <div class="tk-campo campo"><label for="monto_arriendo">Valor del arriendo</label>
                     <input type="number" id="monto_arriendo" name="monto_arriendo" step="0.01" min="0"></div>
-                <div class="campo"><label for="frecuencia_arriendo">Cada cuánto</label>
+                <div class="tk-campo campo"><label for="frecuencia_arriendo">Cada cuánto</label>
                     <select id="frecuencia_arriendo" name="frecuencia_arriendo">
                         <option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual">Mensual</option>
                     </select></div>
             </div>
         </div>
-        <button class="boton boton-ancho" type="submit">Agregar al equipo</button>
+        <button class="tk-boton boton boton-ancho" type="submit">Agregar al equipo</button>
     </form>
     <?php endif; ?>
 </div>

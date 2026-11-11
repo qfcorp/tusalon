@@ -1,18 +1,18 @@
 <?php use TuSalon\WhatsApp; ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <h1>Clientes</h1>
-    <a class="boton" href="<?= e(url('cliente')) ?>">Nuevo cliente</a>
+    <a class="tk-boton boton" href="<?= e(url('cliente')) ?>">Nuevo cliente</a>
 </div>
 
-<form method="get" class="bloque" role="search">
+<form method="get" class="tk-tarjeta bloque" role="search">
     <input type="hidden" name="r" value="clientes">
     <label class="oculto" for="q">Buscar</label>
     <input type="search" id="q" name="q" value="<?= e($q) ?>" placeholder="Buscar por nombre o celular">
 </form>
 
-<section class="bloque">
+<section class="tk-tarjeta bloque">
     <?php if (!$clientes): ?>
-        <p class="vacio"><?= $q !== '' ? 'Nadie coincide con esa búsqueda.' : 'Aún no tienes clientes. Se agregan solos al agendar citas, o puedes crearlos aquí.' ?></p>
+        <p class="tk-vacio vacio"><?= $q !== '' ? 'Nadie coincide con esa búsqueda.' : 'Aún no tienes clientes. Se agregan solos al agendar citas, o puedes crearlos aquí.' ?></p>
     <?php else: ?>
         <ul class="lista">
             <?php foreach ($clientes as $c):
@@ -28,7 +28,7 @@
                         </div>
                     </a>
                     <?php if ($wa): ?>
-                        <a class="boton boton-wa boton-chico" href="<?= e($wa) ?>" target="_blank" rel="noopener" aria-label="WhatsApp a <?= e($c['nombre']) ?>">WhatsApp</a>
+                        <a class="tk-boton ok chico boton boton-wa boton-chico" href="<?= e($wa) ?>" target="_blank" rel="noopener" aria-label="WhatsApp a <?= e($c['nombre']) ?>">WhatsApp</a>
                     <?php endif; ?>
                 </li>
             <?php endforeach; ?>

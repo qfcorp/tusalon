@@ -14,12 +14,12 @@ $nombre = explode(' ', trim($yo['nombre']))[0];
 $textoSaldo = $saldo > 0 ? 'El local te debe' : ($saldo < 0 ? 'Le debes al local' : 'Estás al día con el local');
 $diaAnterior = '';
 ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <div>
         <h1>Hola, <?= e($nombre) ?></h1>
         <p><?= e($u['salon']) ?><span class="solo-celular"> · <a href="<?= e(url('ayuda')) ?>">Ayuda</a></span></p>
     </div>
-    <nav class="acciones" aria-label="Periodo">
+    <nav class="tk-acciones acciones" aria-label="Periodo">
         <?php foreach ($periodos as $k => $txt): ?>
             <a class="boton boton-chico <?= $k === $periodo ? '' : 'boton-claro' ?>" href="<?= e(url('mi_portal', ['p' => $k])) ?>"
                <?= $k === $periodo ? 'aria-current="page"' : '' ?>><?= $txt ?></a>
@@ -38,29 +38,29 @@ $diaAnterior = '';
         <p class="suave" data-ayuda-otro style="font-size:.9rem">En Chrome: menú <strong>⋮</strong> → <strong>Agregar a la pantalla principal</strong>.</p>
         <p class="suave" data-ayuda-ios hidden style="font-size:.9rem">En el iPhone (Safari): toca <strong>Compartir</strong> <span aria-hidden="true">⬆️</span> → <strong>Agregar a inicio</strong>.</p>
     </div>
-    <button class="boton boton-chico" type="button" data-instalar hidden>Instalar</button>
+    <button class="tk-boton chico boton boton-chico" type="button" data-instalar hidden>Instalar</button>
 </div>
 
 <div class="rejilla rejilla-3">
-    <div class="bloque">
+    <div class="tk-tarjeta bloque">
         <div class="cifra"><?= dinero($ganado) ?></div>
         <p class="cifra-nombre"><?= $yo['tipo'] === 'alquiler' ? 'Tus ingresos' : 'Lo que ganaste' ?> · <?= strtolower($periodos[$periodo]) ?></p>
     </div>
-    <div class="bloque">
+    <div class="tk-tarjeta bloque">
         <div class="cifra"><?= count($hechos) ?></div>
         <p class="cifra-nombre">Servicios hechos<?= $propinas > 0 ? ' · propinas ' . dinero($propinas) : '' ?></p>
     </div>
-    <div class="bloque">
+    <div class="tk-tarjeta bloque">
         <div class="cifra <?= $saldo < 0 ? 'monto-neg' : '' ?>"><?= dinero(abs($saldo)) ?></div>
         <p class="cifra-nombre"><?= $textoSaldo ?></p>
     </div>
 </div>
 
 <div class="rejilla rejilla-2">
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Tus próximas citas</h2>
         <?php if (!$proximas): ?>
-            <p class="vacio">No tienes citas en los próximos 7 días.</p>
+            <p class="tk-vacio vacio">No tienes citas en los próximos 7 días.</p>
         <?php else: ?>
             <ul class="lista">
                 <?php foreach ($proximas as $c):
@@ -77,7 +77,7 @@ $diaAnterior = '';
                             <?php if ($c['cliente_id'] && modulo('ficha_tecnica')): ?><a class="linea-sub" href="<?= e(url('ficha', ['cliente' => $c['cliente_id']])) ?>">Ficha técnica</a><?php endif; ?>
                         </div>
                         <?php if ($c['estado'] === 'pendiente'): ?>
-                            <a class="etq etq-pendiente" href="<?= e(url('solicitudes')) ?>">Por aceptar</a>
+                            <a class="tk-chip etq etq-pendiente" href="<?= e(url('solicitudes')) ?>">Por aceptar</a>
                         <?php else: ?>
                             <span class="etq etq-<?= e($c['estado']) ?>"><?= $c['estado'] === 'confirmada' ? 'Confirmada' : 'Reservada' ?></span>
                         <?php endif; ?>
@@ -87,13 +87,13 @@ $diaAnterior = '';
         <?php endif; ?>
     </section>
 
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Lo que hiciste · <?= strtolower($periodos[$periodo]) ?></h2>
         <?php if (!$hechos): ?>
-            <p class="vacio">Todavía no hay servicios cobrados en este periodo.</p>
+            <p class="tk-vacio vacio">Todavía no hay servicios cobrados en este periodo.</p>
         <?php else: ?>
             <div class="desliza">
-            <table class="tabla">
+            <table class="tk-tabla tabla">
                 <thead><tr><th>Servicio</th><th class="der">Cobrado</th><th class="der">Te toca</th></tr></thead>
                 <tbody>
                 <?php foreach ($hechos as $h): ?>
@@ -112,10 +112,10 @@ $diaAnterior = '';
     </section>
 </div>
 
-<section class="bloque">
+<section class="tk-tarjeta bloque">
     <h2>Tus servicios y lo que te toca</h2>
     <div class="desliza">
-    <table class="tabla">
+    <table class="tk-tabla tabla">
         <thead><tr><th>Servicio</th><th class="der">Precio</th><th class="der">Te toca</th></tr></thead>
         <tbody>
         <?php foreach ($catalogo as $s): ?>

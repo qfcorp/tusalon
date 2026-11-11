@@ -4,38 +4,38 @@ $metodos = ['efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'deuna
 $esHoy = $fecha === date('Y-m-d');
 $f = new DateTimeImmutable($fecha);
 ?>
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <div>
         <h1>Caja</h1>
         <p><?= $esHoy ? 'Hoy' : $f->format('d/m/Y') ?></p>
     </div>
-    <div class="acciones">
-        <a class="boton boton-claro boton-chico" href="<?= e(url('caja', ['fecha' => $f->modify('-1 day')->format('Y-m-d')])) ?>">Día anterior</a>
-        <?php if (!$esHoy): ?><a class="boton boton-claro boton-chico" href="<?= e(url('caja')) ?>">Hoy</a><?php endif; ?>
-        <a class="boton" href="<?= e(url('cobrar')) ?>">Cobrar</a>
+    <div class="tk-acciones acciones">
+        <a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('caja', ['fecha' => $f->modify('-1 day')->format('Y-m-d')])) ?>">Día anterior</a>
+        <?php if (!$esHoy): ?><a class="tk-boton secundario chico boton boton-claro boton-chico" href="<?= e(url('caja')) ?>">Hoy</a><?php endif; ?>
+        <a class="tk-boton boton" href="<?= e(url('cobrar')) ?>">Cobrar</a>
     </div>
 </div>
 
 <div class="rejilla rejilla-3">
-    <div class="bloque">
+    <div class="tk-tarjeta bloque">
         <div class="cifra"><?= dinero($resumen['cobrado_local']) ?></div>
         <p class="cifra-nombre">Entró a la caja del local</p>
     </div>
-    <div class="bloque">
+    <div class="tk-tarjeta bloque">
         <div class="cifra"><?= dinero($resumen['efectivo_esperado']) ?></div>
         <p class="cifra-nombre">Debe haber en efectivo</p>
     </div>
-    <div class="bloque">
+    <div class="tk-tarjeta bloque">
         <div class="cifra"><?= dinero($resumen['cobrado_profesionales']) ?></div>
         <p class="cifra-nombre">Cobraron los peluqueros directo</p>
     </div>
 </div>
 
 <div class="rejilla rejilla-2">
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Cobros del día</h2>
         <?php if (!$resumen['ventas']): ?>
-            <p class="vacio">Todavía no hay cobros este día.<br><a href="<?= e(url('cobrar')) ?>">Registrar un cobro</a></p>
+            <p class="tk-vacio vacio">Todavía no hay cobros este día.<br><a href="<?= e(url('cobrar')) ?>">Registrar un cobro</a></p>
         <?php else: ?>
             <ul class="lista">
                 <?php foreach ($resumen['ventas'] as $v): ?>
@@ -62,7 +62,7 @@ $f = new DateTimeImmutable($fecha);
     </section>
 
     <?php if ($resumen['ingresos']): ?>
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Paquetes, tarjetas y anticipos</h2>
         <ul class="lista">
             <?php foreach ($resumen['ingresos'] as $i): ?>
@@ -75,7 +75,7 @@ $f = new DateTimeImmutable($fecha);
     </section>
     <?php endif; ?>
 
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Por forma de pago</h2>
         <?php if (!$resumen['por_metodo']): ?>
             <p class="suave">Sin cobros en la caja del local.</p>
@@ -97,12 +97,12 @@ $f = new DateTimeImmutable($fecha);
         <?php else: ?>
             <form method="post">
                 <?= campo_csrf() ?>
-                <div class="campo">
+                <div class="tk-campo campo">
                     <label for="efectivo_contado">¿Cuánto efectivo hay en la caja?</label>
                     <input type="number" id="efectivo_contado" name="efectivo_contado" step="0.01" min="0" required>
                     <small>Debería haber <?= dinero($resumen['efectivo_esperado']) ?>.</small>
                 </div>
-                <button class="boton" type="submit" data-confirmar="¿Cerrar la caja de este día? Después no se puede cambiar.">Cerrar caja</button>
+                <button class="tk-boton boton" type="submit" data-confirmar="¿Cerrar la caja de este día? Después no se puede cambiar.">Cerrar caja</button>
             </form>
         <?php endif; ?>
     </section>

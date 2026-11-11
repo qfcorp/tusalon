@@ -1,21 +1,21 @@
-<div class="cabecera">
+<div class="tk-titulo-pagina cabecera">
     <h1><?= $id ? e($cliente['nombre']) : 'Nuevo cliente' ?></h1>
-    <a class="boton boton-claro" href="<?= e(url('clientes')) ?>">Volver</a>
+    <a class="tk-boton secundario boton boton-claro" href="<?= e(url('clientes')) ?>">Volver</a>
 </div>
 <div class="rejilla rejilla-2">
-    <form method="post" class="bloque">
+    <form method="post" class="tk-tarjeta bloque">
         <?= campo_csrf() ?>
-        <?php if ($error): ?><p class="aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
-        <div class="campo">
+        <?php if ($error): ?><p class="tk-aviso mal aviso aviso-error" role="alert"><?= e($error) ?></p><?php endif; ?>
+        <div class="tk-campo campo">
             <label for="nombre">Nombre</label>
             <input type="text" id="nombre" name="nombre" value="<?= e($cliente['nombre']) ?>" required>
         </div>
         <div class="fila-campos">
-            <div class="campo">
+            <div class="tk-campo campo">
                 <label for="telefono">Celular</label>
                 <input type="tel" id="telefono" name="telefono" value="<?= e($cliente['telefono']) ?>" placeholder="0991234567">
             </div>
-            <fieldset class="campo cumple">
+            <fieldset class="tk-campo campo cumple">
                 <legend>Cumpleaños <small>(día y mes)</small></legend>
                 <div class="fila-cumple">
                     <select name="cumple_dia" aria-label="Día del cumpleaños"><option value="">Día</option>
@@ -26,30 +26,30 @@
                 </div>
             </fieldset>
         </div>
-        <div class="campo">
+        <div class="tk-campo campo">
             <label for="email">Correo <small>(opcional)</small></label>
             <input type="email" id="email" name="email" value="<?= e($cliente['email']) ?>">
         </div>
-        <div class="campo">
+        <div class="tk-campo campo">
             <label for="alergias">Alergias <small>(tintes, productos)</small></label>
             <input type="text" id="alergias" name="alergias" value="<?= e($cliente['alergias']) ?>">
         </div>
-        <div class="campo">
+        <div class="tk-campo campo">
             <label for="notas">Notas</label>
             <textarea id="notas" name="notas" rows="3"><?= e($cliente['notas']) ?></textarea>
         </div>
-        <button class="boton boton-ancho" type="submit">Guardar cliente</button>
+        <button class="tk-boton boton boton-ancho" type="submit">Guardar cliente</button>
         <?php if (!modulo('ficha_tecnica') && !es_recepcion($u)): ?><div style="margin-top:12px"><?= aviso_modulo('ficha_tecnica') ?></div><?php endif; ?>
     </form>
 
     <?php if ($id): ?>
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <?php if ($faltas > 0): ?>
             <div class="aviso <?= $maxFaltas > 0 && $faltas >= $maxFaltas ? 'aviso-error' : '' ?>" style="margin-bottom:14px">
                 <strong><?= $faltas ?> <?= $faltas === 1 ? 'falta' : 'faltas' ?></strong> (citas a las que no llegó sin avisar).
                 <?php if ($maxFaltas > 0 && $faltas >= $maxFaltas): ?>No puede reservar en línea.<?php endif; ?>
                 <form method="post" style="margin-top:8px"><?= campo_csrf() ?><input type="hidden" name="accion" value="perdonar">
-                    <button class="boton boton-claro boton-chico" type="submit">Perdonar faltas</button></form>
+                    <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit">Perdonar faltas</button></form>
             </div>
         <?php endif; ?>
         <h2>Visitas</h2>
@@ -68,22 +68,22 @@
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
-        <a class="boton boton-claro" href="<?= e(url('cita_nueva', ['cliente_id' => $id])) ?>">Agendar cita</a>
+        <a class="tk-boton secundario boton boton-claro" href="<?= e(url('cita_nueva', ['cliente_id' => $id])) ?>">Agendar cita</a>
     </section>
     <?php endif; ?>
 
     <?php if ($id && $fidelidad): ?>
     <?php if (modulo('ficha_tecnica')): ?>
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2>Ficha técnica de color</h2>
         <p><?= $fidelidad['fichas'] ? $fidelidad['fichas'] . ($fidelidad['fichas'] === 1 ? ' ficha guardada' : ' fichas guardadas') . '.' : 'Todavía no tiene fichas.' ?>
             Fórmulas, tiempos y fotos de antes y después.</p>
-        <a class="boton" href="<?= e(url('ficha', ['cliente' => $id])) ?>"><?= $fidelidad['fichas'] ? 'Ver ficha técnica' : 'Crear ficha técnica' ?></a>
+        <a class="tk-boton boton" href="<?= e(url('ficha', ['cliente' => $id])) ?>"><?= $fidelidad['fichas'] ? 'Ver ficha técnica' : 'Crear ficha técnica' ?></a>
     </section>
     <?php endif; ?>
 
     <?php if (modulo('paquetes_regalo') || modulo('puntos')): ?>
-    <section class="bloque">
+    <section class="tk-tarjeta bloque">
         <h2><?= modulo('paquetes_regalo') && modulo('puntos') ? 'Paquetes y puntos' : (modulo('puntos') ? 'Puntos' : 'Paquetes') ?></h2>
         <?php if (!modulo('puntos')): ?>
         <?php elseif ($fidelidad['config']['activo']): ?>
@@ -101,7 +101,7 @@
             <?php endforeach; ?>
             </ul>
         <?php endif; ?>
-        <?php if (modulo('paquetes_regalo')): ?><a class="boton boton-claro" href="<?= e(url('paquetes', ['cliente' => $id])) ?>">Venderle un paquete</a><?php endif; ?>
+        <?php if (modulo('paquetes_regalo')): ?><a class="tk-boton secundario boton boton-claro" href="<?= e(url('paquetes', ['cliente' => $id])) ?>">Venderle un paquete</a><?php endif; ?>
         <?php if (modulo('puntos') && $fidelidad['movs']): ?>
             <h3 style="margin-top:14px">Últimos puntos</h3>
             <ul class="lista"><?php foreach ($fidelidad['movs'] as $m): ?>

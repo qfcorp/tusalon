@@ -1,4 +1,4 @@
-<article class="bloque legal">
+<article class="tk-tarjeta bloque legal">
 <h1>Política de privacidad de TuSalón</h1>
 <p><small>Última actualización: 28 de octubre de 2026</small></p>
 
