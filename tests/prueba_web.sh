@@ -55,6 +55,8 @@ no_gratis() { if grep -qi "prueba gratis\|días gratis\|sin tarjeta" "$TMP/pag.h
 no_gratis "Inicio de la demo"
 # Identidad gráfica Tukán (10 nov 2026): diseño del kit, primeros pasos calculados con los datos y «Ocultar» por salón
 contiene "Inicio con el kit común (barra del color del programa)" "$TMP/pag.html" 'class="tk-arriba"'
+contiene "… del rosa de tukansoftware.com con texto blanco (decisión de Dimitry, 10 nov 2026)" "$TMP/pag.html" '--tk-color:#DB2967; --tk-color-claro:#E7719A; --tk-color-texto:#ffffff;'
+check "… ya no el verde botella de antes" "0" "$(grep -c -- '--tk-color:#1E5A4C' "$TMP/pag.html")"
 contiene "… y el menú con secciones" "$TMP/pag.html" 'class="tk-menu-titulo">Configuración'
 contiene "Primeros pasos en el inicio" "$TMP/pag.html" "Primeros pasos"
 contiene "… los servicios de ejemplo ya cuentan como hechos" "$TMP/pag.html" 'class="hecho"><span class="tk-check">✓</span><span class="tk-paso-texto">Agrega tus servicios'

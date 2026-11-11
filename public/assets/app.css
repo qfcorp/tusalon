@@ -1,4 +1,5 @@
-/* TuSalón — verde botella de barbería, amarillo navaja para "ahora" */
+/* TuSalón — portal público de reservas, cuenta del cliente y Panel Tukán: verde botella de barbería, amarillo navaja para "ahora".
+   Pantallas internas: rosa TuSalón #DB2967 (el color de tukansoftware.com, decisión de Dimitry 10 nov 2026) con el kit común Tukán */
 :root {
     --fondo: #F3F5F4;
     --superficie: #FFFFFF;
@@ -513,9 +514,11 @@ body.admin { background: var(--fondo); }
    las clases de siempre (.cabecera, .bloque, .boton, .tabla, .campo, .aviso, .etq, .cifra) toman el aspecto del kit,
    para las pantallas y los módulos comunes (src/Tukan*.php) que todavía las usan.
    ===================================================================================================================== */
-.tk { --verde: var(--tk-color); }
+/* Los tonos de antes (verde claro de fondos y verde oscuro de letra) pasan a tonos del rosa TuSalón (color de la web, 10 nov 2026) */
+.tk { --verde: var(--tk-color); --verde-claro: color-mix(in srgb, var(--tk-color) 10%, #fff); --verde-oscuro: color-mix(in srgb, var(--tk-color) 45%, #000); }
+.tk .dia:has(input:checked) .dia-sem, .tk .dia:has(input:checked) .dia-mes { color: inherit; }
 .tk h1, .tk h2, .tk h3 { letter-spacing: 0; }
-.tk a { color: var(--tk-color); }
+.tk a { color: color-mix(in srgb, var(--tk-color) 85%, #000); }   /* enlaces: el rosa en un tono un poco más oscuro (sobre el gris del kit el #DB2967 da 4,2:1) */
 .tk .tk-menu a, .tk .tk-marca, .tk .tk-salir, .tk .tk-boton, .tk .boton { color: inherit; }
 .tk .tk-boton, .tk .boton { color: var(--tk-color-texto); }
 .tk .tk-boton.secundario, .tk .boton-claro, .tk .boton-peligro { color: var(--tk-tinta); }

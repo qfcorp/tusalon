@@ -41,49 +41,49 @@ h.append(f'''<div class="top"><img src="{u(D)}/logo_oscuro.png"><span class="chi
 <h1>Primeros pasos en TuSalón</h1>
 <p class="lead">Lo básico para empezar a trabajar hoy. Para todo lo demás está el <b>Manual de TuSalón</b>.</p>
 <div class="box"><b>Antes de empezar:</b> lo que ve en el menú depende de los módulos que contrató.
-En el <b>celular</b>, el menú está abajo (Hoy, Agenda, Solicitudes, Caja y <b>Más</b>); en la <b>computadora</b>, a la izquierda.
+En la <b>computadora</b> el menú está a la izquierda, por secciones; en el <b>celular</b> se abre con el botón <b>☰</b> de arriba a la izquierda.
 La configuración se hace más cómoda en la computadora. Sus peluqueros solo ven sus citas y lo que ganan, no la caja.</div>''')
 
 h.append('<h2>Parte 1 · Deje listo su salón (una sola vez)</h2>')
 h.append(paso(1, 'Entre al programa', 'La dirección, el correo y la contraseña se los enviamos nosotros', [
     'Abra la dirección de su salón en el navegador (Chrome o Safari, en el celular o la computadora).',
     'Escriba su <b>Correo</b> y su <b>Contraseña</b>, y toque <b>Entrar</b>.',
-    'Llega a <b>Hoy</b>: los botones <b>Nueva cita</b> y <b>Cobrar</b>, lo que entró a la caja, las citas que faltan y las <b>Próximas citas</b>.'],
+    'Llega al <b>Inicio</b>: los <b>Primeros pasos</b>, lo que entró a la caja, las citas por atender, las <b>Próximas citas</b> y los botones <b>Nueva cita</b> y <b>Cobrar</b>.'],
     'en el celular, agréguelo a la pantalla de inicio: así se abre como una aplicación.'))
-h.append(paso(2, 'Sus servicios y precios', 'Menú Más → Servicios (en la computadora: Servicios y precios)', [
+h.append(paso(2, 'Sus servicios y precios', 'Menú → Servicios y precios', [
     'Al final está <b>Agregar servicio</b>: escriba el <b>Nombre del servicio</b>, el <b>Precio al cliente</b> y la <b>Duración (minutos)</b>.',
     'Si le paga un valor fijo al peluquero por hacerlo, póngalo en <b>Pago al peluquero</b>; si lo deja vacío, se usa su comisión.',
     'En <b>¿Quién lo hace?</b> desmarque a quien no hace ese servicio. Si alguien lo cobra distinto, escriba su precio al lado.',
     'Toque <b>Agregar servicio</b>. Para cambiar uno, tóquelo en la lista y luego <b>Guardar cambios</b>.']))
-h.append(paso(3, 'Su equipo', 'Menú Equipo (en el celular: Más)', [
+h.append(paso(3, 'Su equipo', 'Menú → Equipo', [
     'En <b>Agregar peluquero</b> ponga el <b>Nombre</b> y el <b>Celular</b>.',
     'Elija <b>¿Cómo trabaja?</b>: <b>Empleado</b> (sueldo, comisión o las dos), <b>Por porcentaje</b> (50/50, 60/40…) o <b>Alquila el puesto</b> (le paga un arriendo).',
     'Llene sus valores (comisión, porcentaje o arriendo) y toque <b>Agregar al equipo</b>.',
     'Si quiere que vea sus citas en su celular, toque <b>Darle acceso a su portal</b>, escriba su correo y una contraseña, y toque <b>Crear acceso</b>.']))
-h.append(f'''<div class="fotos"><figure><img src="{img('02_inicio_celular.jpg')}" style="height:62mm"><figcaption>Hoy, en el celular</figcaption></figure>
-<figure><img src="{img('08b_agenda_compu.jpg')}" style="height:62mm"><figcaption>La agenda, con una columna por peluquero</figcaption></figure></div>''')
+h.append(f'''<div class="fotos"><figure><img src="{img('capturas/03_inicio_celular.png')}" style="height:62mm"><figcaption>El Inicio, en el celular</figcaption></figure>
+<figure><img src="{img('capturas/12_agenda_compu.png')}" style="height:62mm"><figcaption>La agenda, con una columna por peluquero</figcaption></figure></div>''')
 h.append(paso(4, 'Horario de cada peluquero', 'Menú Equipo → Horario, almuerzo y vacaciones', [
     'Elija <b>Usa el horario del salón</b> o <b>Tiene su propio horario</b> (días libres, hora de entrada y salida, almuerzo).',
     'Toque <b>Guardar horario</b>.',
     'Para vacaciones o un permiso, use <b>Vacaciones, permisos o días libres</b> y toque <b>Bloquear esas fechas</b>.']))
-h.append(paso(5, 'Horario del salón y reservas por internet', 'Menú Más → Horario y reservas (en la computadora: Horario y reservas en línea)', [
+h.append(paso(5, 'Horario del salón y reservas por internet', 'Menú → Horario y reservas en línea', [
     'En <b>Días y horas de atención</b> marque los días que abre y la hora de entrada y salida.',
     'Elija <b>¿Quién acepta la cita?</b> cuando un cliente reserva en línea, y las <b>Reglas para tus clientes</b> (hasta cuándo puede cancelar, faltas).',
     'Toque <b>Guardar</b>. Arriba está <b>Tu página de reservas</b>: compártala con <b>Compartir por WhatsApp</b> y en sus redes.']))
 
 h.append('<h2>Parte 2 · El día a día</h2>')
-h.append(paso(6, 'Agendar una cita', 'Botón Nueva cita (en Hoy o en Agenda)', [
+h.append(paso(6, 'Agendar una cita', 'Botón Nueva cita (en el Inicio o en Agenda)', [
     'Ponga el <b>Día</b>, la <b>Hora</b> y <b>Con quién</b> (el peluquero que atiende).',
     'Elija el <b>Cliente</b> de la lista. Si es nuevo, escriba su nombre y su celular para el WhatsApp.',
     'Marque los <b>Servicios</b> (el precio se puede cambiar solo para este cliente) y toque <b>Agendar cita</b>.',
     'El programa no deja que se crucen dos citas del mismo peluquero.'],
     'en <b>Agenda</b> también puede tocar un espacio libre para agendar.'))
 h.append(paso(7, 'Aceptar las reservas por internet', 'Menú Solicitudes', [
-    'Cuando un cliente reserva desde su enlace, aparece una franja amarilla en <b>Hoy</b> y un número en <b>Solicitudes</b>.',
+    'Cuando un cliente reserva desde su enlace, aparece un aviso en el <b>Inicio</b> y un número en <b>Solicitudes</b>.',
     'Revise el <b>Valor a cobrar</b> y toque <b>Aceptar</b>, o <b>Rechazar</b> si no puede atenderlo.',
     'Al aceptar, toque <b>Enviar WhatsApp al cliente</b> para mandarle la confirmación con un toque.']))
-h.append(f'''<div class="fotos"><figure><img src="{img('09_solicitud.jpg')}" style="height:48mm"><figcaption>Una solicitud por responder</figcaption></figure></div>''')
-h.append(paso(8, 'Cobrar', 'Abra la cita → Cobrar (o botón Cobrar en Hoy, para alguien sin cita)', [
+h.append(f'''<div class="fotos"><figure><img src="{img('capturas/16_solicitudes.png')}" style="height:48mm"><figcaption>Una solicitud por responder</figcaption></figure></div>''')
+h.append(paso(8, 'Cobrar', 'Abra la cita → Cobrar (o botón Cobrar en el Inicio, para alguien sin cita)', [
     'Elija <b>Quién atendió</b>. Los <b>Servicios</b> de la cita ya vienen marcados; puede agregar otro o cambiar el precio.',
     'Elija <b>Cómo pagó lo que falta</b> (efectivo, transferencia, DeUna, tarjeta…) y, si hay, la <b>Propina</b>.',
     'En <b>¿Quién recibió el dinero?</b> elija <b>La caja del local</b> o <b>El peluquero directamente</b>.',
@@ -92,17 +92,17 @@ h.append(paso(9, 'Cerrar la caja del día', 'Menú Caja', [
     'Revise los <b>Cobros del día</b> y cuánto entró <b>Por forma de pago</b>.',
     'Al final del día cuente el efectivo y escríbalo en <b>¿Cuánto efectivo hay en la caja?</b>.',
     'Toque <b>Cerrar caja</b>: el programa le dice si sobra o falta dinero.']))
-h.append(paso(10, 'Pagar a su equipo', 'Menú Más → Cuentas (en la computadora: Cuentas del equipo)', [
+h.append(paso(10, 'Pagar a su equipo', 'Menú → Cuentas del equipo', [
     'Vea cuánto le debe a cada peluquero, o cuánto le debe él a usted (por ejemplo, el arriendo de la silla).',
     'Toque <b>Ver detalle</b> para revisar cada cobro y, cuando ya pagaron, <b>Pagado, cerrar cuenta</b>.']))
-h.append(paso(11, 'Sus administradores (si los necesita)', 'Menú Más → Administradores (o Equipo → Ver y crear administradores)', [
+h.append(paso(11, 'Sus administradores (si los necesita)', 'Menú → Administradores (o Equipo → Ver y crear administradores)', [
     'Para un socio, gerente o encargado que maneje todo como usted: escriba su <b>Nombre</b>, el <b>Correo con el que entra</b> y una contraseña, y toque <b>Crear administrador</b>.',
     'Tiene su mismo nivel en todo el programa. Puede tener <b>hasta 4</b> además de usted, y <b>no cuentan</b> en el límite de personas del salón.',
     'Puede <b>Editar</b>, <b>Cambiar contraseña</b>, <b>Desactivar</b> y <b>Activar</b> cada cuenta. Su cuenta de dueño nadie más la puede cambiar.'],
     'si su administrador también atiende clientes, agréguelo además en Equipo como peluquero.'))
 
 h.append('''<div class="fin"><b>¿Listo? Ya puede trabajar.</b> Para clientes, avisos, inventario, paquetes, reportes y todo lo demás,
-vea el <b>Manual de TuSalón</b>.<br><br>¿No sabe cómo hacer algo? Toque <b>Ayuda</b> (en el celular, en <b>Más</b>) y pregúntelo con sus palabras: le responde con los pasos del manual.<br><br>¿Dudas? Escríbanos por <b>WhatsApp 098 366 2181</b> · info@tukansoftware.com · tukansoftware.com</div>''')
+vea el <b>Manual de TuSalón</b>.<br><br>¿No sabe cómo hacer algo? Toque <b>Ayuda</b> en el menú (en el celular, con el botón <b>☰</b>) y pregúntelo con sus palabras: le responde con los pasos del manual.<br><br>¿Dudas? Escríbanos por <b>WhatsApp 098 366 2181</b> · info@tukansoftware.com · tukansoftware.com</div>''')
 
 html = f'<!doctype html><html lang="es"><head><meta charset="utf-8"><style>{css}</style></head><body>{"".join(h)}</body></html>'
 open(f'{D}/primeros_pasos.html', 'w').write(html)

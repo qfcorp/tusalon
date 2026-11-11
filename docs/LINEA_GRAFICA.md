@@ -5,9 +5,15 @@ Mismo diseño y misma lógica que todos los programas Tukán (modelo: el ERP par
 las reglas propias de TuSalón van al final de `public/assets/app.css`, sección «Identidad gráfica común de Tukán»).
 
 ## Color del programa
-`<style>:root{ --tk-color:#1E5A4C; --tk-color-claro:#7FD1B9; --tk-color-texto:#ffffff; }</style>` (en `app/vistas/_diseno.php`)
-- `#1E5A4C` verde botella de siempre (barra de arriba, títulos de sección del menú, opción activa, botón principal). Texto blanco (contraste 8:1).
-- `#7FD1B9` versión clara para números y títulos sobre el azul noche.
+`<style>:root{ --tk-color:#DB2967; --tk-color-claro:#E7719A; --tk-color-texto:#ffffff; }</style>` (en `app/vistas/_diseno.php`)
+- **Decisión de Dimitry, 10 nov 2026: el color de la web.** Cada programa usa por dentro el mismo color que tiene en tukansoftware.com
+  (y en el Panel). TuSalón es **rosa**: en la web `#E0457B`; aquí `#DB2967`, el «tono de pantalla» (un poco más intenso para que el
+  texto blanco llegue a 4,5:1: da 4,6:1). Antes verde botella `#1E5A4C`. Barra de arriba, títulos de sección del menú, opción activa,
+  botón principal. También `<meta name="theme-color">` del sistema y `theme_color` de `public/manifest.json` (íconos y app de Google Play sin cambios).
+- `#E7719A` versión clara para números y títulos sobre el azul noche (más de 6:1).
+- En `app.css` (sección «Identidad gráfica común de Tukán»): `--verde-claro` y `--verde-oscuro` dentro del sistema son tonos del rosa
+  (antes quedaban verdes) y los enlaces van en el rosa un poco más oscuro (`color-mix(… 85%, #000)`, 5,5:1 sobre el gris del kit).
+- El portal público de reservas, la cuenta del cliente y el Panel Tukán siguen con el verde de siempre (`_publico.php`, `_admin.php`).
 
 ## Estructura (todas las pantallas internas)
 - `body class="tk"` · barra `.tk-arriba` (iniciales **Ts** en el círculo, nombre del salón, «TuSalón · Plan …» o «Demo», usuario, rol y **Salir**).

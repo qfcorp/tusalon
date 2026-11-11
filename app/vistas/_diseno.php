@@ -83,7 +83,7 @@ $iniciales = 'Ts';
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1E5A4C">
+<meta name="theme-color" content="#DB2967">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -92,7 +92,7 @@ $iniciales = 'Ts';
 <title><?= e($titulo) ?></title>
 <link rel="stylesheet" href="/assets/tukan-ui.css?v=1">
 <link rel="stylesheet" href="/assets/app.css?v=15">
-<style>:root{ --tk-color:#1E5A4C; --tk-color-claro:#7FD1B9; --tk-color-texto:#ffffff; }</style>
+<style>:root{ --tk-color:#DB2967; --tk-color-claro:#E7719A; --tk-color-texto:#ffffff; }</style>
 </head>
 <body class="tk <?= $u ? 'con-sesion' : 'sin-sesion' ?>">
 <?php if ($u): ?>

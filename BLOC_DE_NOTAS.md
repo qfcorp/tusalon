@@ -3,8 +3,9 @@
 Última actualización: 10 de noviembre de 2026
 
 ## 10 nov 2026 — Identidad gráfica común de Tukán (pedido de Dimitry: «todos con la misma lógica y la misma identidad gráfica»)
-- Kit común `public/assets/tukan-ui.css` y `tukan-ui.js` (idénticos en todos los programas); TuSalón conserva su verde `#1E5A4C`.
-- Barra de arriba verde con el nombre del salón, usuario, rol y Salir; menú azul noche con secciones y emoji (☰ en el celular; se quitó la barra de abajo y la pantalla «Más»).
+- Kit común `public/assets/tukan-ui.css` y `tukan-ui.js` (idénticos en todos los programas).
+- **Color: rosa `#DB2967` con texto blanco** — el de tukansoftware.com (`#E0457B`) en su tono de pantalla (**decisión de Dimitry 10 nov: color de la web**; antes verde botella `#1E5A4C`). Los tonos verdes de antes dentro del sistema (fondos suaves, letra oscura) pasan a tonos del rosa y los enlaces van un poco más oscuros (ver `docs/LINEA_GRAFICA.md`). El portal público de reservas, la cuenta del cliente, el Panel Tukán, PDF y correos siguen en verde.
+- Barra de arriba del color del programa con el nombre del salón, usuario, rol y Salir; menú azul noche con secciones y emoji (☰ en el celular; se quitó la barra de abajo y la pantalla «Más»).
 - Inicio: saludo según la hora, avisos, **Primeros pasos** (6 pasos calculados, «Ocultar» por salón en `ajustes`), cifras en tarjetas oscuras, Próximas citas, Pendientes de hoy, Tu día como dueño y accesos rápidos.
 - Las demás pantallas internas llevan las clases del kit; el portal público, la cuenta del cliente, el Panel Tukán, PDF y correos no cambian.
 - Detalle: `docs/LINEA_GRAFICA.md`. Manual: «la pantalla Inicio» y el menú nuevo (antes «Hoy» y «Más»).
