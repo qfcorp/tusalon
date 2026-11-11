@@ -79,10 +79,9 @@ if (es_post() && ($_POST['accion'] ?? '') === 'pasar_completo') {
             aviso(trim('¡Listo! Ya tienes el plan ' . $nomCompleto . ', con todos los módulos. ' . $a['texto']));
             redirigir('completa');
         }
-        // Sin pago con tarjeta: queda el pedido para Tukán (como los pedidos de módulos)
-        $faltan = array_values(array_diff($mods->planes()[$planCompleto]['modulos'], $mods->detalle(salon_de_usuario($u))['contratados']));
-        $mods->pedir($sid, (int) $u['id'], $faltan, 'QUIERE PASARSE AL PLAN ' . mb_strtoupper($nomCompleto) . ' (cambiarle el plan, no encender módulos sueltos)');
-        aviso('Listo. Pediste pasarte al plan ' . $nomCompleto . '. Tukán revisa tu pedido y te escribe.');
+        // Sin pago con tarjeta disponible (Panel apagado, caído o programa sin conectar): el plan NO cambia y no se crea ningún pedido.
+        // Nadie pasa al plan mayor sin pagar (corrección de Dimitry, 10 nov 2026): se le explica y se le ofrece el WhatsApp de Tukán.
+        redirigir('completa', ['completo' => 'sin_tarjeta']);
     } catch (RuntimeException $e) {
         aviso($e->getMessage(), 'error');
     }
@@ -155,6 +154,12 @@ $pagoHtml = TukanPagoPlan::activo($pagoEstado)
 // El aviso de arriba «te sugerimos el Completo» (nunca en la app de Google Play; a la demo solo si puede pagar aquí y ya ve los valores)
 $sugHtml = '';
 if (es_dueno_o_admin($u) && !en_app_play() && (!$detalle['demo'] || $pagoHtml !== '')) {
+    if (($_GET['completo'] ?? '') === 'sin_tarjeta' && $planCompleto !== null && $planCompleto !== $u['plan_codigo']) {   // tocó «Pasarme al Completo» y no hay cómo pagar aquí
+        $nomC = (string) $mods->planes()[$planCompleto]['nombre'];
+        $sinTarjeta = '<div class="aviso tukan-sugerencia" role="status" data-completo="sin-tarjeta" style="background:#fff8e1;border:1px solid #f2c94c;color:#5c4400"><p style="margin:0 0 8px">Para pasarte al '
+            . e($nomC) . ' necesitas pagar con tarjeta. En este momento el pago con tarjeta no está disponible: escríbenos y te ayudamos.</p><div class="acciones"><a class="boton boton-wa boton-chico" href="https://wa.me/'
+            . e(whatsapp_ventas()) . '?text=' . rawurlencode('Hola, quiero pasarme al plan ' . $nomC . ' de TuSalon (' . ($u['email'] ?? '') . ').') . '" target="_blank" rel="noopener">Escribir a Tukán por WhatsApp</a></div></div>';
+    }
     $mSug = !empty($_GET['sugerir']) && \TuSalon\Modulos::existe((string) ($_GET['modulo'] ?? '')) && !$detalle['demo'] ? (string) $_GET['modulo'] : null;
     $sMod = $mSug !== null ? $sugerir($mSug) : null;
     $sugHtml = $sMod !== null
@@ -162,6 +167,7 @@ if (es_dueno_o_admin($u) && !en_app_play() && (!$detalle['demo'] || $pagoHtml !=
             . '<input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="' . e($mSug) . '"><input type="hidden" name="solo_modulo" value="1">'
             . '<button class="boton boton-claro boton-chico" type="submit">Pedir solo este módulo</button></form>')
         : TukanPagoPlan::htmlSugerencia($sugerir(), campo_csrf(), url('completa'));
+    if (isset($sinTarjeta)) $sugHtml = $sinTarjeta;
 }
 $resaltar = \TuSalon\Modulos::existe((string) ($_GET['modulo'] ?? '')) ? (string) $_GET['modulo'] : '';
 vista('completa', compact('pagoHtml', 'sugHtml', 'cancelacion', 'detalle', 'catalogo', 'planes', 'plan', 'precios', 'pedidos', 'resaltar'), 'Mi plan · TuSalón');

@@ -4,11 +4,12 @@ declare(strict_types=1);
  * Panel Tukán Central SIMULADO para las pruebas de «Pagar mi plan con tarjeta» (php -S 127.0.0.1:PUERTO tests/panel_simulado.php).
  * Imita plux_api.php del Panel (tukan-central/public/plux_api.php y PagosPlux::atenderPrograma): revisa el token v2 «plux»
  * (firma con TUKAN_CENTRAL_SECRET, programa TUKAN_CENTRAL_ID, hash del cuerpo, vida y que no se repita) y contesta
- * «estado», «crear», «cancelar», «cambiar» y «cancelar_plan» con las mismas respuestas y códigos. No cobra nada: todo es de mentira.
+ * «estado», «crear», «cancelar», «cambiar», «mejora» y «cancelar_plan» con las mismas respuestas y códigos. No cobra nada: todo es de mentira.
  * También imita demo_aviso.php (aviso al instante de un pedido de demo, token v2 «demo»): contesta 202 y lo anota en avisos_demo.jsonl.
  * Guarda en PANEL_SIM_DIR: config.json ({"activo":bool,"pruebas":bool}), cobros.json y pedidos.jsonl (cada pedido recibido).
  * Para las pruebas: POST /_control {"activo":…, "pruebas":…} · {"aprobar":id,"pagado_hasta":"AAAA-MM-DD"} · {"estado":id,"a":"rechazado"} · {"reiniciar":true}
  */
+date_default_timezone_set('America/Guayaquil');   // la misma zona que el programa y sus pruebas (si no, después de las 19:00 «hoy» ya es mañana)
 $dir = (string) getenv('PANEL_SIM_DIR');
 if ($dir === '') { http_response_code(500); exit('Falta PANEL_SIM_DIR'); }
 @mkdir($dir, 0700, true);
@@ -31,7 +32,8 @@ $publico = function (array $c): array {
     return ['id' => $c['id'], 'tipo' => $c['tipo'], 'estado' => $c['estado'], 'estado_texto' => TEXTOS[$c['estado']] ?? $c['estado'], 'descripcion' => $c['descripcion'],
             'plan' => $c['plan'], 'periodo' => $c['periodo'], 'meses' => $c['meses'], 'subtotal' => $c['subtotal'], 'total' => $c['total'],
             'url_pago' => $vivo ? $c['url_pago'] : null, 'cobra_sola' => $c['tipo'] === 'suscripcion' && $c['estado'] === 'activa', 'pagado_hasta' => $c['pagado_hasta'] ?? null,
-            'cuotas' => $c['cuotas'] ?? 0, 'pruebas' => true, 'creado' => date('c', $c['creado']), 'cancelar_hasta' => null, 'cancelacion_programada' => null];
+            'cuotas' => $c['cuotas'] ?? 0, 'pruebas' => true, 'creado' => date('c', $c['creado']), 'cancelar_hasta' => null, 'cancelacion_programada' => null,
+            'origen' => $c['origen'] ?? 'programa'];   // programa (Mi plan), proporcional (prorrateo de módulos) o mejora (prorrateo por subir de plan)
 };
 
 if ($ruta === '/_control') {
@@ -143,13 +145,35 @@ if ($accion === 'cambiar') {   // cambió de módulos en el programa: valor nuev
             $id = count($cobros) + 1;
             $prop = ['id' => $id, 'cliente_id' => $cid, 'tipo' => 'cobro', 'estado' => 'pendiente', 'descripcion' => 'Proporcional módulos del ' . date('d/m') . ' al ' . date('d/m/Y', $fin) . ' · ' . ($b['nombre'] ?? $cid),
                      'plan' => $f['plan'], 'periodo' => null, 'meses' => 1, 'subtotal' => $sub, 'total' => round($sub * 1.15, 2),
-                     'url_pago' => 'http://' . ($_SERVER['HTTP_HOST'] ?? '127.0.0.1') . '/pagar?c=' . $id, 'creado' => time(), 'volver' => $f['volver'] ?? null];
+                     'url_pago' => 'http://' . ($_SERVER['HTTP_HOST'] ?? '127.0.0.1') . '/pagar?c=' . $id, 'creado' => time(), 'volver' => $f['volver'] ?? null, 'origen' => 'proporcional'];
             $cobros[] = $prop;
         }
     }
     $guardar('cobros.json', $cobros);
     $responder(200, ['ok' => true, 'cambio' => true, 'cambiado_en_plux' => true, 'mensaje' => 'Suscripción con tarjeta: ' . $dinero((float) $f['total']) . ' → ' . $dinero($cobros[$k]['total']) . ' desde el próximo cobro.',
                      'proporcional' => $prop ? $publico($prop) : null, 'cobro' => $publico($cobros[$k])]);
+}
+if ($accion === 'mejora') {   // subir de plan SIN suscripción: cobro de una sola vez por el prorrateo (como PagosPlux::atenderPrograma)
+    if ($viva) $responder(409, ['ok' => false, 'codigo' => 'ya_tiene', 'error' => 'Ya tiene una suscripción con tarjeta: el cambio de plan se ajusta en ella.']);
+    $plan = trim((string) ($b['plan'] ?? '')); $planNombre = trim((string) ($b['plan_nombre'] ?? ''));
+    if ($plan === '' || $planNombre === '') $responder(422, ['ok' => false, 'codigo' => 'invalido', 'error' => 'Falta el plan nuevo.']);
+    $sub = round((float) ($b['subtotal'] ?? 0), 2);
+    foreach ($cobros as &$x) {   // una mejora a la vez: si hay una esperando igual, se devuelve esa; si es distinta, se anula
+        if ($x['cliente_id'] === $cid && ($x['origen'] ?? '') === 'mejora' && in_array($x['estado'], ['pendiente', 'rechazado'], true)) {
+            if ($x['plan'] === $plan && abs($x['subtotal'] - $sub) < 0.01) $responder(200, ['ok' => true, 'repetido' => true, 'cobro' => $publico($x)]);
+            $x['estado'] = 'anulado';
+        }
+    }
+    unset($x);
+    if ($sub < 1) { $guardar('cobros.json', $cobros); $responder(422, ['ok' => false, 'codigo' => 'minimo', 'error' => 'Menos de $1 no se cobra con tarjeta: el plan se cambia sin cobro.']); }
+    $hasta = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($b['hasta'] ?? '')) ? ' hasta el ' . date('d/m/Y', strtotime((string) $b['hasta'])) : '';
+    $id = count($cobros) + 1;
+    $c = ['id' => $id, 'cliente_id' => $cid, 'tipo' => 'cobro', 'estado' => 'pendiente', 'descripcion' => mb_substr('Cambio al plan ' . $planNombre . ': prorrateo' . $hasta . ' · ' . (string) ($b['nombre'] ?? $cid), 0, 90),
+          'plan' => $plan, 'periodo' => null, 'meses' => 1, 'subtotal' => $sub, 'total' => round($sub * 1.15, 2), 'url_pago' => 'http://' . ($_SERVER['HTTP_HOST'] ?? '127.0.0.1') . '/pagar?c=' . $id,
+          'creado' => time(), 'volver' => $b['volver'] ?? null, 'origen' => 'mejora'];
+    $cobros[] = $c;
+    $guardar('cobros.json', $cobros);
+    $responder(201, ['ok' => true, 'cobro' => $publico($c)]);
 }
 if ($accion !== 'crear') $responder(400, ['ok' => false, 'codigo' => 'invalido', 'error' => 'Acción no válida (crear, estado, cancelar o cambiar).']);
 $tipo = (string) ($b['tipo'] ?? 'cobro');

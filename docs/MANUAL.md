@@ -20,7 +20,7 @@ Su fuente es [docs/manual/manual.html](manual/manual.html) y las capturas reales
     - **Pagar tu plan con tarjeta** (10 nov 2026, en el capítulo de términos y cancelar el plan): si en Mi plan aparece «Paga tu plan con tarjeta»,
       Si después agrega módulos, la suscripción se ajusta sola (valor nuevo desde el próximo cobro y lo proporcional aparte); no se quitan módulos
       contratados ni se baja de plan durante el período pagado.
-      Aviso «te sugerimos el plan más completo» con el botón «Pasarme al Completo» cuando con sus módulos paga igual o más (o le falta poco).
+      Aviso «te sugerimos el plan más completo» con el botón «Pasarme al Completo» cuando con sus módulos paga igual o más (o le falta poco). Siempre se pasa pagando: sin pago con tarjeta disponible el plan no cambia y sale el WhatsApp de Tukán.
       el dueño elige plan y período (mensual, 6 meses pagando 5, 1 año pagando 10) y paga solo; suscripción que se cobra sola o pago de una vez. Sin precios en el manual.
 14. **Ayuda e Inteligencia artificial** (21 oct 2026): la Ayuda «¿En qué le ayudamos?» para todos los planes y el módulo
     «Asistente IA» (incluido en Completa; extra en Básica) (agendar a partir de un mensaje de WhatsApp con una hora libre de la agenda real y mensaje para

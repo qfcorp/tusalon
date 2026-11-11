@@ -294,10 +294,25 @@ pone $S6 "${M[0]},${M[1]},${M[2]},${M[3]}"; get "r=$RUTA" > /dev/null   # $17,99
 no_contiene "Lejos del Completo (\$17,99): sin aviso" "$TMP/pag.html" 'data-sugerencia'
 post "r=$RUTA" -d accion=pedir -d "modulo=${M[4]}" > /dev/null
 check "… y pedir un módulo que no llega al Completo se pide directo" "$((P0+2))" "$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6")"
-# Sin pago con tarjeta: «Pasarme al Completo» deja el pedido para Tukán
+# Sin pago con tarjeta disponible: el plan NO cambia (nadie pasa al Completo sin pagar), sin pedido con nota; mensaje y WhatsApp de Tukán
 pone $S6 "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"
+V6=$(sql "SELECT activo_hasta FROM $TABLA WHERE id=$S6"); PM6=$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6"); RA6=$(sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S6")
+r=$(post "r=$RUTA" -d accion=pasar_completo)
+check "Sin pago con tarjeta: vuelve a Mi plan con el aviso" "302 $BASE/?r=$RUTA&completo=sin_tarjeta" "$r"
+check "… el plan NO cambia y el vencimiento tampoco" "$BAS|$V6" "$(sql "SELECT plan_codigo||'|'||activo_hasta FROM $TABLA WHERE id=$S6")"
+check "… no se crea ningún pedido ni nota para Tukán, ni se anota un cambio" "$PM6|0|$RA6" "$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6")|$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6 AND nota LIKE 'QUIERE PASARSE%'")|$(sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S6")"
+get "r=$RUTA&completo=sin_tarjeta" > /dev/null
+contiene "… mensaje: necesita pagar con tarjeta y ahora no está disponible" "$TMP/pag.html" "Para pasarte al $NCOM necesitas pagar con tarjeta. En este momento el pago con tarjeta no está disponible: escríbenos y te ayudamos."
+contiene "… con el botón de WhatsApp de Tukán" "$TMP/pag.html" "data-completo=\"sin-tarjeta\".*wa.me/$(sql "SELECT coalesce((SELECT valor FROM ajustes WHERE clave='whatsapp_ventas'), '593983662181')")?text="
+no_contiene "… sin prometer que paga después" "$TMP/pag.html" "próxima renovación"
+# Demo sin pago con tarjeta: no ve el botón y no cambia
+EDS="pagodemosug$RANDOM@prueba.ec"; SDS=$(demo "$NEGOCIO Demo Con Extras" "$EDS" "$BAS")
+pone $SDS "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"
+JG=$JAR; entrar "$EDS"; get "r=$RUTA" > /dev/null
+no_contiene "Demo sin pago con tarjeta: no ve el aviso ni el botón" "$TMP/pag.html" 'data-sugerencia\|value="pasar_completo"'
 post "r=$RUTA" -d accion=pasar_completo > /dev/null
-check "Sin pago con tarjeta: «Pasarme al Completo» deja el pedido para Tukán" "1|$BAS" "$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6 AND nota LIKE 'QUIERE PASARSE AL PLAN%'")|$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S6")"
+check "… y si lo manda igual, la demo no cambia de plan" "$BAS|prueba" "$(sql "SELECT plan_codigo||'|'||estado FROM $TABLA WHERE id=$SDS")"
+JAR=$JG
 # La ficha que ve Tukán
 JAR="$TMP/c_adminp0"; get "r=$ADMINP&id=$S6" > /dev/null
 contiene "Tukán también lo ve en la ficha: «Con sus módulos paga \$27,99… Conviene sugerirle»" "$TMP/pag.html" 'Con sus módulos paga <strong>\$27,99</strong> al mes'
@@ -333,6 +348,17 @@ check "… el pedido al Panel lleva pasa_a_completo y el valor del Completo" "1|
 contiene "… «¡Listo! Ya tienes el plan Completo»" "$TMP/pag.html" "Ya tienes el plan $NCOM, con todos los módulos"
 contiene "… desde el próximo cobro \$25 + IVA; lo ya pagado no se devuelve" "$TMP/pag.html" "Desde el próximo cobro ($(date -d "$H6" +%d/%m/%Y)) la suscripción con tarjeta queda en \\\$25,00 + IVA (\\\$28,75 con IVA). Lo ya pagado no se devuelve."
 no_contiene "… y ya no sale el aviso" "$TMP/pag.html" 'data-sugerencia'
+# Con suscripción pagada y el Completo MÁS caro que lo que paga: cambia y se cobra aparte lo proporcional de los días que faltan
+E7="pagosiete$RANDOM@prueba.ec"; S7=$(demo "$NEGOCIO Sube Al Completo" "$E7" "$BAS" "" pagado)
+pone $S7 "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]}"   # $22,99
+entrar "$E7"
+r=$(post "r=$RUTA" -d accion=pagar_tarjeta -d "opcion=$BAS|mensual"); C7=${r##*c=}
+control "{\"aprobar\":$C7,\"pagado_hasta\":\"$(sql "SELECT activo_hasta FROM $TABLA WHERE id=$S7")\"}"
+post "r=$RUTA" -d accion=pasar_completo > /dev/null; get "r=$RUTA" > /dev/null
+check "Suscripción pagada de \$22,99: pasa al Completo (\$25)" "$COM" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S7")"
+contiene "… y se cobra aparte lo proporcional de los días que faltan" "$TMP/pag.html" "Por los días que faltan del período pagado se cobra aparte \\\$[0-9,]* con IVA"
+contiene "… que el dueño paga con «Pagar ahora» (Proporcional módulos)" "$TMP/pag.html" "Proporcional módulos"
+contiene "… la suscripción queda en \$25 + IVA desde el próximo cobro" "$TMP/pag.html" "queda en \\\$25,00 + IVA"
 JAR=$JAR_A
 post "r=$ADMINP&id=$S6" -d accion=plan -d plan=$BAS > /dev/null; get "r=$ADMINP&id=$S6" > /dev/null
 contiene "Bajar del Completo al Básico sigue bloqueado durante el período" "$TMP/pag.html" "No se puede bajar de plan mientras dure el período pagado"
