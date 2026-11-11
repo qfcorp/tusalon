@@ -387,6 +387,57 @@ $nC = count(array_filter($pedidos(), fn($p) => $p['accion'] === 'cambiar'));
 $x = TukanPagoPlan::cambiarCuidando($db, (string) $ss, 'super@prueba.ec', fn() => $panelP->cambiarPlan($ss, $COM), fn(string $per) => (float) $planes->cotizar((string) $fila($ss)['plan_codigo'], $per, $ss)['monto'], fn() => false, false, 'plan', true);
 check('Sin suscripción con tarjeta: pasa al Completo como siempre, sin avisar al Panel', [$COM, null, $nC], [$fila($ss)['plan_codigo'], $x['aviso'], count(array_filter($pedidos(), fn($p) => $p['accion'] === 'cambiar'))]);
 
+titulo('13. Subir de plan SIN suscripción: prorrateo con tarjeta («mejora») o por WhatsApp');
+// El cálculo, con fechas fijas: (valor mensual nuevo − valor mensual de hoy) × días que faltan ÷ 30
+$p = TukanPagoPlan::prorrateo(25.0, 12.99, '2026-11-25', '2026-11-10');
+check('De $12,99 a $25 con 15 días por delante: $6,01 + IVA = $6,91', [15, '2026-11-25', 6.01, 6.91], [$p['dias'], $p['hasta'], $p['subtotal'], $p['total']]);
+$p30 = TukanPagoPlan::prorrateo(25.0, 12.99, '2026-12-10', '2026-11-10');
+check('Con 30 días por delante: la diferencia entera ($12,01 + IVA = $13,81)', [30, 12.01, 13.81], [$p30['dias'], $p30['subtotal'], $p30['total']]);
+check('Con 200 días (pagó el año): proporcional a los días ($80,07)', [200, 80.07], array_slice(array_values(TukanPagoPlan::prorrateo(25.0, 12.99, '2027-05-29', '2026-11-10')), 0, 3, false) === [200, '2027-05-29', 80.07] ? [200, 80.07] : ['mal']);
+check('Vence hoy: 0 días, no hay nada que cobrar', [0, 0.0], [TukanPagoPlan::prorrateo(25.0, 12.99, '2026-11-10', '2026-11-10')['dias'], TukanPagoPlan::prorrateo(25.0, 12.99, '2026-11-10', '2026-11-10')['subtotal']]);
+check('Plan vencido: sin prorrateo (paga el plan completo)', null, TukanPagoPlan::prorrateo(25.0, 12.99, '2026-11-09', '2026-11-10'));
+check('Demo (sin fecha de pago): sin prorrateo', null, TukanPagoPlan::prorrateo(25.0, 12.99, null, '2026-11-10'));
+check('Si ya paga más que el plan nuevo: la diferencia es $0 (nunca negativa)', 0.0, TukanPagoPlan::prorrateo(25.0, 27.99, '2026-11-25', '2026-11-10')['subtotal']);
+check('El IVA es el que diga el Panel', 6.73, TukanPagoPlan::prorrateo(25.0, 12.99, '2026-11-25', '2026-11-10', 12.0)['total']);
+$txt = TukanPagoPlan::textoWhatsappMejora($p, 'Negocio de Ana', 'TuPrograma', 'Completo');
+check('Texto para WhatsApp', 'Hola, soy Negocio de Ana (TuPrograma). Quiero pasar al plan Completo pagando por transferencia. Me faltan 15 días (hasta el 25/11/2026). Valor del cambio: $6,91 con IVA.', $txt);
+$h = TukanPagoPlan::htmlProrrateo($p, 'Completo', '<input type="hidden" name="csrf" value="x">', '/?r=mi_plan', true, 'https://wa.me/593000000000?text=hola');
+check('El cálculo a la vista', true, str_contains(strip_tags($h), 'Pasar al Completo: te faltan 15 días (hasta el 25/11/2026). Diferencia: $6,01 + IVA = $6,91.'));
+check('Botón «Pagar $6,91 con tarjeta»', true, str_contains($h, 'value="pagar_mejora"') && str_contains($h, '>Pagar $6,91 con tarjeta</button>'));
+check('Botón «Enviar por WhatsApp»', true, str_contains($h, '>Enviar por WhatsApp</a>') && str_contains($h, 'wa.me/593000000000'));
+$h = TukanPagoPlan::htmlProrrateo($p, 'Completo', 'x', '/', false, 'https://wa.me/593000000000?text=hola');
+check('Sin pago con tarjeta: solo WhatsApp, con el cálculo', [false, true, true], [str_contains($h, 'pagar_mejora'), str_contains($h, 'Enviar por WhatsApp'), str_contains($h, '$6,91')]);
+check('En la app (sin enlace de WhatsApp): sin ese botón', false, str_contains(TukanPagoPlan::htmlProrrateo($p, 'Completo', 'x', '/', false, ''), 'WhatsApp'));
+// El pedido «mejora» al Panel simulado
+$mc = $nuevo('Cliente Que Sube', $BAS);
+$hastaM = $hoy->modify('+15 days')->format('Y-m-d');
+$db->prepare('UPDATE ' . TABLA . " SET estado = 'activo', activo_hasta = ? WHERE id = ?")->execute([$hastaM, $mc]);
+$pm = TukanPagoPlan::prorrateo(25.0, 12.99, $hastaM);
+$datosM = ['cliente_id' => (string) $mc, 'nombre' => 'Cliente Que Sube', 'plan' => $COM, 'plan_nombre' => 'Completo', 'subtotal' => $pm['subtotal'], 'hasta' => $hastaM,
+           'comprador' => ['nombre' => 'Dueña', 'correo' => 'duena@prueba.ec', 'telefono' => '0990000000'], 'ruc' => '1790011001001', 'volver' => 'https://programa.prueba.ec/?r=mi_plan'];
+$m = TukanPagoPlan::mejora($datosM, 'duena@prueba.ec');
+$ped = array_values(array_filter($pedidos(), fn($x) => $x['accion'] === 'mejora')); $ped = end($ped);
+check('«Pagar con tarjeta»: el Panel devuelve la página de pago', ['pagar', true], [$m['resultado'], str_starts_with((string) ($m['url'] ?? ''), "$sim/pagar?c=")]);
+check('Pedido «mejora»: cliente, plan nuevo, prorrateo SIN IVA y vencimiento', [(string) $mc, $COM, 'Completo', 6.01, $hastaM], [$ped['cliente_id'], $ped['plan'], $ped['plan_nombre'], (float) $ped['subtotal'], $ped['hasta']]);
+check('… con comprador, datos de factura y adónde volver', ['duena@prueba.ec', '1790011001001', 'https://programa.prueba.ec/?r=mi_plan'], [$ped['comprador']['correo'], $ped['fiscal']['identificacion'] ?? null, $ped['volver']]);
+check('Todavía no pagó: no hay nada que aplicar y el plan sigue igual', [null, $BAS], [TukanPagoPlan::mejoraPagada($db, (string) $mc, $estado($mc)), $fila($mc)['plan_codigo']]);
+check('Pedir lo mismo otra vez devuelve el mismo cobro (no crea otro)', $m['cobro']['id'], TukanPagoPlan::mejora($datosM)['cobro']['id']);
+$control(['aprobar' => (int) $m['cobro']['id']]);
+$mp = TukanPagoPlan::mejoraPagada($db, (string) $mc, $estado($mc));
+check('Pagado: Mi plan ve el cobro de la mejora con su plan', [(int) $m['cobro']['id'], $COM, 'mejora', 'pagado'], [(int) ($mp['id'] ?? 0), $mp['plan'] ?? null, $mp['origen'] ?? null, $mp['estado'] ?? null]);
+$panelP->cambiarPlan($mc, (string) $mp['plan']);
+TukanPagoPlan::marcarMejora($db, (string) $mc, (int) $mp['id'], (string) $mp['plan']);
+check('Se aplica el plan nuevo y el vencimiento queda igual', [$COM, $hastaM], [$fila($mc)['plan_codigo'], $fila($mc)['activo_hasta']]);
+check('… una sola vez: la segunda vez ya no hay nada que aplicar', null, TukanPagoPlan::mejoraPagada($db, (string) $mc, $estado($mc)));
+TukanPagoPlan::marcarMejora($db, (string) $mc, (int) $mp['id'], (string) $mp['plan']);
+check('… y marcarla dos veces no rompe nada', 1, (int) $db->query("SELECT count(*) FROM tukan_mejoras WHERE cliente_id = '$mc'")->fetchColumn());
+check('Menos de $1: el Panel contesta «minimo» (no se cobra)', ['minimo', 'La diferencia es menor a $1: no se cobra.'], array_values(array_intersect_key(TukanPagoPlan::mejora(['subtotal' => 0.4] + $datosM), ['resultado' => 1, 'texto' => 1])));
+check('Con suscripción viva: «ya_tiene» (se usa «cambiar»)', 'ya_tiene', TukanPagoPlan::mejora(['cliente_id' => (string) $cs] + $datosM)['resultado']);
+TukanCancelarPlan::$config = ['url' => 'http://127.0.0.1:' . $libre()] + $conf;
+check('Panel caído: «sin_panel», con mensaje y sin romper nada', ['sin_panel', true], [($x = TukanPagoPlan::mejora($datosM))['resultado'], str_contains($x['texto'], 'Enviar por WhatsApp')]);
+TukanCancelarPlan::$config = $conf;
+check('Un cobro de mejora de otro cliente no se aplica a este', null, TukanPagoPlan::mejoraPagada($db, (string) $ss, $estado($ss)));
+
 proc_terminate($proc);
 array_map('unlink', glob("$simDir/*") ?: []);
 @rmdir($simDir);

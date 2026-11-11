@@ -58,6 +58,46 @@ $sugerir = function (?string $conModulo = null) use ($mods, $u, $modTotal, $plan
     $d = $mods->detalle($f);
     return TukanPagoPlan::sugerirCompleto($mods->planes(), $modTotal, (string) $u['plan_codigo'], (float) $d['mensual'], (float) $mods->detalle($f, $planCompleto)['mensual'], $d['precio_acordado'] !== null);
 };
+// Subir de plan SIN suscripción con tarjeta (decisión de Dimitry, 10 nov 2026): el cliente con su período pagado (por transferencia, etc.)
+// paga el PRORRATEO de los días que faltan, con tarjeta (pedido «mejora» al Panel) o por transferencia («Enviar por WhatsApp»).
+// $prorrateoCompleto() = el cálculo, o null si no aplica (demo, vencido, precio acordado o ya tiene el Completo: esos pagan el plan entero).
+$prorrateoCompleto = function () use ($mods, $u, $sid, $planCompleto, $pagoPuede): ?array {
+    if ($planCompleto === null || $planCompleto === $u['plan_codigo'] || ($u['estado'] ?? '') !== 'activo') return null;
+    if (($u['precio_acordado'] ?? null) !== null && $u['precio_acordado'] !== '') return null;
+    $f = salon_de_usuario($u);
+    $e = $pagoPuede ? TukanPagoPlan::estado((string) $sid, (string) $u['email']) : null;
+    return TukanPagoPlan::prorrateo((float) $mods->detalle($f, $planCompleto)['mensual'], (float) $mods->detalle($f)['mensual'], $u['activo_hasta'] ?? null, null, (float) ($e['iva'] ?? 15));
+};
+if (es_post() && ($_POST['accion'] ?? '') === 'pagar_mejora') {
+    verificar_csrf();
+    try {
+        if (!es_dueno_o_admin($u)) throw new RuntimeException('Solo el dueño puede cambiar el plan.');
+        if (en_app_play()) throw new RuntimeException('En la app el plan se paga con Google Play.');
+        $pr = $prorrateoCompleto();
+        if ($pr === null) throw new RuntimeException('Ya no hay un cambio de plan por pagar.');
+        $pagoEstado = $pagoPuede ? TukanPagoPlan::estado((string) $sid, (string) $u['email']) : null;
+        if (!TukanPagoPlan::activo($pagoEstado)) throw new RuntimeException('El pago con tarjeta no está disponible por ahora. Usa «Enviar por WhatsApp».');
+        $nomCompleto = (string) $mods->planes()[$planCompleto]['nombre'];
+        $neg = db()->query('SELECT ruc, telefono FROM salones WHERE id = ' . $sid)->fetch() ?: [];
+        $mj = TukanPagoPlan::mejora(['cliente_id' => (string) $sid, 'nombre' => (string) ($u['salon'] ?? ''), 'plan' => $planCompleto, 'plan_nombre' => $nomCompleto,
+            'subtotal' => $pr['subtotal'], 'hasta' => $pr['hasta'], 'comprador' => ['nombre' => (string) $u['nombre'], 'correo' => (string) $u['email'], 'telefono' => (string) ($neg['telefono'] ?? '')],
+            'ruc' => (string) ($neg['ruc'] ?? ''), 'volver' => \TuSalon\Agenda::urlBase() . url('completa')], (string) $u['email']);
+        if ($mj['resultado'] === 'pagar') {
+            header('Location: ' . $mj['url']);   // la página segura de pago (Plux). El plan cambia cuando el pago queda aprobado.
+            exit;
+        }
+        if ($mj['resultado'] === 'minimo') {   // menos de $1: el Panel no lo cobra; el plan cambia sin cobro
+            (new \TuSalon\PanelTukan(db()))->cambiarPlan($sid, $planCompleto);
+            db()->prepare('INSERT INTO registro_admin (admin_id, salon_id, accion) VALUES (NULL, ?, ?)')->execute([$sid, 'Pasó al plan ' . $nomCompleto . ' desde Mi plan: la diferencia era menor a $1 y no se cobró']);
+            aviso('La diferencia es menor a $1: no se cobra. Ya tienes el plan ' . $nomCompleto . '.');
+            redirigir('completa');
+        }
+        throw new RuntimeException($mj['texto']);
+    } catch (RuntimeException $e) {
+        aviso($e->getMessage(), 'error');
+    }
+    redirigir('completa', ['completo' => 'prorrateo']);
+}
 if (es_post() && ($_POST['accion'] ?? '') === 'pasar_completo') {
     verificar_csrf();
     try {
@@ -67,7 +107,9 @@ if (es_post() && ($_POST['accion'] ?? '') === 'pasar_completo') {
         $nomCompleto = (string) $mods->planes()[$planCompleto]['nombre'];
         $pagoEstado = $pagoPuede ? TukanPagoPlan::estado((string) $sid, (string) $u['email']) : null;
         $viva = TukanPagoPlan::suscripcion($pagoEstado);
-        if (TukanPagoPlan::activo($pagoEstado) && !$viva) {   // paga el Completo con tarjeta: sale marcado en «Paga tu plan con tarjeta»
+        if (($u['precio_acordado'] ?? null) !== null && $u['precio_acordado'] !== '') throw new RuntimeException('Tienes un precio acordado con Tukán: escríbenos para cambiar de plan.');
+        if (!$viva && $prorrateoCompleto() !== null) redirigir('completa', ['completo' => 'prorrateo']);   // período pagado y sin suscripción: paga el prorrateo (tarjeta o WhatsApp)
+        if (TukanPagoPlan::activo($pagoEstado) && !$viva) {   // demo o plan vencido: paga el Completo entero; sale marcado en «Paga tu plan con tarjeta»
             aviso('Elige cada cuánto pagar el plan ' . $nomCompleto . ' y toca «Pagar con tarjeta».');
             redirigir('completa', ['elegir' => $planCompleto]);
         }
@@ -103,6 +145,10 @@ if (es_post() && in_array($_POST['accion'] ?? '', ['pagar_tarjeta', 'descartar_p
         [$plPago, $perPago] = array_pad(explode('|', (string) ($_POST['opcion'] ?? ''), 2), 2, '');
         $opPago = $pagoOpciones()[$plPago] ?? null;
         if (!$opPago || !isset($opPago['precios'][$perPago])) throw new RuntimeException('Elige el plan y cada cuánto quieres pagar.');
+        if ($plPago === $planCompleto && $prorrateoCompleto() !== null) {   // todavía tiene días pagados de su plan: para pasar YA se paga la diferencia de esos días
+            aviso('Para pasar ahora al plan ' . $opPago['nombre'] . ' se paga primero la diferencia de los días que te faltan.');
+            redirigir('completa', ['completo' => 'prorrateo']);
+        }
         $neg = db()->query('SELECT ruc, telefono FROM salones WHERE id = ' . $sid)->fetch() ?: [];
         $cobro = TukanPagoPlan::crear([
             'cliente_id' => (string) $sid, 'nombre' => (string) ($u['salon'] ?? ''), 'plan' => $plPago, 'plan_nombre' => $opPago['nombre'],
@@ -148,6 +194,18 @@ foreach (['mensual', 'semestral', 'anual'] as $per) $precios[$per] = planes()->c
 $pedidos = $mods->pedidos($sid, false);
 // Pago con tarjeta: solo se pregunta al Panel al mostrar la página (y nunca en la app de Google Play)
 $pagoEstado = $pagoPuede ? TukanPagoPlan::estado((string) $sid, (string) $u['email']) : null;
+if (($mjPagada = TukanPagoPlan::mejoraPagada(db(), (string) $sid, $pagoEstado)) !== null) {
+    $planMj = (string) $mjPagada['plan'];
+    $aplicar = isset($mods->planes()[$planMj]) && $planMj !== $u['plan_codigo'];
+    if ($aplicar) {
+        (new \TuSalon\PanelTukan(db()))->cambiarPlan($sid, $planMj);
+        db()->prepare('INSERT INTO registro_admin (admin_id, salon_id, accion) VALUES (NULL, ?, ?)')
+            ->execute([$sid, 'Pasó al plan ' . $mods->planes()[$planMj]['nombre'] . ' desde Mi plan: prorrateo pagado con tarjeta (cobro ' . (int) $mjPagada['id'] . ')']);
+        aviso('¡Pago recibido! Ya tienes el plan ' . $mods->planes()[$planMj]['nombre'] . ' con todos los módulos. Tu fecha de vencimiento no cambia.');
+    }
+    TukanPagoPlan::marcarMejora(db(), (string) $sid, (int) $mjPagada['id'], $planMj);
+    if ($aplicar) redirigir('completa');
+}
 $pagoHtml = TukanPagoPlan::activo($pagoEstado)
     ? TukanPagoPlan::html($pagoEstado, $pagoOpciones(), campo_csrf(), url('completa'), $detalle['demo'], (string) ($_GET['plux'] ?? ''),
         TukanPagoPlan::htmlSugerencia($sugerir()), (string) ($_GET['elegir'] ?? '')) : '';
@@ -168,6 +226,11 @@ if (es_dueno_o_admin($u) && !en_app_play() && (!$detalle['demo'] || $pagoHtml !=
             . '<button class="boton boton-claro boton-chico" type="submit">Pedir solo este módulo</button></form>')
         : TukanPagoPlan::htmlSugerencia($sugerir(), campo_csrf(), url('completa'));
     if (isset($sinTarjeta)) $sugHtml = $sinTarjeta;
+    if (($_GET['completo'] ?? '') === 'prorrateo' && ($prVer = $prorrateoCompleto()) !== null) {   // el cálculo del cambio con «Pagar con tarjeta» y «Enviar por WhatsApp»
+        $nomC = (string) $mods->planes()[$planCompleto]['nombre'];
+        $sugHtml = TukanPagoPlan::htmlProrrateo($prVer, $nomC, campo_csrf(), url('completa'), TukanPagoPlan::activo($pagoEstado) && !TukanPagoPlan::suscripcion($pagoEstado),
+            'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode(TukanPagoPlan::textoWhatsappMejora($prVer, (string) ($u['salon'] ?? ''), 'TuSalón', $nomC)));
+    }
 }
 $resaltar = \TuSalon\Modulos::existe((string) ($_GET['modulo'] ?? '')) ? (string) $_GET['modulo'] : '';
 vista('completa', compact('pagoHtml', 'sugHtml', 'cancelacion', 'detalle', 'catalogo', 'planes', 'plan', 'precios', 'pedidos', 'resaltar'), 'Mi plan · TuSalón');

@@ -279,6 +279,101 @@ final class TukanPagoPlan
         return $h . '</div>';
     }
 
+    // ------------------------------------------------------------------
+    // Subir de plan SIN suscripción con tarjeta (decisión de Dimitry, 10 nov 2026): el cliente que pagó su período (por transferencia,
+    // etc.) y quiere el plan mayor paga el PRORRATEO de los días que faltan: con tarjeta (pedido «mejora» al Panel) o por
+    // transferencia («Enviar por WhatsApp» con el cálculo; el plan lo cambia Tukán al registrar el pago).
+    // ------------------------------------------------------------------
+
+    /**
+     * El prorrateo por subir de plan: (valor mensual nuevo − valor mensual de hoy) × días que faltan ÷ 30, a 2 decimales.
+     * $hasta = hasta cuándo está pagado (AAAA-MM-DD). Devuelve null si no hay período pagado vigente (demo o vencido: paga el plan completo)
+     * o ['dias' => N, 'hasta' => AAAA-MM-DD, 'subtotal' => sin IVA, 'iva' => %, 'total' => con IVA].
+     */
+    public static function prorrateo(float $nuevoMensual, float $hoyMensual, ?string $hasta, ?string $hoy = null, float $iva = 15.0): ?array
+    {
+        $hasta = substr((string) $hasta, 0, 10);
+        $hoy = $hoy ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $hasta) || $hasta < $hoy) return null;
+        $dias = (int) round((strtotime($hasta) - strtotime($hoy)) / 86400);
+        $sub = max(0.0, round(($nuevoMensual - $hoyMensual) * $dias / 30, 2));
+        return ['dias' => $dias, 'hasta' => $hasta, 'subtotal' => $sub, 'iva' => $iva, 'total' => round($sub * (1 + $iva / 100), 2)];
+    }
+
+    /** El mensaje listo para el WhatsApp de Tukán (pagar el cambio por transferencia). */
+    public static function textoWhatsappMejora(array $p, string $negocio, string $programa, string $plan): string
+    {
+        return 'Hola, soy ' . $negocio . ' (' . $programa . '). Quiero pasar al plan ' . $plan . ' pagando por transferencia. Me faltan ' . $p['dias'] . ($p['dias'] === 1 ? ' día' : ' días')
+            . ' (hasta el ' . self::fecha($p['hasta']) . '). Valor del cambio: ' . self::dinero((float) $p['total']) . ' con IVA.';
+    }
+
+    /**
+     * El cálculo a la vista con sus dos botones: «Pagar $Y con tarjeta» (solo si el Panel tiene el pago encendido; manda accion=pagar_mejora)
+     * y «Enviar por WhatsApp» ($waUrl = enlace de WhatsApp de Tukán con el texto listo; '' = sin botón, p. ej. en la app de Google Play).
+     */
+    public static function htmlProrrateo(array $p, string $plan, string $csrf, string $accion, bool $conTarjeta, string $waUrl): string
+    {
+        $h = '<div class="aviso tukan-sugerencia" role="status" data-completo="prorrateo" style="background:#fff8e1;border:1px solid #f2c94c;color:#5c4400"><p style="margin:0 0 8px"><strong>Pasar al '
+            . self::e($plan) . ':</strong> te faltan <span data-dias>' . (int) $p['dias'] . '</span> ' . ($p['dias'] === 1 ? 'día' : 'días') . ' (hasta el ' . self::e(self::fecha($p['hasta'])) . '). Diferencia: <span data-subtotal>'
+            . self::dinero((float) $p['subtotal']) . '</span> + IVA = <strong data-total>' . self::dinero((float) $p['total']) . '</strong>.</p>'
+            . '<p style="margin:0 0 8px">Tu fecha de vencimiento no cambia. Desde tu próxima renovación pagas el plan ' . self::e($plan) . '.</p><div class="acciones">';
+        if ($conTarjeta) {
+            $h .= '<form method="post" action="' . self::e($accion) . '" style="display:inline">' . $csrf . '<input type="hidden" name="accion" value="pagar_mejora">'
+                . '<button class="boton boton-chico" type="submit">Pagar ' . self::dinero((float) $p['total']) . ' con tarjeta</button></form>';
+        }
+        if ($waUrl !== '') $h .= '<a class="boton boton-wa boton-chico" href="' . self::e($waUrl) . '" target="_blank" rel="noopener">Enviar por WhatsApp</a>';
+        return $h . '</div>' . ($waUrl !== '' ? '<p class="suave" style="margin:8px 0 0">Si pagas por transferencia, toca «Enviar por WhatsApp»: Tukán te cambia el plan cuando registra tu pago.</p>' : '') . '</div>';
+    }
+
+    /**
+     * Pide al Panel el cobro del prorrateo («mejora»). $d: cliente_id, nombre, plan, plan_nombre, subtotal (sin IVA), hasta, comprador, ruc, volver.
+     * Devuelve ['resultado' => 'pagar' (con 'url') | 'minimo' (menos de $1: no se cobra) | 'ya_tiene' | 'sin_panel' | 'error', 'texto' => para mostrar].
+     */
+    public static function mejora(array $d, string $email = ''): array
+    {
+        $ruc = preg_replace('/\D/', '', (string) ($d['ruc'] ?? ''));
+        $comprador = is_array($d['comprador'] ?? null) ? $d['comprador'] : [];
+        [$http, $j] = TukanCancelarPlan::llamarPanel([
+            'accion' => 'mejora', 'cliente_id' => (string) $d['cliente_id'], 'nombre' => (string) $d['nombre'], 'plan' => (string) $d['plan'], 'plan_nombre' => (string) $d['plan_nombre'],
+            'subtotal' => round((float) $d['subtotal'], 2), 'hasta' => (string) $d['hasta'],
+            'comprador' => ['nombre' => (string) ($comprador['nombre'] ?? ''), 'correo' => (string) ($comprador['correo'] ?? ''), 'telefono' => (string) ($comprador['telefono'] ?? '')],
+            'fiscal' => in_array(strlen((string) $ruc), [10, 13], true) ? ['identificacion' => $ruc, 'razon_social' => (string) $d['nombre'], 'correo' => (string) ($comprador['correo'] ?? '')] : [],
+            'volver' => (string) $d['volver'],
+        ], $email);
+        unset(self::$cache[(string) $d['cliente_id']]);
+        if ($http === 0 || $j === null) return ['resultado' => 'sin_panel', 'texto' => 'No se pudo conectar con el sistema de pagos. Intenta en unos minutos o usa «Enviar por WhatsApp».'];
+        $c = is_array($j['cobro'] ?? null) ? $j['cobro'] : [];
+        if (!empty($j['ok']) && is_string($c['url_pago'] ?? null) && preg_match('#^https?://#i', $c['url_pago'])) return ['resultado' => 'pagar', 'url' => $c['url_pago'], 'texto' => '', 'cobro' => $c];
+        $cod = (string) ($j['codigo'] ?? '');
+        if ($cod === 'minimo') return ['resultado' => 'minimo', 'texto' => 'La diferencia es menor a $1: no se cobra.'];
+        if ($cod === 'ya_tiene') return ['resultado' => 'ya_tiene', 'texto' => 'Ya tienes una suscripción con tarjeta: toca otra vez «Pasarme» y el cambio se ajusta en ella.'];
+        return ['resultado' => 'error', 'texto' => (string) ($j['error'] ?? 'No se pudo crear el pago del cambio de plan.')];
+    }
+
+    /**
+     * El cobro de «mejora» ya PAGADO que todavía no se aplicó aquí (o null): el plan se cambia cuando Mi plan lo ve en «estado»
+     * (origen «mejora», estado «pagado», con su plan). Se aplica una sola vez: marcarMejora() guarda el id del cobro (tabla tukan_mejoras, se crea sola).
+     */
+    public static function mejoraPagada(PDO $db, string $clienteId, ?array $estado): ?array
+    {
+        $pagadas = array_filter(is_array($estado['cobros'] ?? null) ? $estado['cobros'] : [],
+            fn($c) => is_array($c) && ($c['origen'] ?? '') === 'mejora' && ($c['estado'] ?? '') === 'pagado' && is_string($c['plan'] ?? null) && $c['plan'] !== '');
+        if (!$pagadas) return null;
+        $db->exec('CREATE TABLE IF NOT EXISTS tukan_mejoras (cliente_id VARCHAR(80) NOT NULL, cobro_id INTEGER NOT NULL, plan VARCHAR(60) NOT NULL, aplicada VARCHAR(40) NOT NULL, PRIMARY KEY (cliente_id, cobro_id))');
+        $st = $db->prepare('SELECT cobro_id FROM tukan_mejoras WHERE cliente_id = ?');
+        $st->execute([$clienteId]);
+        $ya = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+        usort($pagadas, fn($a, $b) => (int) $a['id'] <=> (int) $b['id']);
+        foreach ($pagadas as $c) if (!in_array((int) $c['id'], $ya, true)) return $c;
+        return null;
+    }
+
+    /** Anota que ese cobro de mejora ya se aplicó (para no aplicarlo dos veces). */
+    public static function marcarMejora(PDO $db, string $clienteId, int $cobroId, string $plan): void
+    {
+        $db->prepare('INSERT INTO tukan_mejoras (cliente_id, cobro_id, plan, aplicada) VALUES (?, ?, ?, ?) ON CONFLICT (cliente_id, cobro_id) DO NOTHING')->execute([$clienteId, $cobroId, $plan, date('c')]);
+    }
+
     private static function e(mixed $s): string
     {
         return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

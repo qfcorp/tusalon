@@ -294,17 +294,33 @@ pone $S6 "${M[0]},${M[1]},${M[2]},${M[3]}"; get "r=$RUTA" > /dev/null   # $17,99
 no_contiene "Lejos del Completo (\$17,99): sin aviso" "$TMP/pag.html" 'data-sugerencia'
 post "r=$RUTA" -d accion=pedir -d "modulo=${M[4]}" > /dev/null
 check "… y pedir un módulo que no llega al Completo se pide directo" "$((P0+2))" "$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6")"
-# Sin pago con tarjeta disponible: el plan NO cambia (nadie pasa al Completo sin pagar), sin pedido con nota; mensaje y WhatsApp de Tukán
-pone $S6 "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"
+# Sin pago con tarjeta disponible y con su período pagado: el plan NO cambia; se ve el cálculo del prorrateo y solo «Enviar por WhatsApp»
+pone $S6 "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]}"   # paga $22,99; el Completo vale $25; le faltan 30 días
 V6=$(sql "SELECT activo_hasta FROM $TABLA WHERE id=$S6"); PM6=$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6"); RA6=$(sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S6")
+D6=$(( ( $(date -d "$V6" +%s) - $(date -d "$(date +%F)" +%s) ) / 86400 ))
+SUB6=$(php -r 'echo number_format(round(2.01 * $argv[1] / 30, 2), 2, ",", ".");' "$D6"); TOT6=$(php -r 'echo number_format(round(round(2.01 * $argv[1] / 30, 2) * 1.15, 2), 2, ",", ".");' "$D6")
 r=$(post "r=$RUTA" -d accion=pasar_completo)
-check "Sin pago con tarjeta: vuelve a Mi plan con el aviso" "302 $BASE/?r=$RUTA&completo=sin_tarjeta" "$r"
+check "Sin pago con tarjeta: va al cálculo del cambio" "302 $BASE/?r=$RUTA&completo=prorrateo" "$r"
 check "… el plan NO cambia y el vencimiento tampoco" "$BAS|$V6" "$(sql "SELECT plan_codigo||'|'||activo_hasta FROM $TABLA WHERE id=$S6")"
 check "… no se crea ningún pedido ni nota para Tukán, ni se anota un cambio" "$PM6|0|$RA6" "$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6")|$(sql "SELECT count(*) FROM pedidos_modulos WHERE ${FK} = $S6 AND nota LIKE 'QUIERE PASARSE%'")|$(sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S6")"
+get "r=$RUTA&completo=prorrateo" > /dev/null
+sed -e 's/<[^>]*>//g' "$TMP/pag.html" > "$TMP/pag.txt"
+contiene "… el cálculo a la vista: días que faltan, diferencia + IVA y total" "$TMP/pag.txt" "Pasar al $NCOM: te faltan $D6 días (hasta el $(date -d "$V6" +%d/%m/%Y)). Diferencia: \\\$$SUB6 + IVA = \\\$$TOT6."
+contiene "… botón «Enviar por WhatsApp» al WhatsApp de Tukán" "$TMP/pag.html" "wa.me/$(sql "SELECT coalesce((SELECT valor FROM ajustes WHERE clave='whatsapp_ventas'), '593983662181')")?text=Hola%2C%20soy%20[^\"]*\"[^>]*>Enviar por WhatsApp</a>"
+check "… con el texto listo: negocio, plan, días, fecha y valor con IVA" "1" "$(php -r '$h = file_get_contents($argv[1]); preg_match("/wa\.me\/\d+\?text=([^\"]+)\"[^>]*>Enviar por WhatsApp/", $h, $m); $t = rawurldecode(html_entity_decode($m[1] ?? ""));
+  echo (int) (str_contains($t, "Quiero pasar al plan " . $argv[2] . " pagando por transferencia. Me faltan " . $argv[3] . " días (hasta el " . $argv[4] . "). Valor del cambio: $" . $argv[5] . " con IVA.") && str_contains($t, "Hola, soy " . $argv[6]));' "$TMP/pag.html" "$NCOM" "$D6" "$(date -d "$V6" +%d/%m/%Y)" "$TOT6" "$NEGOCIO Casi Completo")"
+no_contiene "… sin botón de tarjeta (no está disponible)" "$TMP/pag.html" 'value="pagar_mejora"'
+post "r=$RUTA" -d accion=pagar_mejora > /dev/null
+check "… y si igual manda pagar con tarjeta, el plan no cambia" "$BAS" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S6")"
+# Plan vencido y sin pago con tarjeta: no hay prorrateo; sale el aviso con el WhatsApp de Tukán
+sql "UPDATE $TABLA SET activo_hasta = CURRENT_DATE - 1 WHERE id = $S6" > /dev/null
+r=$(post "r=$RUTA" -d accion=pasar_completo)
+check "Plan vencido sin pago con tarjeta: aviso «necesitas pagar con tarjeta»" "302 $BASE/?r=$RUTA&completo=sin_tarjeta|$BAS" "$r|$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S6")"
 get "r=$RUTA&completo=sin_tarjeta" > /dev/null
 contiene "… mensaje: necesita pagar con tarjeta y ahora no está disponible" "$TMP/pag.html" "Para pasarte al $NCOM necesitas pagar con tarjeta. En este momento el pago con tarjeta no está disponible: escríbenos y te ayudamos."
-contiene "… con el botón de WhatsApp de Tukán" "$TMP/pag.html" "data-completo=\"sin-tarjeta\".*wa.me/$(sql "SELECT coalesce((SELECT valor FROM ajustes WHERE clave='whatsapp_ventas'), '593983662181')")?text="
-no_contiene "… sin prometer que paga después" "$TMP/pag.html" "próxima renovación"
+contiene "… con el botón de WhatsApp de Tukán" "$TMP/pag.html" 'data-completo="sin-tarjeta".*wa.me/'
+sql "UPDATE $TABLA SET activo_hasta = '$V6' WHERE id = $S6" > /dev/null
+pone $S6 "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"
 # Demo sin pago con tarjeta: no ve el botón y no cambia
 EDS="pagodemosug$RANDOM@prueba.ec"; SDS=$(demo "$NEGOCIO Demo Con Extras" "$EDS" "$BAS")
 pone $SDS "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"
@@ -334,9 +350,13 @@ entrar "$E6"; J6=$JAR
 get "r=$RUTA" > /dev/null
 check "Con pago con tarjeta: el aviso sale arriba y en la sección de pagar" "2" "$(grep -o 'data-sugerencia="mayor"' "$TMP/pag.html" | wc -l | tr -d ' ')"
 r=$(post "r=$RUTA" -d accion=pasar_completo)
-check "«Pasarme al Completo» lleva a pagar el Completo con tarjeta" "302 $BASE/?r=$RUTA&elegir=$COM" "$r"
+check "Cliente con su período pagado: «Pasarme al Completo» va al cálculo del prorrateo" "302 $BASE/?r=$RUTA&completo=prorrateo" "$r"
+JG=$JAR; entrar "$EDS"
+r=$(post "r=$RUTA" -d accion=pasar_completo)
+check "Demo (sin período pagado): lleva a pagar el Completo entero con tarjeta" "302 $BASE/?r=$RUTA&elegir=$COM" "$r"
 get "r=$RUTA&elegir=$COM" > /dev/null
 contiene "… con el Completo ya marcado" "$TMP/pag.html" "value=\"$COM|mensual\" required checked"
+JAR=$JG
 # Con suscripción viva y pagada: pasa ya al Completo; el valor nuevo desde el próximo cobro
 r=$(post "r=$RUTA" -d accion=pagar_tarjeta -d "opcion=$BAS|mensual"); C6=${r##*c=}
 H6=$(sql "SELECT activo_hasta FROM $TABLA WHERE id=$S6")
@@ -363,6 +383,66 @@ JAR=$JAR_A
 post "r=$ADMINP&id=$S6" -d accion=plan -d plan=$BAS > /dev/null; get "r=$ADMINP&id=$S6" > /dev/null
 contiene "Bajar del Completo al Básico sigue bloqueado durante el período" "$TMP/pag.html" "No se puede bajar de plan mientras dure el período pagado"
 check "… y sigue en Completo" "$COM" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S6")"
+
+echo "12. Subir de plan SIN suscripción: prorrateo con tarjeta («mejora») o «Enviar por WhatsApp»"
+BASE=$BASE_PAGO
+E8="pagomejora$RANDOM@prueba.ec"; S8=$(demo "$NEGOCIO Que Sube" "$E8" "$BAS" "" pagado)   # Básico solo ($12,99), pagado 30 días, sin suscripción
+sql "UPDATE $TABLA SET ruc = '1790011001001' WHERE id = $S8" > /dev/null
+V8=$(sql "SELECT activo_hasta FROM $TABLA WHERE id=$S8")
+D8=$(( ( $(date -d "$V8" +%s) - $(date -d "$(date +%F)" +%s) ) / 86400 ))
+SUB8=$(php -r 'echo round(12.01 * $argv[1] / 30, 2);' "$D8"); SUB8T=$(php -r 'echo number_format(round(12.01 * $argv[1] / 30, 2), 2, ",", ".");' "$D8"); TOT8=$(php -r 'echo number_format(round(round(12.01 * $argv[1] / 30, 2) * 1.15, 2), 2, ",", ".");' "$D8")
+entrar "$E8"
+r=$(post "r=$RUTA" -d accion=pasar_completo)
+check "«Pasarme al Completo» con el período pagado: va al cálculo" "302 $BASE/?r=$RUTA&completo=prorrateo" "$r"
+get "r=$RUTA&completo=prorrateo" > /dev/null
+sed -e 's/<[^>]*>//g' "$TMP/pag.html" > "$TMP/pag.txt"
+contiene "El cálculo a la vista" "$TMP/pag.txt" "Pasar al $NCOM: te faltan $D8 días (hasta el $(date -d "$V8" +%d/%m/%Y)). Diferencia: \\\$$SUB8T + IVA = \\\$$TOT8."
+contiene "Botón «Pagar \$Y con tarjeta»" "$TMP/pag.html" ">Pagar \\\$$TOT8 con tarjeta</button>"
+contiene "Botón «Enviar por WhatsApp»" "$TMP/pag.html" ">Enviar por WhatsApp</a>"
+NCR=$(cuantos crear)
+r=$(post "r=$RUTA" -d accion=pagar_tarjeta -d "opcion=$COM|mensual")
+check "Elegir el Completo en «Paga tu plan» con días pagados: primero el prorrateo (no crea el pago del plan entero)" "302 $BASE/?r=$RUTA&completo=prorrateo|$NCR" "$r|$(cuantos crear)"
+r=$(post "r=$RUTA" -d accion=pagar_mejora)
+C8=${r##*c=}
+check "«Pagar con tarjeta»: a la página de pago del Panel" "302 $PANEL_SIM/pagar?c=$C8" "$r"
+mej() { php -r '$u = null; foreach (file($argv[1]) as $l) { $j = json_decode($l, true); if (($j["accion"] ?? "") === "mejora") $u = $j; } $v = $u; foreach (explode(".", $argv[2]) as $k) $v = $v[$k] ?? null; echo is_scalar($v) ? $v : json_encode($v);' "$PANEL_SIM_DIR/pedidos.jsonl" "$1"; }
+check "Pedido «mejora»: cliente, plan nuevo, prorrateo sin IVA y vencimiento" "$S8|$COM|$NCOM|$SUB8|$V8" "$(mej cliente_id)|$(mej plan)|$(mej plan_nombre)|$(mej subtotal)|$(mej hasta)"
+check "… con comprador, RUC para la factura y adónde volver" "$E8|1790011001001|$BASE_PAGO/?r=$RUTA" "$(mej comprador.correo)|$(mej fiscal.identificacion)|$(mej volver)"
+get "r=$RUTA" > /dev/null
+check "Antes de pagar el plan NO cambia" "$BAS" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S8")"
+contiene "… y Mi plan muestra el cobro esperando con «Pagar ahora»" "$TMP/pag.html" "Cambio al plan $NCOM: prorrateo"
+control "{\"aprobar\":$C8}"
+get "r=$RUTA&plux=aprobado" > /dev/null; get "r=$RUTA" > /dev/null
+check "Pagado: Mi plan aplica el plan nuevo y el vencimiento NO cambia" "$COM|$V8" "$(sql "SELECT plan_codigo||'|'||activo_hasta FROM $TABLA WHERE id=$S8")"
+contiene "… con el aviso «¡Pago recibido! Ya tienes el plan Completo»" "$TMP/pag.html" "Ya tienes el plan $NCOM con todos los módulos. Tu fecha de vencimiento no cambia."
+check "… queda anotado en el registro del negocio que ve Tukán" "1" "$(sql "SELECT count(*) FROM registro_admin WHERE ${FK} = $S8 AND accion LIKE 'Pasó al plan $NCOM desde Mi plan: prorrateo pagado con tarjeta%'")"
+sql "UPDATE $TABLA SET plan_codigo = '$BAS' WHERE id = $S8" > /dev/null   # como si Tukán lo devolviera después
+get "r=$RUTA" > /dev/null
+check "Se aplica UNA sola vez: el mismo cobro no vuelve a cambiar el plan" "$BAS|1" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S8")|$(sql "SELECT count(*) FROM tukan_mejoras WHERE cliente_id='$S8'")"
+# Menos de $1: no se cobra y el plan cambia
+E9="pagominimo$RANDOM@prueba.ec"; S9=$(demo "$NEGOCIO Minimo" "$E9" "$BAS" "" pagado)
+pone $S9 "${M[0]},${M[1]},${M[2]},${M[3]},${M[4]},${M[5]}"   # ya paga $27,99: pasar al Completo ($25) no cuesta nada
+entrar "$E9"
+NM=$(cuantos mejora)
+post "r=$RUTA" -d accion=pagar_mejora > /dev/null; get "r=$RUTA" > /dev/null
+check "Diferencia menor a \$1: el Panel contesta «minimo» y el plan cambia sin cobro" "$COM|$((NM+1))" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S9")|$(cuantos mejora)"
+contiene "… y lo dice: «La diferencia es menor a \$1: no se cobra»" "$TMP/pag.html" 'La diferencia es menor a \$1: no se cobra'
+# Plan vencido: sin prorrateo, paga el plan entero
+E10="pagovencido$RANDOM@prueba.ec"; S10=$(demo "$NEGOCIO Vencido" "$E10" "$BAS" "" pagado)
+sql "UPDATE $TABLA SET activo_hasta = CURRENT_DATE - 1 WHERE id = $S10" > /dev/null
+entrar "$E10"
+r=$(post "r=$RUTA" -d accion=pasar_completo)
+check "Plan vencido: sin prorrateo, lleva a pagar el Completo entero" "302 $BASE/?r=$RUTA&elegir=$COM" "$r"
+NM=$(cuantos mejora); post "r=$RUTA" -d accion=pagar_mejora > /dev/null
+check "… y «pagar_mejora» no pide nada al Panel" "$NM|$BAS" "$(cuantos mejora)|$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S10")"
+# En la app de Google Play: nada de esto
+if [ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/.well-known/assetlinks.json")" = "200" ]; then
+  E11="pagoapp$RANDOM@prueba.ec"; S11=$(demo "$NEGOCIO En App" "$E11" "$BAS" "" pagado)
+  entrar "$E11" app; get "r=$RUTA&completo=prorrateo" > /dev/null
+  no_contiene "App de Google Play: sin cálculo, sin tarjeta y sin WhatsApp de pago" "$TMP/pag.html" 'data-completo\|pagar_mejora\|Enviar por WhatsApp'
+  post "r=$RUTA" -d accion=pagar_mejora > /dev/null
+  check "… y no se puede pagar la mejora desde la app" "$BAS" "$(sql "SELECT plan_codigo FROM $TABLA WHERE id=$S11")"
+fi
 
 sql "$ANTES" > /dev/null
 echo
