@@ -7,6 +7,7 @@ $filas = ['mensual' => planes()->textoPeriodo('mensual'), 'semestral' => planes(
 $abiertos = [];
 foreach ($pedidos as $p) if (in_array($p['estado'], ['pendiente', 'en_proceso'], true)) foreach (TuSalon\Modulos::limpiar($p['modulos']) as $m) $abiertos[$m] = $p;
 $etiqueta = function (string $id) use ($detalle, $catalogo, $play): string {
+    if ($id === 'facturacion') return 'Próximamente';   // 12 nov 2026: TuFactura aún no se vende (sin precio ni botón para pedirla)
     if (in_array($id, $detalle['del_plan'], true) && !in_array($id, $detalle['quitados'], true)) return 'Incluido en tu plan';
     if (in_array($id, $detalle['elegidos'] ?? [], true)) return 'Elegido · incluido en tu plan';   // planes de $20 y $45 (migración 011)
     if (in_array($id, $detalle['extra'], true)) return $play ? 'Extra' : 'Extra · ' . dinero($detalle['precio_por_extra'][$id] ?? $catalogo[$id]['precio_mensual']) . ' al mes';
@@ -108,7 +109,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
             <div class="modulo-lado">
                 <?php if (!$play): ?><span class="modulo-precio"><?= e($etiqueta($m['id'])) ?></span><?php endif; ?>
                 <?php if ($pedido): ?><span class="tk-chip etq etq-pendiente">Pedido</span>
-                <?php elseif (!$play): ?>
+                <?php elseif (!$play && $m['id'] !== 'facturacion'): ?>
                     <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
                         <button class="tk-boton chico boton boton-chico" type="submit">Pedir cotización</button></form>
                 <?php endif; ?>

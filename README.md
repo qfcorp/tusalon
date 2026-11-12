@@ -3,6 +3,8 @@
 Software para peluquerías y barberías de Ecuador, de la marca Tukán Software.
 Dirección: **tusalon.tukanec.com** (servidor qfcorp). Web de la marca: tukansoftware.com.
 
+- Presentación de ventas: [docs/TuSalon_Presentacion.pdf](docs/TuSalon_Presentacion.pdf) (fuente: `docs/presentacion/presentacion.html`; se regenera con `generar.sh`)
+
 Un mismo local puede tener 4 tipos de peluquero a la vez: dueño que atiende, empleado (sueldo y/o comisión), porcentaje (50/50, 60/40) y alquiler de puesto.
 
 **Todo es por módulos** y **todo se pide demo**:

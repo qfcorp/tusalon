@@ -202,8 +202,8 @@ get "r=completa" > /dev/null
 contiene "Mi plan dice cuántos módulos trae a elección" "$TMP/pag.html" "3 módulos a tu elección"
 contiene "… los 3 elegidos dicen «Incluido»" "$TMP/pag.html" "elegido, incluido en el plan"
 contiene "… el cuarto módulo cuesta \$5" "$TMP/pag.html" "Extra · \$5,00 al mes"
-contiene "… total: \$20 + \$5 (cuarto módulo) + \$5 (Asistente IA) = \$30" "$TMP/pag.html" 'data-total-mensual>\$30,00'
-contiene "… y el semestral: 5 × \$30" "$TMP/pag.html" '\$150,00'
+contiene "… total: \$20 + \$5 (cuarto módulo) + \$3 (Asistente IA) = \$28" "$TMP/pag.html" 'data-total-mensual>\$28,00'
+contiene "… y el semestral: 5 × \$28" "$TMP/pag.html" '\$140,00'
 sql "UPDATE salones SET modulos_extra = 'reservas_linea' WHERE id = $S20" > /dev/null
 get "r=completa" > /dev/null
 contiene "Con 1 elegido: le quedan 2 por elegir" "$TMP/pag.html" 'data-por-elegir="2"'

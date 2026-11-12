@@ -93,7 +93,7 @@ $ids = array_values(array_diff($todos, Modulos::FUERA_DE_PLANES));   // los que 
 check('16 módulos; todos entran en los planes menos la factura electrónica (TuFactura se vende aparte; el Asistente IA viene en Completa = *)', [16, 15, ['facturacion']], [count($todos), count($ids), Modulos::FUERA_DE_PLANES]);
 check('Cada módulo con ícono, nombre, grupo conocido, descripción, precio y descuento', true, array_filter(Modulos::CATALOGO, fn($m) =>
     $m[0] === '' || mb_strlen($m[1]) < 3 || !isset(Modulos::GRUPOS[$m[2]]) || mb_strlen($m[3]) < 20 || ($m[4] <= 0 && !in_array($m[1], ['Asistente IA', 'Factura electrónica con TuFactura'], true)) || $m[5] < 0 || $m[5] > $m[4]) === []);
-check('Asistente IA: grupo Extras y $5 en el catálogo (en Básica es extra; en Completa, incluido)', ['extras', 5.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
+check('Asistente IA: grupo Extras y $3 en el catálogo (en Básica es extra; en Completa, incluido)', ['extras', 3.0, 0.0], [Modulos::CATALOGO['asistente_ia'][2], Modulos::CATALOGO['asistente_ia'][4], Modulos::CATALOGO['asistente_ia'][5]]);
 check('Solo el Asistente IA y la factura electrónica no cuentan entre los módulos a elegir (TuSalón no tiene sedes; Telegram es un módulo normal)', ['facturacion', 'asistente_ia'], Modulos::FUERA_DEL_CUPO);
 check('Las dependencias existen y no se depende de uno mismo', true, array_filter(Modulos::CATALOGO, fn($m) => array_diff($m[6], $ids) !== []) === []
       && !array_filter(array_keys(Modulos::CATALOGO), fn($id) => in_array($id, Modulos::CATALOGO[$id][6], true)));
@@ -167,8 +167,8 @@ $d = $mods->detalle($mods->salon($s));
 check('Básica sin extras: $25', [25.0, 0.0, 0.0, null, 25.0], [$d['precio_plan'], $d['precio_extra'], $d['descuento'], $d['precio_acordado'], $d['mensual']]);
 $r = $mods->cambiar($s, ['anticipos', 'inventario'], [], false, 'Pidió anticipos', 'Prueba <p@prueba.ec>');
 check('Encender anticipo enciende reservas y lo dice', [['reservas_linea'], ['reservas_linea', 'anticipos', 'inventario']], [$r['por_dependencia'], $r['encendidos']]);
-check('Extra: reservas $5 + anticipo $3 + inventario $3 = $36', [11.0, 36.0], [$r['detalle']['precio_extra'], $r['detalle']['mensual']]);
-check('cotizar con los módulos del salón: semestral paga 5 × 36', 180.0, $planes->cotizar('basica', 'semestral', $s)['monto']);
+check('Extra: reservas $5 + anticipo $5 + inventario $5 = $40', [15.0, 40.0], [$r['detalle']['precio_extra'], $r['detalle']['mensual']]);
+check('cotizar con los módulos del salón: semestral paga 5 × 40', 200.0, $planes->cotizar('basica', 'semestral', $s)['monto']);
 check('El mismo pago sin salón: solo el plan', 125.0, $planes->cotizar('basica', 'semestral')['monto']);
 $msg = lanza(fn() => $mods->cambiar($s, [], ['reservas_linea'], false, '', 'x'));
 check('No se apaga Reservas si Anticipo lo necesita', true, str_contains($msg, 'lo necesita'));
@@ -259,7 +259,7 @@ check('Pedir uno que ya tiene → aviso', true, str_contains(lanza(fn() => $mods
 $sols = $pedir('solicitudes', ['tipos' => ['cambio_modulos']])[1]['solicitudes'];
 check('Llega al Panel Central como cambio_modulos', ["cambio_modulos:$id1"], array_column($sols, 'id'));
 $sol = $sols[0];
-check('… con el salón, el monto y el precio nuevo', [(string) $b, 3.0, 33.0], [$sol['cliente_id'], $sol['monto'], $sol['detalle']['precio_nuevo']]);
+check('… con el salón, el monto y el precio nuevo', [(string) $b, 5.0, 35.0], [$sol['cliente_id'], $sol['monto'], $sol['detalle']['precio_nuevo']]);
 check('… y botones Aprobar (cambiar_modulos) y Rechazar', ['cambiar_modulos', 'atender_solicitud'], array_slice(array_column($sol['acciones_posibles'], 'accion'), 0, 2));
 $apr = $sol['acciones_posibles'][0];
 $op = bin2hex(random_bytes(16));
@@ -401,7 +401,7 @@ $demoVieja = $nuevo('Barbería Básica en demo', 'basica', false);
 $db->exec(file_get_contents(RAIZ . '/db/migraciones/011_planes_20_45.sql'));
 $mods->olvidar();
 $pl = $mods->planes();
-check('La migración deja Básica $20 (base + 3 a elegir, $5 cada uno más) y Completa $45', [20.0, '', 3, 5.0, 45.0, 0, 5.0],
+check('La migración deja Básica $20 (base + 3 a elegir, $5 cada uno más) y Completa $45', [20.0, '', 3, 5.0, 45.0, 0, 3.0],
       [(float) $pl['basica']['precio_mensual'], implode(',', $pl['basica']['modulos']), (int) $pl['basica']['modulos_elegir'], (float) $pl['basica']['precio_modulo_extra'],
        (float) $pl['completa']['precio_mensual'], (int) $pl['completa']['modulos_elegir'], $mods->catalogo()['asistente_ia']['precio_mensual']]);
 $dv = $mods->detalle($mods->salon($viejo));
@@ -424,7 +424,7 @@ check('Con 3 módulos elegidos (sin importar su precio del catálogo): sigue en 
 $poner($b, 'reservas_linea,ficha_tecnica,puntos,inventario,reportes');
 check('Con 5 módulos: $20 + 2 × $5 = $30', [30.0, 3, 0], $precio($b));
 $poner($b, 'portal_peluquero,asistente_ia');
-check('El Asistente IA cuesta $5 aparte y no gasta uno de los 3', [25.0, 1, 2], $precio($b));
+check('El Asistente IA cuesta $3 aparte y no gasta uno de los 3', [23.0, 1, 2], $precio($b));
 $poner($b, 'telegram');
 check('Los avisos por Telegram son un módulo normal: gastan uno de los 3', [20.0, 1, 2], $precio($b));
 $poner($b, 'reservas_linea,anticipos');

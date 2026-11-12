@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es-EC">
+<head>
+<meta charset="utf-8">
+<title>TuSalón · Presentación</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root { --marino: #14213D; --marino-2: #1D2C50; --amarillo: #E7719A; --naranja: #DB2967; --tinta: #1C2333; --suave: #5B6478; --fondo: #F4F5F8; }
+@page { size: 1920px 1080px; margin: 0; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font-family: "DM Sans", sans-serif; color: var(--tinta); }
+section.diapo { width: 1920px; height: 1080px; position: relative; overflow: hidden; padding: 96px 120px; break-after: page; background: #fff; display: flex; flex-direction: column; }
+section.diapo.oscura { background: var(--marino); color: #fff; }
+h1, h2 { font-family: "Space Grotesk", sans-serif; margin: 0; line-height: 1.05; letter-spacing: -1.5px; }
+h2 { font-size: 72px; color: var(--marino); max-width: 1300px; }
+.oscura h2 { color: #fff; }
+h2 em, h1 em { font-style: normal; color: var(--amarillo); }
+.diapo:not(.oscura) h2 em { color: var(--marino); background: linear-gradient(transparent 62%, var(--amarillo) 62%); }
+.etiqueta { font-family: "Space Grotesk"; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; font-size: 22px; color: var(--naranja); margin-bottom: 22px; }
+.marca { font-family: "Space Grotesk"; font-weight: 700; font-size: 34px; }
+.marca i { color: var(--amarillo); font-style: normal; }
+.pie { position: absolute; left: 120px; right: 120px; bottom: 44px; display: flex; justify-content: space-between; font-size: 20px; color: var(--suave); }
+.oscura .pie { color: rgba(255,255,255,.6); }
+.franja { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; background: linear-gradient(90deg, var(--amarillo) 0 72%, var(--naranja) 72%); }
+p.grande { font-size: 32px; line-height: 1.45; max-width: 980px; margin: 28px 0 0; }
+.oscura p.grande { color: rgba(255,255,255,.9); }
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; flex: 1; }
+.dos.ancha { grid-template-columns: 640px 1fr; }
+ul.puntos { list-style: none; padding: 0; margin: 40px 0 0; font-size: 30px; line-height: 1.4; }
+ul.puntos li { padding-left: 52px; position: relative; margin-bottom: 22px; }
+ul.puntos li::before { content: ""; position: absolute; left: 0; top: 10px; width: 26px; height: 26px; border-radius: 8px; background: var(--amarillo); }
+ul.puntos b { color: var(--marino); }
+.oscura ul.puntos b { color: var(--amarillo); }
+.compu { width: 100%; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 70px rgba(20,33,61,.25); border: 1px solid #DDE1EA; background: #fff; }
+.compu .barra { height: 38px; background: #E9ECF2; display: flex; gap: 10px; align-items: center; padding: 0 16px; }
+.compu .barra span { width: 14px; height: 14px; border-radius: 50%; background: #C7CCD7; }
+.compu img { width: 100%; height: 680px; object-fit: cover; object-position: top left; display: block; }
+.cel { width: 330px; border: 12px solid #0A1530; border-radius: 48px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,.35); background: #fff; }
+.cel img { width: 100%; height: 640px; object-fit: cover; object-position: top; display: block; }
+.celes { display: flex; gap: 50px; justify-content: center; align-items: flex-end; }
+.celes .cel:nth-child(2) { transform: translateY(-40px); }
+.portada h1 { font-size: 150px; color: #fff; margin-top: 120px; }
+.portada .bajada { font-size: 40px; max-width: 900px; line-height: 1.35; margin-top: 30px; color: rgba(255,255,255,.92); }
+.portada .celes { position: absolute; right: 120px; top: 150px; }
+.tarjetas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; margin-top: 60px; }
+.tarjeta { background: var(--fondo); border-radius: 22px; padding: 34px 30px; }
+.oscura .tarjeta { background: var(--marino-2); }
+.tarjeta .ico { font-size: 52px; }
+.tarjeta h3 { font-family: "Space Grotesk"; font-size: 30px; margin: 16px 0 10px; color: var(--marino); }
+.oscura .tarjeta h3 { color: var(--amarillo); }
+.tarjeta p { font-size: 22px; line-height: 1.4; margin: 0; color: var(--suave); }
+.oscura .tarjeta p { color: rgba(255,255,255,.8); }
+.modulos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 48px; }
+.modulo { background: var(--marino-2); border-radius: 16px; padding: 20px 22px; font-size: 23px; display: flex; gap: 14px; align-items: center; color: #fff; }
+.modulo span { font-size: 32px; }
+.planes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; margin-top: 60px; }
+.planc { border-radius: 26px; padding: 44px 40px; background: var(--fondo); }
+.planc.dest { background: var(--marino); color: #fff; }
+.planc h3 { font-family: "Space Grotesk"; font-size: 46px; margin: 0 0 10px; color: var(--marino); }
+.planc.dest h3 { color: var(--amarillo); }
+.planc p { font-size: 25px; line-height: 1.45; margin: 0; }
+.cierre { align-items: center; justify-content: center; text-align: center; }
+.cierre h2 { font-size: 130px; max-width: none; }
+.cierre .wa { margin-top: 50px; display: inline-flex; gap: 24px; align-items: center; background: var(--amarillo); color: var(--marino); font-family: "Space Grotesk"; font-weight: 700; font-size: 60px; padding: 26px 60px; border-radius: 999px; }
+.cierre .lema { font-size: 38px; margin-top: 56px; max-width: 1200px; line-height: 1.4; color: rgba(255,255,255,.92); }
+.cierre .lema b { color: var(--amarillo); }
+.cierre .web { margin-top: 30px; font-size: 28px; color: rgba(255,255,255,.7); }
+</style>
+</head>
+<body>
+
+<section class="diapo oscura portada">
+  <div class="marca">tukán<i>.</i></div>
+  <h1>Tu<em>Salón</em></h1>
+  <p class="bajada">El sistema para peluquerías y barberías de Ecuador.</p>
+  <ul class="puntos" style="max-width:860px;font-size:32px">
+    <li>Agenda por <b>silla</b>, sin choques</li>
+    <li>Citas desde tu <b>enlace de reservas</b></li>
+    <li>Cobras y TuSalón calcula <b>lo de cada peluquero</b></li>
+  </ul>
+  <div class="celes"><div class="cel"><img src="../manual/capturas/13_agenda_celular.png" alt=""></div><div class="cel"><img src="../manual/capturas/19_reservar_hora.png" alt=""></div></div>
+  <div class="pie"><span>tusalon.tukanec.com</span><span>Tukán Software</span></div>
+  <div class="franja"></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">El día a día de una peluquería</div>
+  <h2>¿Te suena <em>alguno</em> de estos problemas?</h2>
+  <div class="tarjetas">
+    <div class="tarjeta"><div class="ico">📒</div><h3>Dos clientes a la misma hora</h3><p>El cuaderno de citas se cruza y alguien se queda esperando.</p></div>
+    <div class="tarjeta"><div class="ico">🧮</div><h3>Cuentas a mano</h3><p>Cuánto le toca a cada peluquero, quién debe el arriendo y cuánto hay en caja.</p></div>
+    <div class="tarjeta"><div class="ico">📵</div><h3>Clientes que no llegan</h3><p>Sin un recordatorio a tiempo, la hora se pierde y no se avisa.</p></div>
+    <div class="tarjeta"><div class="ico">💬</div><h3>WhatsApp sin orden</h3><p>Mensajes a cualquier hora pidiendo cita, sin saber qué horas están libres.</p></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>2</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">La agenda</div>
+  <div class="dos ancha">
+    <div>
+      <h2>Una columna por <em>peluquero</em>.</h2>
+      <ul class="puntos"><li>Nadie queda con <b>dos citas a la vez</b></li><li>Cada peluquero con <b>su color</b> y su tipo</li><li>Recordatorio por <b>WhatsApp de un toque</b></li><li>Almuerzo y vacaciones bloqueados</li></ul>
+    </div>
+    <div class="compu"><div class="barra"><span></span><span></span><span></span></div><img src="../manual/capturas/12_agenda_compu.png" alt=""></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>3</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">Tu equipo</div>
+  <div class="dos ancha">
+    <div>
+      <h2>Cada quien gana <em>a su manera</em>.</h2>
+      <ul class="puntos"><li><b>Dueño</b> que atiende, <b>empleado</b> con sueldo o comisión</li><li><b>Por porcentaje</b> (50/50, 60/40…)</li><li>Quien <b>alquila el puesto</b> y paga su arriendo</li><li>TuSalón hace <b>las cuentas solo</b> con cada cobro</li></ul>
+    </div>
+    <div class="compu"><div class="barra"><span></span><span></span><span></span></div><img src="../manual/capturas/05_equipo.png" alt=""></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>4</span></div>
+</section>
+
+<section class="diapo oscura">
+  <div class="etiqueta">Citas en línea</div>
+  <div class="dos">
+    <div>
+      <h2>Tus clientes reservan <em>solos</em>.</h2>
+      <ul class="puntos"><li>Tu enlace propio para Instagram y WhatsApp</li><li>Eligen servicio, peluquero y una <b>hora libre de verdad</b></li><li>Tú <b>aceptas o rechazas</b> con un toque</li><li>Anticipo en línea, si lo quieres</li></ul>
+    </div>
+    <div class="celes"><div class="cel"><img src="../manual/capturas/18_reservar_servicio.png" alt=""></div><div class="cel"><img src="../manual/capturas/19_reservar_hora.png" alt=""></div></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>5</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">Cobro y caja</div>
+  <div class="dos ancha">
+    <div>
+      <h2>Cobra y cierra la <em>caja</em> del día.</h2>
+      <ul class="puntos"><li>Efectivo, transferencia, DeUna o tarjeta, y la <b>propina</b></li><li>Paquetes, tarjetas de regalo y puntos se descuentan solos</li><li>Cuánto <b>efectivo debe haber</b> y cierre de caja</li><li>Cada peluquero ve <b>lo que le toca</b></li></ul>
+    </div>
+    <div class="compu"><div class="barra"><span></span><span></span><span></span></div><img src="../manual/capturas/24_caja.png" alt=""></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>6</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">Tus clientes</div>
+  <div class="dos ancha">
+    <div>
+      <h2>Conoce a cada <em>cliente</em>.</h2>
+      <ul class="puntos"><li>Historial, cumpleaños, alergias y faltas</li><li><b>Ficha técnica de color</b>: la fórmula del tinte con fotos de antes y después</li><li>Quién <b>dejó de venir</b>, con el WhatsApp listo</li></ul>
+    </div>
+    <div class="compu"><div class="barra"><span></span><span></span><span></span></div><img src="../manual/capturas/28_ficha_tecnica.png" alt=""></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>7</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">Para que vuelvan</div>
+  <h2>Paquetes, puntos y <em>tarjetas de regalo</em>.</h2>
+  <div class="tarjetas">
+    <div class="tarjeta"><div class="ico">🎁</div><h3>Paquetes</h3><p>Varias sesiones pagadas por adelantado que se descuentan en cada visita.</p></div>
+    <div class="tarjeta"><div class="ico">💳</div><h3>Tarjetas de regalo</h3><p>Con código y saldo, ideales para fechas especiales.</p></div>
+    <div class="tarjeta"><div class="ico">⭐</div><h3>Puntos</h3><p>Los clientes fieles ganan puntos y los cambian por descuentos.</p></div>
+    <div class="tarjeta"><div class="ico">📦</div><h3>Inventario</h3><p>Stock, aviso de que se acaba y venta de productos al cobrar.</p></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>8</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">Todo tu equipo</div>
+  <div class="dos">
+    <div>
+      <h2>Cada uno ve <em>lo suyo</em>.</h2>
+      <ul class="puntos"><li>El <b>peluquero</b> ve sus citas y lo que gana, desde su celular</li><li><b>Recepción</b> agenda y cobra sin ver tus ganancias</li><li>Hasta <b>4 administradores</b> con tu mismo nivel, que no cuentan como personas</li><li>Tú lo ves <b>todo</b></li></ul>
+    </div>
+    <div class="celes"><div class="cel"><img src="../manual/capturas/37_portal_peluquero_celular.png" alt=""></div><div class="cel"><img src="../manual/capturas/36_recepcion_inicio_celular.png" alt=""></div></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>9</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">Ayuda e IA</div>
+  <div class="dos ancha">
+    <div>
+      <h2>Una ayuda que <em>responde</em>.</h2>
+      <ul class="puntos"><li><b>Ayuda</b> en todos los planes: pregunta «¿cómo hago…?» y responde con el manual</li><li><b>Asistente IA</b> (incluido en Completa): arma la cita con el mensaje de WhatsApp del cliente, en una hora <b>libre</b></li><li>Escribe el mensaje para los clientes que <b>no vuelven</b></li></ul>
+    </div>
+    <div class="compu"><div class="barra"><span></span><span></span><span></span></div><img src="../manual/capturas/44_asistente_compu.png" alt=""></div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>10</span></div>
+</section>
+
+<section class="diapo oscura">
+  <div class="etiqueta">Por módulos</div>
+  <h2>Enciendes solo lo que <em>usas</em>.</h2>
+  <div class="modulos">
+    <div class="modulo"><span>🗓️</span>Reservas en línea</div>
+    <div class="modulo"><span>💳</span>Anticipo en línea</div>
+    <div class="modulo"><span>🎨</span>Ficha técnica de color</div>
+    <div class="modulo"><span>🔁</span>Clientes por recuperar</div>
+    <div class="modulo"><span>👥</span>Personas ilimitadas</div>
+    <div class="modulo"><span>📱</span>Portal del peluquero</div>
+    <div class="modulo"><span>🔒</span>Clientes privados</div>
+    <div class="modulo"><span>🛎️</span>Cuenta de recepción</div>
+    <div class="modulo"><span>📦</span>Inventario y productos</div>
+    <div class="modulo"><span>🎁</span>Paquetes y tarjetas de regalo</div>
+    <div class="modulo"><span>⭐</span>Puntos</div>
+    <div class="modulo"><span>🧾</span>Gastos con facturas SRI</div>
+    <div class="modulo"><span>📊</span>Reporte del mes</div>
+    <div class="modulo"><span>📲</span>Avisos por Telegram</div>
+    <div class="modulo"><span>✨</span>Asistente IA</div>
+    <div class="modulo"><span>🧾</span>Factura SRI con TuFactura · Próximamente</div>
+  </div>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>11</span></div>
+</section>
+
+<section class="diapo">
+  <div class="etiqueta">Planes</div>
+  <h2>Empieza donde está <em>tu salón</em>.</h2>
+  <div class="planes" style="grid-template-columns:repeat(2,1fr)">
+    <div class="planc"><h3>Básico</h3><p>Agenda por silla, clientes, servicios, equipo con los 4 tipos de peluquero, cobros y caja. Hasta 3 personas que atienden. <b>Y 3 módulos que tú eliges.</b></p></div>
+    <div class="planc dest"><h3>Completo</h3><p>Todos los módulos, con el Asistente IA: reservas en línea, anticipo, ficha de color, paquetes, puntos, inventario, reportes, portal del peluquero y más.</p></div>
+  </div>
+  <p class="grande" style="max-width:1500px">En el Básico eliges 3 módulos y puedes sumar más. Pide tu cotización. Apagar un módulo nunca borra tus datos.</p>
+  <div class="pie"><span>TuSalón · Tukán Software</span><span>12</span></div>
+</section>
+
+<section class="diapo oscura cierre">
+  <div class="marca">tukán<i>.</i></div>
+  <h2 style="margin-top:40px">Pida su <em>demo</em></h2>
+  <div class="wa">WhatsApp 098 366 2181</div>
+  <p class="lema"><b>Todo es por módulos:</b> usted elige los módulos que necesita y paga solo por eso. Precios más IVA y sin permanencia: cancela cuando quiera desde Mi plan.</p>
+  <p class="web">tusalon.tukanec.com · tukansoftware.com · info@tukansoftware.com</p>
+  <p class="web" style="margin-top:12px">Grupo de ayuda en Telegram: https://t.me/+dQfU0W9yvo85MzRh</p>
+  <div class="franja"></div>
+</section>
+
+</body>
+</html>

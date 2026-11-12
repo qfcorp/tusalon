@@ -42,6 +42,7 @@ if [ "${SOLO_PDF:-0}" != "1" ]; then
 fi
 echo "== 4. PDF del manual"
 python3 "$AQUI/pdf.py" "$MANUAL/manual.html" "$PDF" "Manual de TuSalón"
+python3 "$AQUI/pdf.py" "$RAIZ/docs/presentacion/presentacion.html" "$RAIZ/docs/TuSalon_Presentacion.pdf" "TuSalón · Presentación" --diapositivas
 pdfinfo "$PDF" 2>/dev/null | grep -E "Pages" || true
 echo "== 5. Revisión: ni la palabra prohibida ni precios del software"
 python3 "$AQUI/revisar.py" "$MANUAL/manual.html" "$PDF" "$RAIZ/docs/MANUAL.md"

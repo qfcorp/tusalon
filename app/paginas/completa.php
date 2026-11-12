@@ -181,6 +181,7 @@ if (es_post()) {
         if (($_POST['accion'] ?? '') !== 'pedir') throw new RuntimeException('Acción no válida.');
         $m = (string) ($_POST['modulo'] ?? '');
         if (!\TuSalon\Modulos::existe($m)) throw new RuntimeException('Ese módulo no existe.');
+        if ($m === 'facturacion') throw new RuntimeException('TuFactura (facturación electrónica del SRI): Próximamente.');   // 12 nov 2026
         // Antes de pedirlo: si con este módulo pasaría a pagar igual o más que el Completo, primero se le sugiere el Completo
         if (!en_app_play() && empty($_POST['solo_modulo']) && es_dueno_o_admin($u) && ($u['estado'] ?? '') !== 'prueba'
             && ($sugerir()['nivel'] ?? '') !== 'mayor' && ($sugerir($m)['nivel'] ?? '') === 'mayor') {

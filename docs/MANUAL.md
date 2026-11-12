@@ -60,14 +60,14 @@ Necesita PostgreSQL local (usuario `tusalon`, clave `prueba`, que pueda crear ba
 - En la Ayuda nunca aparecen «límite», «cupo» ni «saldo»: si el manual los usa (por ejemplo «Ver saldo» de las tarjetas de
   regalo), `Ia::sinPalabras()` los cambia por «máximo», «turno» y «monto» al mostrar la respuesta.
 
-## Factura electrónica con TuFactura (módulo aparte, viene apagado)
+## Factura electrónica con TuFactura (Próximamente)
 *9 nov 2026*
 
 Con este módulo, cada venta cobrada sale como **factura electrónica autorizada por el SRI** y le llega al cliente por correo.
 
 **Cómo se consigue**
-- **TuFactura cuesta $30 + IVA al año** y este enlace va incluido. En TuSalón el módulo cuesta $0.
-- Pídelo a Tukán Software. Tukán crea tu cuenta de TuFactura y enciende el módulo desde el Panel Tukán Central.
+- **TuFactura (facturación electrónica del SRI): Próximamente.**
+- Cuando esté disponible, Tukán Software crea tu cuenta de TuFactura y enciende el módulo. Escríbenos por WhatsApp al 098 366 2181 y te avisamos.
 - No viene en ningún plan ni en la demo.
 
 **Conectar tu cuenta** (una sola vez, el administrador)

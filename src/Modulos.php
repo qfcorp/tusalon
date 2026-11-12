@@ -58,7 +58,7 @@ final class Modulos
     /**
      * Planes de $20 y $45 (decisión de Dimitry, 28 oct 2026; migración 011): el plan Básica trae `planes.modulos_elegir`
      * módulos a elección del salón y cada uno más cuesta `planes.precio_modulo_extra`. Estos módulos NO cuentan entre los
-     * que elige: siempre se cobran a su precio del catálogo (Asistente IA $5). TuSalón no tiene módulo de sedes.
+     * que elige: siempre se cobran a su precio del catálogo (Asistente IA $3). TuSalón no tiene módulo de sedes.
      */
     public const FUERA_DEL_CUPO = ['facturacion', 'asistente_ia'];
 
@@ -73,36 +73,36 @@ final class Modulos
         'reservas_linea' => ['🗓️', 'Reservas en línea', 'clientes',
             'Tu propio enlace para que tus clientes reserven solos desde el celular: eligen peluquero, servicio y una hora libre. Tú aceptas o rechazas. El cliente puede crear su cuenta, ver sus citas, cambiar la hora y ver sus fotos.', 5.0, 2.0, []],
         'anticipos' => ['💳', 'Anticipo en línea', 'clientes',
-            'Pide un anticipo al reservar (a todos, a clientes nuevos o a quienes faltaron): transferencia o DeUna con foto del comprobante, o tarjeta con Payphone. Así nadie te deja la silla vacía.', 3.0, 1.0, ['reservas_linea']],
+            'Pide un anticipo al reservar (a todos, a clientes nuevos o a quienes faltaron): transferencia o DeUna con foto del comprobante, o tarjeta con Payphone. Así nadie te deja la silla vacía.', 5.0, 1.0, ['reservas_linea']],
         'ficha_tecnica' => ['🎨', 'Ficha técnica de color', 'clientes',
-            'Guarda la fórmula de cada tinte (marca, tono, oxidante, tiempo) con fotos de antes y después, para repetirla igual la próxima vez.', 3.0, 1.0, []],
+            'Guarda la fórmula de cada tinte (marca, tono, oxidante, tiempo) con fotos de antes y después, para repetirla igual la próxima vez.', 5.0, 1.0, []],
         'recuperar_clientes' => ['🔁', 'Clientes por recuperar', 'clientes',
-            'Lista de los clientes que hace semanas no vienen, con el mensaje de WhatsApp listo para invitarlos a volver.', 2.0, 1.0, []],
+            'Lista de los clientes que hace semanas no vienen, con el mensaje de WhatsApp listo para invitarlos a volver.', 5.0, 1.0, []],
         'equipo_ilimitado' => ['👥', 'Personas ilimitadas', 'equipo',
             'Agrega todos los peluqueros que necesites. Sin este módulo, hasta 3 personas (contando al dueño).', 5.0, 2.0, []],
         'portal_peluquero' => ['📱', 'Portal y app del peluquero', 'equipo',
-            'Cada peluquero entra con su propio acceso desde su celular (se instala como app): ve sus citas, lo que hizo, lo que ganó y su saldo, sin ver la caja ni nada tuyo.', 4.0, 1.5, []],
+            'Cada peluquero entra con su propio acceso desde su celular (se instala como app): ve sus citas, lo que hizo, lo que ganó y su saldo, sin ver la caja ni nada tuyo.', 5.0, 1.5, []],
         'clientes_privados' => ['🔒', 'Clientes privados de quien alquila', 'equipo',
-            'Quien alquila el puesto guarda sus propios clientes y les agenda en su silla. Tú ves la hora ocupada sin el nombre ni el celular.', 2.0, 1.0, ['portal_peluquero']],
+            'Quien alquila el puesto guarda sus propios clientes y les agenda en su silla. Tú ves la hora ocupada sin el nombre ni el celular.', 5.0, 1.0, ['portal_peluquero']],
         'recepcion' => ['🛎️', 'Cuenta de recepción', 'equipo',
-            'Una cuenta para la persona de recepción: agenda, cobra, cierra la caja y responde las reservas, sin ver tus ganancias ni lo que gana cada peluquero.', 3.0, 1.0, []],
+            'Una cuenta para la persona de recepción: agenda, cobra, cierra la caja y responde las reservas, sin ver tus ganancias ni lo que gana cada peluquero.', 5.0, 1.0, []],
         'inventario' => ['📦', 'Inventario y venta de productos', 'ventas',
-            'Productos para vender y de uso del salón (tintes), aviso de stock bajo, mercadería que llegó, venta al cobrar con comisión de producto para el peluquero.', 3.0, 1.0, []],
+            'Productos para vender y de uso del salón (tintes), aviso de stock bajo, mercadería que llegó, venta al cobrar con comisión de producto para el peluquero.', 5.0, 1.0, []],
         'paquetes_regalo' => ['🎁', 'Paquetes y tarjetas de regalo', 'ventas',
-            'Vende paquetes como "4 cortes por $50" (se descuenta una sesión en cada visita) y tarjetas de regalo con código y saldo.', 3.0, 1.0, []],
+            'Vende paquetes como "4 cortes por $50" (se descuenta una sesión en cada visita) y tarjetas de regalo con código y saldo.', 5.0, 1.0, []],
         'puntos' => ['⭐', 'Puntos para clientes fieles', 'ventas',
-            'Tus clientes ganan puntos cada vez que pagan y los cambian por descuentos. Tú decides cuánto vale cada punto.', 2.0, 1.0, []],
+            'Tus clientes ganan puntos cada vez que pagan y los cambian por descuentos. Tú decides cuánto vale cada punto.', 5.0, 1.0, []],
         'gastos_sri' => ['🧾', 'Gastos con facturas del SRI', 'dinero',
-            'Sube las facturas que te dan tus proveedores (XML, el reporte TXT del SRI o la clave de acceso) y mira tus gastos y tu ganancia real cada mes. TuSalón no hace facturas: solo lee las que recibes.', 4.0, 1.5, []],
+            'Sube las facturas que te dan tus proveedores (XML, el reporte TXT del SRI o la clave de acceso) y mira tus gastos y tu ganancia real cada mes. TuSalón no hace facturas: solo lee las que recibes.', 5.0, 1.5, []],
         'reportes' => ['📊', 'Reporte del mes', 'dinero',
-            'Lo más vendido, el mejor peluquero, las estrellas, las horas y días más vacíos y las faltas. Te llega solo el día 1 de cada mes.', 3.0, 1.0, []],
+            'Lo más vendido, el mejor peluquero, las estrellas, las horas y días más vacíos y las faltas. Te llega solo el día 1 de cada mes.', 5.0, 1.0, []],
         'telegram' => ['📲', 'Avisos automáticos por Telegram', 'avisos',
-            'Recordatorio automático al cliente el día anterior, pedido de calificación después del servicio, saludo de cumpleaños y avisos de cada reserva a tu equipo con botones Aceptar y Rechazar.', 3.0, 1.0, []],
+            'Recordatorio automático al cliente el día anterior, pedido de calificación después del servicio, saludo de cumpleaños y avisos de cada reserva a tu equipo con botones Aceptar y Rechazar.', 5.0, 1.0, []],
         'facturacion' => ['🧾', 'Factura electrónica con TuFactura', 'dinero',
-            'Cada cobro sale como factura electrónica autorizada por el SRI, con un toque o sola al cobrar, y le llega al cliente por correo con el PDF y el XML. Se conecta con tu cuenta de TuFactura (TuFactura se contrata aparte con Tukán Software).', 0.0, 0.0, []],
+            'Próximamente. Cada cobro sale como factura electrónica autorizada por el SRI, con un toque o sola al cobrar, y le llega al cliente por correo con el PDF y el XML. Se conecta con tu cuenta de TuFactura (TuFactura: Próximamente).', 0.0, 0.0, []],
         // Incluido en Completa ('*'). En Básica es un extra de $5 al mes que no cuenta entre los módulos a elegir (migración 011).
         'asistente_ia' => ['✨', 'Asistente IA', 'extras',
-            'Arma la cita a partir del mensaje de WhatsApp del cliente con una hora libre de tu agenda, escribe el mensaje para los clientes que no vuelven y responde las dudas al instante.', 5.0, 0.0, []],
+            'Arma la cita a partir del mensaje de WhatsApp del cliente con una hora libre de tu agenda, escribe el mensaje para los clientes que no vuelven y responde las dudas al instante.', 3.0, 0.0, []],
     ];
 
     /**

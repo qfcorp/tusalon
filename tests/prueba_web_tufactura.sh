@@ -36,8 +36,9 @@ post "r=login" --data-urlencode "email=$EMAIL" -d clave=claveSegura1 > /dev/null
 get "r=inicio" > /dev/null
 contiene "El menú tiene «Factura electrónica»" "$TMP/pag.html" "r=tufactura"
 check "Apagado: la pantalla abre (para venderlo)" "200" "$(get 'r=tufactura')"
-contiene "Apagado: explica TuFactura y deja pedirlo" "$TMP/pag.html" "Quiero facturar con TuFactura"
-contiene "Apagado: el pedido va a Mi plan" "$TMP/pag.html" "modulo=facturacion"
+contiene "Apagado: explica TuFactura y dice Próximamente (sin botón para pedirla)" "$TMP/pag.html" "Próximamente"
+no_contiene "Apagado: sin botón para pedirla ni precio" "$TMP/pag.html" "modulo=facturacion"
+no_contiene "Apagado: sin el precio de \$30" "$TMP/pag.html" '$30'
 no_contiene "Apagado: no pide la clave" "$TMP/pag.html" "Conectar y probar"
 
 sql "UPDATE salones SET modulos_extra = CASE WHEN COALESCE(modulos_extra, '') = '' THEN 'facturacion' ELSE modulos_extra || ',facturacion' END WHERE id = $SID" > /dev/null
