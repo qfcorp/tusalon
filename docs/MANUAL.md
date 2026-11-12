@@ -60,6 +60,14 @@ Necesita PostgreSQL local (usuario `tusalon`, clave `prueba`, que pueda crear ba
 - En la Ayuda nunca aparecen «límite», «cupo» ni «saldo»: si el manual los usa (por ejemplo «Ver saldo» de las tarjetas de
   regalo), `Ia::sinPalabras()` los cambia por «máximo», «turno» y «monto» al mostrar la respuesta.
 
+## Avisos por Telegram (módulo «Avisos automáticos por Telegram»)
+Los avisos de TuSalón llegan a tu Telegram por el bot de **Tukán Software**. Es **un solo bot para todos los programas Tukán**: no tienes que buscar uno distinto para cada programa.
+- **Para conectarte** (el dueño, un administrador o el peluquero): entra a **Solicitudes → Avisos por Telegram**, toca **Conectar mi Telegram**, luego **Abrir Telegram** y presiona **Iniciar**. El bot te contesta «Listo» y ya quedas conectado. El enlace sirve una sola vez; si caduca, genera otro.
+- **Qué te llega**: las solicitudes de cita en línea, con los botones **Aceptar** y **Rechazar** para contestar desde el mismo mensaje, y el reporte del mes el día 1.
+- **Tus clientes** también pueden conectarse: en **Mi cuenta** (la página de reservas) tocan **Conectar mi Telegram**. Les llega la confirmación de su cita y un recordatorio el día anterior con los botones **Confirmo que voy** y **Cancelar cita**.
+- Si usas **más de un programa Tukán**, conecta cada uno desde su pantalla; el bot es el mismo.
+- Si no ves el botón **Conectar mi Telegram**, los avisos todavía no están activos en tu instalación: escribe a Tukán (WhatsApp **098 366 2181**).
+
 ## Factura electrónica con TuFactura (Próximamente)
 *9 nov 2026*
 

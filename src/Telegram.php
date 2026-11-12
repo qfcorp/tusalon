@@ -13,13 +13,38 @@ use PDO;
  *   TELEGRAM_BOT_USERNAME     nombre del bot sin @ (ej. TuSalonAvisosBot)
  *   TELEGRAM_WEBHOOK_SECRET   texto secreto que Telegram envía en cada aviso al sistema
  *   TELEGRAM_API_BASE         (solo pruebas) para simular Telegram
+ *   TELEGRAM_PREFIJO          (opcional) «ts» = se usa el bot GENÉRICO «Tukán Software» (uno solo para todos los programas
+ *                             Tukán): en ese caso TELEGRAM_BOT_TOKEN y TELEGRAM_BOT_USERNAME son los de ese bot, el enlace de
+ *                             /start y los botones llevan el prefijo «ts» y el Panel Tukán Central (src/BotTukan.php) reenvía
+ *                             aquí lo que le toca. Vacío = el bot propio de siempre. Siempre se aceptan las dos formas.
  *
  * Cada dueño o peluquero conecta su propio Telegram con un enlace de un solo uso.
  * Las solicitudes llegan con botones "Aceptar" y "Rechazar".
  */
 final class Telegram
 {
+    /** Prefijo de este programa en el bot genérico de Tukán Software. */
+    public const PREFIJO = 'ts';
+
     public function __construct(private PDO $db) {}
+
+    /** ¿Se usa el bot genérico «Tukán Software»? (TELEGRAM_PREFIJO=ts). */
+    public static function botGenerico(): bool
+    {
+        return strtolower(trim((string) getenv('TELEGRAM_PREFIJO'))) === self::PREFIJO;
+    }
+
+    /** Parámetro del /start: con el bot genérico lleva el prefijo del programa (ts_código). */
+    public static function inicio(string $codigo): string
+    {
+        return self::botGenerico() ? self::PREFIJO . '_' . $codigo : $codigo;
+    }
+
+    /** callback_data de un botón: con el bot genérico lleva el prefijo (ts:ac:15). */
+    public static function boton(string $dato): string
+    {
+        return self::botGenerico() ? self::PREFIJO . ':' . $dato : $dato;
+    }
 
     public static function configurado(): bool
     {
@@ -57,7 +82,7 @@ final class Telegram
         if (!self::configurado()) return null;
         $codigo = bin2hex(random_bytes(12));
         $this->db->prepare('UPDATE usuarios SET telegram_codigo = ? WHERE id = ?')->execute([$codigo, $usuarioId]);
-        return 'https://t.me/' . getenv('TELEGRAM_BOT_USERNAME') . '?start=' . $codigo;
+        return 'https://t.me/' . getenv('TELEGRAM_BOT_USERNAME') . '?start=' . self::inicio($codigo);
     }
 
     public function desconectar(int $usuarioId): void
@@ -99,8 +124,8 @@ final class Telegram
             $datos = ['chat_id' => (int) $usr['telegram_chat_id'], 'text' => $texto];
             if ($c['estado'] === 'pendiente' && Agenda::puedeResponder($salon['acepta_reservas'], $usr, (int) $c['profesional_id'])) {
                 $datos['reply_markup'] = ['inline_keyboard' => [[
-                    ['text' => 'Aceptar', 'callback_data' => "ac:$citaId"],
-                    ['text' => 'Rechazar', 'callback_data' => "re:$citaId"],
+                    ['text' => 'Aceptar', 'callback_data' => self::boton("ac:$citaId")],
+                    ['text' => 'Rechazar', 'callback_data' => self::boton("re:$citaId")],
                 ]]];
             }
             if ($this->api('sendMessage', $datos) !== null) $enviados++;
@@ -130,7 +155,7 @@ final class Telegram
         if (!self::configurado()) return null;
         $codigo = 'c' . bin2hex(random_bytes(12));
         $this->db->prepare('UPDATE clientes SET telegram_codigo = ? WHERE id = ?')->execute([$codigo, $clienteId]);
-        return 'https://t.me/' . getenv('TELEGRAM_BOT_USERNAME') . '?start=' . $codigo;
+        return 'https://t.me/' . getenv('TELEGRAM_BOT_USERNAME') . '?start=' . self::inicio($codigo);
     }
 
     public function desconectarCliente(int $clienteId): void
@@ -145,8 +170,8 @@ final class Telegram
         $datos = ['chat_id' => $chatId, 'text' => $texto];
         if ($citaIdBotones) {
             $datos['reply_markup'] = ['inline_keyboard' => [[
-                ['text' => 'Confirmo que voy ✅', 'callback_data' => "cc:$citaIdBotones"],
-                ['text' => 'Cancelar cita', 'callback_data' => "cx:$citaIdBotones"],
+                ['text' => 'Confirmo que voy ✅', 'callback_data' => self::boton("cc:$citaIdBotones")],
+                ['text' => 'Cancelar cita', 'callback_data' => self::boton("cx:$citaIdBotones")],
             ]]];
         }
         return $this->api('sendMessage', $datos) !== null;
@@ -168,7 +193,7 @@ final class Telegram
         // 1) /start <código>: conectar el Telegram de un usuario
         if (isset($update['message']['text'], $update['message']['chat']['id'])) {
             $chat = (int) $update['message']['chat']['id'];
-            if (preg_match('/^\/start\s+c([a-f0-9]{24})$/', trim($update['message']['text']), $m)) {
+            if (preg_match('/^\/start\s+(?:'.self::PREFIJO.'_)?c([a-f0-9]{24})$/', trim($update['message']['text']), $m)) {
                 $st = $this->db->prepare('UPDATE clientes SET telegram_chat_id = ?, telegram_codigo = NULL
                                            WHERE telegram_codigo = ? RETURNING nombre');
                 $st->execute([$chat, 'c' . $m[1]]);
@@ -176,7 +201,7 @@ final class Telegram
                 $this->api('sendMessage', ['chat_id' => $chat, 'text' => $nombre
                     ? 'Listo, ' . explode(' ', trim((string) $nombre))[0] . '. Aquí te llegará la confirmación de tus citas y un recordatorio el día anterior.'
                     : 'Ese enlace ya se usó o caducó. Genera uno nuevo desde tu cuenta.']);
-            } elseif (preg_match('/^\/start\s+([a-f0-9]{24})$/', trim($update['message']['text']), $m)) {
+            } elseif (preg_match('/^\/start\s+(?:'.self::PREFIJO.'_)?([a-f0-9]{24})$/', trim($update['message']['text']), $m)) {
                 $st = $this->db->prepare('UPDATE usuarios SET telegram_chat_id = ?, telegram_codigo = NULL
                                            WHERE telegram_codigo = ? AND activo RETURNING nombre');
                 $st->execute([$chat, $m[1]]);
@@ -196,9 +221,10 @@ final class Telegram
             $q = $update['callback_query'];
             $chat = (int) ($q['message']['chat']['id'] ?? 0);
             $respuesta = 'No se pudo procesar.';
-            if (preg_match('/^(cc|cx):(\d+)$/', (string) ($q['data'] ?? ''), $m)) {
+            $dato = preg_replace('/^' . self::PREFIJO . ':/', '', (string) ($q['data'] ?? ''));   // con el bot genérico el botón trae el prefijo
+            if (preg_match('/^(cc|cx):(\d+)$/', $dato, $m)) {
                 $respuesta = $this->botonCliente($chat, (int) $m[2], $m[1] === 'cc', $q);
-            } elseif (preg_match('/^(ac|re):(\d+)$/', (string) ($q['data'] ?? ''), $m)) {
+            } elseif (preg_match('/^(ac|re):(\d+)$/', $dato, $m)) {
                 $st = $this->db->prepare('SELECT * FROM usuarios WHERE telegram_chat_id = ? AND activo');
                 $st->execute([$chat]);
                 $usuarios = $st->fetchAll();
