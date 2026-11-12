@@ -44,6 +44,8 @@ def revisar(nombre, texto, planes):
         if PROHIBIDA.search(l):
             malas.append(f'{nombre}, línea {n}: palabra prohibida → «{l[:140]}»')
         montos = [float(m.group(1).replace(',', '.')) for m in MONTO.finditer(l)]
+        if montos and 'TuFactura' in l and re.search(r'\$\s?30\b', l):
+            continue   # TuFactura: $30 + IVA al año es el precio oficial del módulo (capítulo TuFactura)
         if montos and SOFTWARE.search(l):
             malas.append(f'{nombre}, línea {n}: monto junto a una palabra del software → «{l[:140]}»')
         elif any(x in planes for x in montos):

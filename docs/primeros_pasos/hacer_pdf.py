@@ -102,7 +102,7 @@ h.append(paso(11, 'Sus administradores (si los necesita)', 'Menú → Administra
     'si su administrador también atiende clientes, agréguelo además en Equipo como peluquero.'))
 
 h.append('''<div class="fin"><b>¿Listo? Ya puede trabajar.</b> Para clientes, avisos, inventario, paquetes, reportes y todo lo demás,
-vea el <b>Manual de TuSalón</b>.<br><br>¿No sabe cómo hacer algo? Toque <b>Ayuda</b> en el menú (en el celular, con el botón <b>☰</b>) y pregúntelo con sus palabras: le responde con los pasos del manual.<br><br>¿Dudas? Escríbanos por <b>WhatsApp 098 366 2181</b> · info@tukansoftware.com · tukansoftware.com</div>''')
+vea el <b>Manual de TuSalón</b>.<br><br>¿No sabe cómo hacer algo? Toque <b>Ayuda</b> en el menú (en el celular, con el botón <b>☰</b>) y pregúntelo con sus palabras: le responde con los pasos del manual.<br><br>¿Dudas? Escríbanos por <b>WhatsApp 098 366 2181</b> · info@tukansoftware.com · tukansoftware.com<br>Grupo de ayuda en Telegram: <b>https://t.me/+dQfU0W9yvo85MzRh</b></div>''')
 
 html = f'<!doctype html><html lang="es"><head><meta charset="utf-8"><style>{css}</style></head><body>{"".join(h)}</body></html>'
 open(f'{D}/primeros_pasos.html', 'w').write(html)
