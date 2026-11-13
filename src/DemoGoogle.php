@@ -46,7 +46,7 @@ final class DemoGoogle
      */
     public function crear(?string $clave = null, ?DateTimeImmutable $hoy = null): array
     {
-        $clave ??= self::claveNueva();
+        $clave ??= (strlen((string) getenv('REVISOR_CLAVE')) >= 8 ? (string) getenv('REVISOR_CLAVE') : self::claveNueva());  // (13 nov 2026) REVISOR_CLAVE=... fija la clave
         $hoy ??= new DateTimeImmutable('today');
         $this->borrar();
 
