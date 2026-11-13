@@ -94,7 +94,7 @@ $iniciales = 'Ts';
 <link rel="stylesheet" href="/assets/app.css?v=15">
 <style>:root{ --tk-color:#DB2967; --tk-color-claro:#E7719A; --tk-color-texto:#ffffff; }</style>
 </head>
-<body class="tk <?= $u ? 'con-sesion' : 'sin-sesion' ?>">
+<body class="tk <?= $u ? 'con-sesion' : 'sin-sesion' ?><?= en_app_ios() ? ' tukan-ios' : '' ?>">
 <?php if ($u): ?>
 <header class="tk-arriba">
     <div style="display:flex;align-items:center;gap:10px;min-width:0">

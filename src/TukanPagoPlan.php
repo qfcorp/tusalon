@@ -17,7 +17,7 @@ declare(strict_types=1);
  *     plan y el período pagados (también si era una demo) y Tukán emite la factura. Aquí no se programa nada de eso.
  *   - «cambiar»: si dentro del programa cambian los módulos o el plan de quien tiene suscripción viva, se manda el valor nuevo;
  *     el Panel sube los próximos cobros y cobra aparte lo proporcional. No puede bajar durante el período pagado (cambiarCuidando).
- *   - En la app de Google Play no se muestra nada de esto (lo decide la página con en_app_play()).
+ *   - En la app de Google Play o de iPhone no se muestra nada de esto (lo decide la página con en_app_tienda()).
  */
 final class TukanPagoPlan
 {

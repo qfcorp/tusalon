@@ -101,3 +101,6 @@ Con este módulo, cada venta cobrada sale como **factura electrónica autorizada
 - **Preparar la demo toma entre 5 y 10 minutos aproximadamente.** La clave llega al correo cuando está lista, con el manual y la guía de primeros pasos (revisar spam). Por eso el correo debe estar bien escrito.
 - **La demo dura 3 días**, llega vacía y con todos los módulos.
 - En el **Inicio** de la demo: «Tu demo dura hasta el dd/mm» con **Descargar el manual** y **Descargar los primeros pasos**. Los mismos botones están siempre en **Ayuda**.
+
+## App de iPhone
+- App de iPhone: sin precios ni pagos (regla de Apple), se reconoce por TukanIOS.

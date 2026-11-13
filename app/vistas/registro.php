@@ -7,7 +7,7 @@
 <section class="tk-tarjeta bloque" role="status">
     <h2>¡Gracias! Recibimos tu pedido</h2>
     <p data-gracias><?= e(TukanDemos::GRACIAS) ?></p>
-    <?php if (!en_app_play()): ?>
+    <?php if (!en_app_tienda()): ?>
     <p><a class="tk-boton ok boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode('Hola, acabo de pedir una demo de TuSalón.') ?>" target="_blank" rel="noopener">Escribir ahora por WhatsApp</a></p>
     <?php endif; ?>
 </section>

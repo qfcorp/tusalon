@@ -1,6 +1,14 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 10 de noviembre de 2026
+Última actualización: 13 de noviembre de 2026
+
+## 13 nov 2026 — App de iPhone: sin precios ni pagos (regla de Apple), se reconoce por TukanIOS
+- Regla 3.1.1 de Apple: dentro de la app de iPhone no se ve ningún precio de los planes o módulos de Tukán, ni botones, enlaces o formularios para pagar, contratar, cotizar, mejorar o cancelar el plan, ni textos que digan dónde pagar. Los precios del propio negocio (servicios, caja, facturas, membresías) sí se ven.
+- Se reconoce por «TukanIOS» en el User-Agent o la cookie `canal=ios` (la primera página abre con `?app=ios`, ver `public/index.php`). Funciones nuevas en `app/bootstrap.php`: `en_app_ios()`, `marcar_app_ios()`, `en_app_tienda()` (= Google Play o iPhone) y `TEXTO_NO_EN_APP`. `en_app_play()` da falso en el iPhone: lo de Google Play nunca sale ahí.
+- Donde antes se escondía algo para Google Play ahora se usa `en_app_tienda()` (Mi plan, «No está en tu plan», plan vencido/prueba terminada, registro, factura electrónica apagada, avisos de arriba sin botón «Contratar»/«Renovar»). En el iPhone: «Tu plan: … activo hasta …», «Este módulo no está incluido en tu plan.», «Tu periodo de prueba terminó.»; sin «Cancelar mi plan». Borrar la cuenta sigue (Apple la exige).
+- Las acciones POST de pago, mejora, cambio y cancelación del plan se rechazan en el iPhone con «Esta acción no está disponible en la app.». El diseño lleva la clase `tukan-ios` en `<body>`.
+- Pruebas: `tests/prueba_app_ios.php` (en `run_logica.sh`) y `tests/prueba_web_ios.sh` (`run_web.sh ios`): con TukanIOS no salen «$», «USD», «Paga», «Contratar», «cotización», wa.me ni pagos.tukanec.com; sin TukanIOS todo sigue igual.
+- Para instalar en el servidor: `curl -fsSL https://raw.githubusercontent.com/qfcorp/tusalon/main/deploy/instalar.sh -o ~/instalar_tusalon.sh && bash ~/instalar_tusalon.sh` (se repite para actualizar; no hay migraciones nuevas).
 
 ## 10 nov 2026 — Identidad gráfica común de Tukán (pedido de Dimitry: «todos con la misma lógica y la misma identidad gráfica»)
 - Kit común `public/assets/tukan-ui.css` y `tukan-ui.js` (idénticos en todos los programas).

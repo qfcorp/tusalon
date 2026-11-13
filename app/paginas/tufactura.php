@@ -10,7 +10,7 @@ $sid = (int) $u['salon_id'];
 $activo = FacturaTukan::activo($sid);
 $admin = es_dueno_o_admin($u);
 if (!$activo) {
-    vista('tufactura', ['html' => (new \TukanFactura(db(), 'solo-para-mostrar-la-pagina', FacturaTukan::PROGRAMA))->pantalla($sid, ['modulo' => false, 'programa' => FacturaTukan::PROGRAMA, 'sin_compras' => en_app_play(),
+    vista('tufactura', ['html' => (new \TukanFactura(db(), 'solo-para-mostrar-la-pagina', FacturaTukan::PROGRAMA))->pantalla($sid, ['modulo' => false, 'programa' => FacturaTukan::PROGRAMA, 'sin_compras' => en_app_tienda(),
         'pedir' => $admin ? url('completa', ['modulo' => \TukanFactura::MODULO]) : null])], 'Factura electrónica · ' . FacturaTukan::PROGRAMA);
     return;
 }

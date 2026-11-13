@@ -1,18 +1,21 @@
 <?php
-/** Mi plan (Anexo B). Variables: $pagoHtml (pago con tarjeta por el Panel; '' = apagado), $sugHtml (aviso «te sugerimos el Completo»), $detalle, $catalogo, $planes, $plan, $precios, $pedidos, $resaltar. */
-$play = en_app_play();
+/** Mi plan (Anexo B). Variables: $pagoHtml (pago con tarjeta por el Panel; '' = apagado), $sugHtml (aviso «te sugerimos el Completo»), $detalle, $catalogo, $planes, $plan, $precios, $pedidos, $resaltar.
+ *  En la app de iPhone (en_app_ios(), regla 3.1.1 de Apple): solo el plan y hasta cuándo está activo, sin precios, pedidos ni botones de pago. */
+$play = en_app_play();       // lo propio de Google Play (pagar con Google): solo en esa app
+$ios = en_app_ios();         // app de iPhone (regla 3.1.1 de Apple): solo información neutra, sin precios ni cómo pagar
+$tienda = $play || $ios;     // en cualquiera de las dos apps no salen los precios de Tukán ni los pagos por fuera
 $esDemo = $detalle['demo'];
 $wa = fn(string $texto) => 'https://wa.me/' . whatsapp_ventas() . '?text=' . rawurlencode($texto);
 $filas = ['mensual' => planes()->textoPeriodo('mensual'), 'semestral' => planes()->textoPeriodo('semestral'), 'anual' => planes()->textoPeriodo('anual')];
 $abiertos = [];
 foreach ($pedidos as $p) if (in_array($p['estado'], ['pendiente', 'en_proceso'], true)) foreach (TuSalon\Modulos::limpiar($p['modulos']) as $m) $abiertos[$m] = $p;
-$etiqueta = function (string $id) use ($detalle, $catalogo, $play): string {
+$etiqueta = function (string $id) use ($detalle, $catalogo, $tienda): string {
     if ($id === 'facturacion') return 'Próximamente';   // 12 nov 2026: TuFactura aún no se vende (sin precio ni botón para pedirla)
     if (in_array($id, $detalle['del_plan'], true) && !in_array($id, $detalle['quitados'], true)) return 'Incluido en tu plan';
     if (in_array($id, $detalle['elegidos'] ?? [], true)) return 'Elegido · incluido en tu plan';   // planes de $20 y $45 (migración 011)
-    if (in_array($id, $detalle['extra'], true)) return $play ? 'Extra' : 'Extra · ' . dinero($detalle['precio_por_extra'][$id] ?? $catalogo[$id]['precio_mensual']) . ' al mes';
+    if (in_array($id, $detalle['extra'], true)) return $tienda ? 'Extra' : 'Extra · ' . dinero($detalle['precio_por_extra'][$id] ?? $catalogo[$id]['precio_mensual']) . ' al mes';
     if (($detalle['por_elegir'] ?? 0) > 0 && !in_array($id, TuSalon\Modulos::FUERA_DEL_CUPO, true)) return 'Puedes elegirlo en tu plan';
-    return $play ? 'Para agregar' : 'Precio por cotización';   // regla del dueño: lo que no tiene no muestra precio
+    return $tienda ? 'Para agregar' : 'Precio por cotización';   // regla del dueño: lo que no tiene no muestra precio
 };
 $activos = array_values(array_filter($catalogo, fn($m) => in_array($m['id'], $detalle['activos'], true)));
 $disponibles = array_values(array_filter($catalogo, fn($m) => !in_array($m['id'], $detalle['contratados'], true)));
@@ -22,18 +25,18 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
     <div>
         <h1>Mi plan</h1>
         <p>Plan <strong><?= e($plan['nombre']) ?></strong><?= $esDemo ? ' · <strong>Demo</strong> con todos los módulos encendidos para que pruebes' : '' ?>
-            <?= $vence ? ' · ' . ($esDemo ? 'hasta el ' : 'pagado hasta el ') . (new DateTimeImmutable($vence))->format('d/m/Y') : '' ?></p>
+            <?= $vence ? ' · ' . ($esDemo ? 'hasta el ' : ($ios ? 'activo hasta el ' : 'pagado hasta el ')) . (new DateTimeImmutable($vence))->format('d/m/Y') : '' ?></p>
         <?php if (!$esDemo && ($detalle['modulos_elegir'] ?? 0) > 0): ?>
             <p data-por-elegir="<?= (int) $detalle['por_elegir'] ?>">Tu plan trae <strong><?= (int) $detalle['modulos_elegir'] ?> módulos a tu elección</strong><?= $detalle['por_elegir'] > 0
-                ? ': te ' . ($detalle['por_elegir'] === 1 ? 'queda 1 por elegir' : 'quedan ' . (int) $detalle['por_elegir'] . ' por elegir') . ($play ? '. Escríbele a Tukán y te lo enciende.' : '. Pídelo abajo y Tukán lo enciende.') : '.' ?></p>
+                ? ': te ' . ($detalle['por_elegir'] === 1 ? 'queda 1 por elegir' : 'quedan ' . (int) $detalle['por_elegir'] . ' por elegir') . ($ios ? '.' : ($play ? '. Escríbele a Tukán y te lo enciende.' : '. Pídelo abajo y Tukán lo enciende.')) : '.' ?></p>
         <?php endif; ?>
     </div>
 </div>
 
-<?= $play ? '' : ($sugHtml ?? '') /* «Te sugerimos el Completo» (TukanPagoPlan::htmlSugerencia) */ ?>
-<?= $play ? '' : ($pagoHtml ?? '') /* «Paga tu plan con tarjeta» (src/TukanPagoPlan.php): vacío si el Panel no lo tiene encendido */ ?>
+<?= $tienda ? '' : ($sugHtml ?? '') /* «Te sugerimos el Completo» (TukanPagoPlan::htmlSugerencia) */ ?>
+<?= $tienda ? '' : ($pagoHtml ?? '') /* «Paga tu plan con tarjeta» (src/TukanPagoPlan.php): vacío si el Panel no lo tiene encendido */ ?>
 
-<?php if (!$play): ?>
+<?php if (!$tienda): ?>
 <section class="tk-tarjeta bloque" id="total">
     <h2><?= $esDemo ? 'Lo que pagarías al contratar' : 'Lo que pagas al mes' ?></h2>
     <ul class="lista">
@@ -76,7 +79,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 <section class="tk-tarjeta bloque">
     <h2><?= $esDemo ? 'Todo lo que tiene tu demo' : 'Tus módulos encendidos' ?></h2>
     <?php if (!$activos): ?>
-        <p class="tk-vacio vacio"><?= ($detalle['por_elegir'] ?? 0) > 0 ? 'Tu plan trae la base (abajo) y ' . ((int) $detalle['por_elegir'] === 1 ? '1 módulo' : (int) $detalle['por_elegir'] . ' módulos') . ' a tu elección' . ($play ? '.' : ': elígelos abajo.') : 'Tu plan trae solo la base (abajo). Agrega los módulos que necesites.' ?></p>
+        <p class="tk-vacio vacio"><?= ($detalle['por_elegir'] ?? 0) > 0 ? 'Tu plan trae la base (abajo) y ' . ((int) $detalle['por_elegir'] === 1 ? '1 módulo' : (int) $detalle['por_elegir'] . ' módulos') . ' a tu elección' . ($tienda ? '.' : ': elígelos abajo.') : 'Tu plan trae solo la base (abajo).' . ($ios ? '' : ' Agrega los módulos que necesites.') ?></p>
     <?php else: ?>
     <ul class="modulos">
         <?php foreach ($activos as $m): ?>
@@ -84,7 +87,7 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
             <span class="modulo-icono" aria-hidden="true"><?= e($m['icono']) ?></span>
             <div class="modulo-cuerpo"><strong><?= e($m['nombre']) ?></strong><p><?= e($m['descripcion']) ?></p></div>
             <div class="modulo-lado"><span class="tk-chip etq etq-confirmada"><?= e($esDemo && !in_array($m['id'], $detalle['contratados'], true) ? 'Solo en la demo' : $etiqueta($m['id'])) ?></span>
-                <?php if ($esDemo && !in_array($m['id'], $detalle['contratados'], true) && !$play): ?>
+                <?php if ($esDemo && !in_array($m['id'], $detalle['contratados'], true) && !$tienda): ?>
                     <?php if (isset($abiertos[$m['id']])): ?><small>Ya lo pediste</small><?php else: ?>
                     <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
                         <button class="tk-boton secundario chico boton boton-claro boton-chico" type="submit">Lo quiero · Pedir cotización</button></form>
@@ -96,7 +99,9 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
     <?php endif; ?>
 </section>
 
-<?php if (!$esDemo && $disponibles): ?>
+<?php
+if ($ios) $disponibles = [];   // iPhone (regla de Apple): no se listan módulos para agregar (aquí los módulos solo se piden a Tukán)
+if (!$esDemo && $disponibles): ?>
 <section class="tk-tarjeta bloque" id="agregar">
     <h2>Módulos que puedes agregar</h2>
     <p class="suave">Si lo usaste antes, tus datos están guardados: al encenderlo vuelve todo como estaba.</p>
@@ -107,9 +112,9 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
             <div class="modulo-cuerpo"><strong><?= e($m['nombre']) ?></strong><p><?= e($m['descripcion']) ?></p>
                 <?php if ($m['depende_de']): ?><p class="suave">Necesita: <?= e(implode(', ', array_map([modulos(), 'nombre'], $m['depende_de']))) ?> (se agrega solo).</p><?php endif; ?></div>
             <div class="modulo-lado">
-                <?php if (!$play): ?><span class="modulo-precio"><?= e($etiqueta($m['id'])) ?></span><?php endif; ?>
+                <?php if (!$tienda): ?><span class="modulo-precio"><?= e($etiqueta($m['id'])) ?></span><?php endif; ?>
                 <?php if ($pedido): ?><span class="tk-chip etq etq-pendiente">Pedido</span>
-                <?php elseif (!$play && $m['id'] !== 'facturacion'): ?>
+                <?php elseif (!$tienda && $m['id'] !== 'facturacion'): ?>
                     <form method="post"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($m['id']) ?>">
                         <button class="tk-boton chico boton boton-chico" type="submit">Pedir cotización</button></form>
                 <?php endif; ?>
@@ -164,6 +169,6 @@ $vence = $esDemo ? $u['prueba_hasta'] : $u['activo_hasta'];
 <?php endif; ?>
 <script src="/assets/play.js?v=1" defer></script>
 <?php endif; ?>
-<?php if (es_dueno_o_admin($u) && ($u['estado'] ?? '') !== 'prueba'): /* «Cancelar mi plan» (src/TukanCancelarPlan.php) */ ?>
+<?php if (es_dueno_o_admin($u) && ($u['estado'] ?? '') !== 'prueba' && !$ios): /* «Cancelar mi plan» (src/TukanCancelarPlan.php); en el iPhone no (regla de Apple) */ ?>
 <?= TukanCancelarPlan::html($cancelacion ?? null, campo_csrf(), url('completa'), $u['activo_hasta'] ?? null, en_app_play()) ?>
 <?php endif; ?>

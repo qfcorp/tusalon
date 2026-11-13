@@ -504,7 +504,7 @@ final class TukanFactura
 
     /**
      * La pantalla «Factura electrónica (TuFactura)».
-     * @param array $p sin_compras (bool: dentro de la app de Google Play, sin enlaces para comprar), modulo (bool: módulo encendido), csrf (HTML del campo oculto), accion (URL del formulario), pdf (fn(int $id): string URL del PDF),
+     * @param array $p sin_compras (bool: dentro de la app de Google Play o de iPhone, sin enlaces para comprar), modulo (bool: módulo encendido), csrf (HTML del campo oculto), accion (URL del formulario), pdf (fn(int $id): string URL del PDF),
      *                 pedir (URL para pedir el módulo o null), cobros (lista [origen_id, fecha, cliente, total, texto] para facturar a mano), origen,
      *                 programa (nombre que ve la persona), es_admin (bool: puede conectar y cambiar opciones)
      */
@@ -524,7 +524,7 @@ final class TukanFactura
                . '<ul><li>Sin escribir dos veces: los datos del cliente y lo que cobraste pasan solos.</li><li>Tus facturas, notas de crédito y el paquete para el contador quedan en TuFactura.</li>'
                . '<li>Puedes empezar en <strong>ambiente de pruebas</strong> (no vale ante el SRI) y pasar a facturas reales cuando estés listo.</li></ul>'
                . '<p class="suave">Cuando esté disponible necesitarás tu firma electrónica (.p12) y una cuenta de TuFactura de Tukán Software.</p>';
-            if (!empty($p['sin_compras'])) {   // app de Google Play: sin enlaces para comprar afuera
+            if (!empty($p['sin_compras'])) {   // app de Google Play o de iPhone: sin enlaces para comprar afuera
                 echo '<p class="suave">Pronto te avisaremos cuando esté disponible.</p></section>';
                 return (string) ob_get_clean();
             }

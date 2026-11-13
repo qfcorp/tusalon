@@ -14,7 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/app.css?v=14">
 </head>
-<body class="publico">
+<body class="publico<?= en_app_ios() ? ' tukan-ios' : '' ?>">
 <main class="principal publico-principal" id="contenido">
     <?= $contenido ?>
     <p class="publico-pie">Reservas con <strong>TuSalón</strong></p>

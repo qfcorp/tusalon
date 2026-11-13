@@ -23,6 +23,7 @@ if (es_post() && in_array($_POST['accion'] ?? '', ['cancelar_plan', 'seguir_plan
     verificar_csrf();
     try {
         if (!es_dueno_o_admin($u)) throw new RuntimeException('Solo el dueño puede cancelar el plan.');
+        if (en_app_ios()) throw new RuntimeException(TEXTO_NO_EN_APP);   // iPhone (regla de Apple): ni cancelar ni pagar desde la app
         if (en_app_play()) throw new RuntimeException('En la app cancelas en Google Play → Pagos y suscripciones.');
         if ($_POST['accion'] === 'seguir_plan') {
             TukanCancelarPlan::seguir(db(), (string) $sid, (string) ($u['salon'] ?? ''), (string) $u['email']);
@@ -43,7 +44,7 @@ if (es_post() && in_array($_POST['accion'] ?? '', ['cancelar_plan', 'seguir_plan
 // Panel Tukán Central (Plux). Si el Panel no contesta o lo tiene apagado, Mi plan queda como siempre. En la app de Google Play, nunca.
 require_once dirname(__DIR__, 2) . '/src/TukanPagoPlan.php';
 // Una cuenta pausada o cerrada por Tukán no se reactiva pagando: eso lo decide Tukán.
-$pagoPuede = es_dueno_o_admin($u) && !en_app_play() && !in_array($u['estado'] ?? '', ['suspendido', 'cancelado'], true);
+$pagoPuede = es_dueno_o_admin($u) && !en_app_tienda() && !in_array($u['estado'] ?? '', ['suspendido', 'cancelado'], true);
 $pagoOpciones = fn(): array => TukanPagoPlan::opciones($mods->planes(), planes()->periodos(),
     fn(string $pl, string $per) => planes()->cotizar($pl, $per, $sid), fn(string $per) => planes()->textoPeriodo($per),
     (string) $u['plan_codigo'], ($u['precio_acordado'] ?? null) !== null && $u['precio_acordado'] !== '', count(array_diff(\TuSalon\Modulos::ids(), \TuSalon\Modulos::FUERA_DE_PLANES)));
@@ -72,6 +73,7 @@ if (es_post() && in_array($_POST['accion'] ?? '', ['pagar_mejora', 'pasar_sin_co
     verificar_csrf();
     try {
         if (!es_dueno_o_admin($u)) throw new RuntimeException('Solo el dueño puede cambiar el plan.');
+        if (en_app_ios()) throw new RuntimeException(TEXTO_NO_EN_APP);
         if (en_app_play()) throw new RuntimeException('En la app el plan se paga con Google Play.');
         $pr = $prorrateoCompleto();
         if ($pr === null) throw new RuntimeException('Ya no hay un cambio de plan por pagar.');
@@ -110,6 +112,7 @@ if (es_post() && ($_POST['accion'] ?? '') === 'pasar_completo') {
     verificar_csrf();
     try {
         if (!es_dueno_o_admin($u)) throw new RuntimeException('Solo el dueño puede cambiar el plan.');
+        if (en_app_ios()) throw new RuntimeException(TEXTO_NO_EN_APP);
         if (en_app_play()) throw new RuntimeException('En la app el plan se paga con Google Play.');
         if ($planCompleto === null || $planCompleto === $u['plan_codigo']) throw new RuntimeException('Ya tienes el plan más completo.');
         $nomCompleto = (string) $mods->planes()[$planCompleto]['nombre'];
@@ -141,6 +144,7 @@ if (es_post() && in_array($_POST['accion'] ?? '', ['pagar_tarjeta', 'descartar_p
     verificar_csrf();
     try {
         if (!es_dueno_o_admin($u)) throw new RuntimeException('Solo el dueño puede pagar el plan.');
+        if (en_app_ios()) throw new RuntimeException(TEXTO_NO_EN_APP);
         if (en_app_play()) throw new RuntimeException('En la app el plan se paga con Google Play.');
         $pagoEstado = $pagoPuede ? TukanPagoPlan::estado((string) $sid, (string) $u['email']) : null;
         if (!TukanPagoPlan::activo($pagoEstado)) throw new RuntimeException('El pago con tarjeta no está disponible por ahora. Escríbele a Tukán y te ayudamos.');
@@ -177,13 +181,14 @@ $cancelacion = TukanCancelarPlan::estado(db(), (string) $sid);
 if (es_post()) {
     verificar_csrf();
     try {
+        if (en_app_ios()) throw new RuntimeException('Este módulo no está incluido en tu plan.');   // iPhone (regla de Apple): no se piden módulos desde la app
         if (en_app_play()) throw new RuntimeException('Para agregar módulos, comunícate con Tukán.');
         if (($_POST['accion'] ?? '') !== 'pedir') throw new RuntimeException('Acción no válida.');
         $m = (string) ($_POST['modulo'] ?? '');
         if (!\TuSalon\Modulos::existe($m)) throw new RuntimeException('Ese módulo no existe.');
         if ($m === 'facturacion') throw new RuntimeException('TuFactura (facturación electrónica del SRI): Próximamente.');   // 12 nov 2026
         // Antes de pedirlo: si con este módulo pasaría a pagar igual o más que el Completo, primero se le sugiere el Completo
-        if (!en_app_play() && empty($_POST['solo_modulo']) && es_dueno_o_admin($u) && ($u['estado'] ?? '') !== 'prueba'
+        if (!en_app_tienda() && empty($_POST['solo_modulo']) && es_dueno_o_admin($u) && ($u['estado'] ?? '') !== 'prueba'
             && ($sugerir()['nivel'] ?? '') !== 'mayor' && ($sugerir($m)['nivel'] ?? '') === 'mayor') {
             redirigir('completa', ['modulo' => $m, 'sugerir' => 1]);
         }
@@ -220,7 +225,7 @@ $pagoHtml = TukanPagoPlan::activo($pagoEstado)
         TukanPagoPlan::htmlSugerencia($sugerir()), (string) ($_GET['elegir'] ?? '')) : '';
 // El aviso de arriba «te sugerimos el Completo» (nunca en la app de Google Play; a la demo solo si puede pagar aquí y ya ve los valores)
 $sugHtml = '';
-if (es_dueno_o_admin($u) && !en_app_play() && (!$detalle['demo'] || $pagoHtml !== '')) {
+if (es_dueno_o_admin($u) && !en_app_tienda() && (!$detalle['demo'] || $pagoHtml !== '')) {
     if (($_GET['completo'] ?? '') === 'sin_tarjeta' && $planCompleto !== null && $planCompleto !== $u['plan_codigo']) {   // tocó «Pasarme al Completo» y no hay cómo pagar aquí
         $nomC = (string) $mods->planes()[$planCompleto]['nombre'];
         $sinTarjeta = '<div class="aviso tukan-sugerencia" role="status" data-completo="sin-tarjeta" style="background:#fff8e1;border:1px solid #f2c94c;color:#5c4400"><p style="margin:0 0 8px">Para pasarte al '
