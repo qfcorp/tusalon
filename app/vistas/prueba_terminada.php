@@ -5,6 +5,14 @@ $titulos = [
     'suspendido'     => ['Tu cuenta está pausada', 'Tus datos están guardados. Escríbenos para reactivarla.', 'mi cuenta está pausada'],
     'cancelado'      => ['Tu cuenta está cerrada', 'Si quieres volver, escríbenos y la reactivamos con tus datos.', 'quiero reactivar mi cuenta'],
 ];
+if (en_app_ios()) {   // app de iPhone (regla 3.1.1 de Apple): solo información neutra, sin decir dónde ni cómo pagar
+    $titulos = [
+        'prueba_vencida' => ['Tu demo terminó', 'Tu periodo de prueba terminó. Tus datos están guardados.', ''],
+        'vencido'        => ['Tu plan venció', 'Tu plan estuvo activo hasta el ' . (!empty($u['activo_hasta']) ? (new DateTimeImmutable($u['activo_hasta']))->format('d/m/Y') : '—') . '. Tus datos están guardados.', ''],
+        'suspendido'     => ['Tu cuenta está pausada', 'Tus datos están guardados.', ''],
+        'cancelado'      => ['Tu cuenta está cerrada', 'Tus datos están guardados.', ''],
+    ];
+}
 [$titulo, $texto, $motivo] = $titulos[$estadoCuenta] ?? $titulos['prueba_vencida'];
 $pausada = $estadoCuenta === 'suspendido';   // Anexo A: pausada por Tukán, con el motivo (genérico en revisión y uso indebido)
 ?>
@@ -14,7 +22,8 @@ $pausada = $estadoCuenta === 'suspendido';   // Anexo A: pausada por Tukán, con
         <p class="aviso-pausa"><strong>Motivo:</strong> <?= e(\TuSalon\Papelera::textoPausa($u['pausa_tipo'] ?? null, $u['pausa_motivo'] ?? null)) ?></p>
         <p>Mientras está pausada no puedes trabajar en TuSalón y tu página de reservas dice "temporalmente no disponible". Tus datos están guardados.</p>
         <div class="tk-acciones acciones">
-            <?php if (!en_app_play()): ?><a class="tk-boton ok boton boton-wa" href="<?= e($wa) ?>" target="_blank" rel="noopener">Escribir a Tukán por WhatsApp (+<?= e(whatsapp_ventas()) ?>)</a>
+            <?php if (en_app_ios()): /* iPhone: nada de WhatsApp de Tukán */ ?>
+            <?php elseif (!en_app_play()): ?><a class="tk-boton ok boton boton-wa" href="<?= e($wa) ?>" target="_blank" rel="noopener">Escribir a Tukán por WhatsApp (+<?= e(whatsapp_ventas()) ?>)</a>
             <?php else: ?><p>WhatsApp de Tukán: <strong>+<?= e(whatsapp_ventas()) ?></strong></p><?php endif; ?>
             <a class="tk-boton secundario boton boton-claro" href="<?= e(url('salir')) ?>">Cerrar sesión</a>
         </div>
@@ -23,7 +32,7 @@ $pausada = $estadoCuenta === 'suspendido';   // Anexo A: pausada por Tukán, con
     <p><?= e($texto) ?></p>
     <div class="tk-acciones acciones">
         <a class="tk-boton boton" href="<?= e(url('completa')) ?>">Ver Mi plan</a>
-        <?php if (!en_app_play()): ?><a class="tk-boton ok boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode("Hola, $motivo de TuSalón (" . $u['salon'] . ') y quiero contratar un plan.') ?>" target="_blank" rel="noopener">Escribir por WhatsApp</a><?php endif; ?>
+        <?php if (!en_app_tienda()): ?><a class="tk-boton ok boton boton-wa" href="https://wa.me/<?= e(whatsapp_ventas()) ?>?text=<?= rawurlencode("Hola, $motivo de TuSalón (" . $u['salon'] . ') y quiero contratar un plan.') ?>" target="_blank" rel="noopener">Escribir por WhatsApp</a><?php endif; ?>
         <a class="tk-boton secundario boton boton-claro" href="<?= e(url('salir')) ?>">Cerrar sesión</a>
     </div>
 </section>

@@ -341,8 +341,37 @@ function metodos_pago(): array
 function en_app_play(): bool
 {
     if (!\TuSalon\GooglePlay::activo()) return false;   // apagada hasta que se decida publicar
+    if (en_app_ios()) return false;                        // lo de Google Play nunca sale en el iPhone
     return ($_COOKIE['canal'] ?? '') === 'play' || !empty($_SESSION['app_play']);
 }
+
+/**
+ * ¿Se está usando desde la app de iPhone? (regla 3.1.1 de Apple, 13 nov 2026): ahí no se ve ningún precio de los planes o módulos
+ * de Tukán, ni botones, enlaces o textos para pagar, contratar, cotizar, mejorar o cancelar el plan. La app manda «TukanIOS» en el
+ * User-Agent y abre la primera página con ?app=ios (queda la cookie canal=ios). Los precios del propio negocio sí se ven.
+ */
+function en_app_ios(): bool
+{
+    return str_contains((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 'TukanIOS') || ($_COOKIE['canal'] ?? '') === 'ios';
+}
+
+function marcar_app_ios(): void
+{
+    $_COOKIE['canal'] = 'ios';
+    if (!headers_sent()) {
+        setcookie('canal', 'ios', ['expires' => time() + 400 * 86400, 'path' => '/', 'samesite' => 'Lax', 'httponly' => true,
+                                   'secure' => (($_SERVER['HTTPS'] ?? '') === 'on') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')]);
+    }
+}
+
+/** ¿Dentro de una app de tienda (Google Play o iPhone)? Ahí no se muestran los precios de Tukán ni cómo pagar por fuera. */
+function en_app_tienda(): bool
+{
+    return en_app_play() || en_app_ios();
+}
+
+/** Mensaje neutro cuando desde la app de iPhone llega una acción de pago, cambio o cancelación del plan. */
+const TEXTO_NO_EN_APP = 'Esta acción no está disponible en la app.';
 
 function marcar_app_play(): void
 {

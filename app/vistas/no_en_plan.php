@@ -10,17 +10,18 @@ $esDueno = es_dueno_o_admin($u);
     <p><?= e($m['descripcion'] ?? '') ?></p>
     <?php if ($esDueno): ?>
         <?php /* Regla del dueño: el precio de un módulo que el salón no tiene no se muestra; se pide cotización */ ?>
-        <?php if (!en_app_play() && $m): ?><p>Pide la cotización y Tukán te escribe con el valor para agregarlo a tu plan.</p><?php endif; ?>
+        <?php if (en_app_ios()): /* iPhone (regla de Apple): solo información neutra */ ?><p>Este módulo no está incluido en tu plan.</p><?php endif; ?>
+        <?php if (!en_app_tienda() && $m): ?><p>Pide la cotización y Tukán te escribe con el valor para agregarlo a tu plan.</p><?php endif; ?>
         <p class="suave">Si lo usaste antes, tus datos están guardados: al encenderlo vuelve todo como estaba.</p>
         <div class="tk-acciones acciones">
-            <?php if (!en_app_play() && $m): ?>
+            <?php if (!en_app_tienda() && $m): ?>
                 <form method="post" action="<?= e(url('completa')) ?>"><?= campo_csrf() ?><input type="hidden" name="accion" value="pedir"><input type="hidden" name="modulo" value="<?= e($modulo) ?>">
                     <button class="tk-boton boton" type="submit">Pedir cotización</button></form>
             <?php endif; ?>
             <a class="tk-boton secundario boton boton-claro" href="<?= e(url('completa', ['modulo' => $modulo])) ?>">Ver Mi plan</a>
         </div>
     <?php else: ?>
-        <p class="suave">Pídele al dueño del salón que lo agregue a su plan.</p>
+        <p class="suave"><?= en_app_ios() ? 'Este módulo no está incluido en tu plan.' : 'Pídele al dueño del salón que lo agregue a su plan.' ?></p>
         <div class="tk-acciones acciones"><a class="tk-boton secundario boton boton-claro" href="<?= e(url(es_peluquero($u) ? 'mi_portal' : 'inicio')) ?>">Volver</a></div>
     <?php endif; ?>
 </section>

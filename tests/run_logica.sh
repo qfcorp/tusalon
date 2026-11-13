@@ -54,5 +54,8 @@ php tests/prueba_pago_plan.php || FALLO=1
 echo
 echo "==================== prueba_demos_auto (demos automáticas de 3 días: 7 datos del pedido, aviso al Panel simulado, PDF) ===================="
 php tests/prueba_demos_auto.php || FALLO=1
+echo
+echo "==================== prueba_app_ios (app de iPhone: cómo se reconoce, sin lo de Google Play) ===================="
+php tests/prueba_app_ios.php || FALLO=1
 [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
 [ "$FALLO" -eq 0 ]

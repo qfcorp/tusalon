@@ -7,7 +7,7 @@
 #   tests/prueba_web_modulos.sh (Anexo B: módulos y "todo se pide demo") y tests/prueba_web_ia.sh (IA de Tukán y correo de la demo, con la
 #   API de Anthropic y el SMTP de mentira de tests/falsos/), tests/prueba_web_google_play.sh (cuenta del revisor de Google, modo app
 #   sin pagos por fuera y assetlinks). Con CAPTURAS=<carpeta> también saca las capturas.
-# Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector; pago = solo pagar el plan con tarjeta)
+# Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector; pago = solo pagar el plan con tarjeta; ios = solo la app de iPhone)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
 # Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM, PUERTO_APAGADA, PUERTO_IA, PUERTO_SMTP y
 # (prueba_web_central.sh) PUERTO_SIN, PUERTO_SOLO y PUERTO_CON (si no, puertos libres al azar; fíjalos si otros procesos comparten la máquina).
@@ -88,6 +88,13 @@ if [ "${1:-}" = "demos" ]; then   # solo las demos automáticas
   [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
   exit "$FALLO"
 fi
+if [ "${1:-}" = "ios" ]; then   # solo la app de iPhone (sin precios ni pagos de Tukán)
+  echo "==================== prueba_web_ios ===================="
+  bash tests/prueba_web_ios.sh || FALLO=1
+  if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then echo "Avisos de PHP:"; grep -iE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log | head -20; FALLO=1; fi
+  [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
+  exit "$FALLO"
+fi
 if [ "${1:-}" = "pago" ]; then   # solo pagar el plan con tarjeta desde Mi plan
   echo "==================== prueba_web_pago_plan ===================="
   bash tests/prueba_web_pago_plan.sh || FALLO=1
@@ -129,6 +136,8 @@ if [ "${1:-}" != "central" ]; then
   bash tests/prueba_web_demos_auto.sh || FALLO=1
   echo; echo "==================== prueba_web_pago_plan (pagar el plan con tarjeta desde Mi plan, con el Panel Tukán Central simulado) ===================="
   bash tests/prueba_web_pago_plan.sh || FALLO=1
+  echo; echo "==================== prueba_web_ios (app de iPhone: sin precios ni pagos de Tukán, regla 3.1.1 de Apple; sin TukanIOS todo igual) ===================="
+  bash tests/prueba_web_ios.sh || FALLO=1
 fi
 echo; echo "==================== prueba_web_tufactura (factura electrónica con TuFactura) ===================="
 bash tests/prueba_web_tufactura.sh || FALLO=1

@@ -20,6 +20,10 @@ if (parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) === '/.wel
 if (($_GET['app'] ?? '') === 'play' && \TuSalon\GooglePlay::activo()) {
     marcar_app_play();
 }
+// La app de iPhone abre el sistema con ?app=ios (y manda «TukanIOS» en el User-Agent): se recuerda para no mostrar precios ni pagos de Tukán
+if (($_GET['app'] ?? $_GET['origen'] ?? '') === 'ios') {
+    marcar_app_ios();
+}
 
 $publicas = ['login', 'registro', 'reservar', 'horas', 'cliente_entrar', 'cliente_salir', 'mi_cuenta', 'foto', 'telegram', 'confirmar', 'payphone', 'privacidad'];
 $privadas = ['tufactura', 'inicio', 'agenda', 'cita', 'cita_nueva', 'clientes', 'cliente', 'servicios', 'equipo',

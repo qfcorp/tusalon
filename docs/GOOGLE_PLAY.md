@@ -191,3 +191,6 @@ Están en el repositorio **qfcorp/tukan-apps**: `tienda/tusalon/TEXTOS_GOOGLE_PL
 - Si los productos ya estaban creados en Play Console con $14,99 / $70,99 / $141,99, hay que cambiarles el precio ahí.
 
 - **10 nov 2026: Dimitry fijó Básico $15,99 y Completo $28,99; se cambia el precio en Play Console de los productos que ya existen.** Básico $15,99 al mes / $76,99 6 meses / $152,99 1 año. Completo $28,99 al mes / $144,99 6 meses / $289,99 1 año (antes $29,99 / $147,99 / $294,99). No se crea ni se renombra ningún producto. El Completo ya no sale de la fórmula de la comisión: está fijado en `GooglePlay::PRECIOS_FIJADOS`.
+
+## App de iPhone: sin precios ni pagos (regla de Apple), se reconoce por TukanIOS
+*13 nov 2026.* La app de iPhone manda «TukanIOS» en el User-Agent y abre la primera página con `?app=ios` (cookie `canal=ios`). `en_app_ios()` (app/bootstrap.php) la reconoce y `en_app_tienda()` = Google Play o iPhone: ahí no salen los precios de Tukán ni cómo pagar por fuera. Lo propio de Google Play (pago con Google, `play.js`, `play_compra`) sigue solo con `en_app_play()` y nunca sale en el iPhone. Las acciones de pago, cambio o cancelación del plan desde el iPhone se rechazan con «Esta acción no está disponible en la app.». Pruebas: `tests/prueba_app_ios.php` y `tests/prueba_web_ios.sh`.

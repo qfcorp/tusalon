@@ -5,6 +5,7 @@
  * saludo (deja $tirasMostradas = true).
  */
 $tirasMostradas = true;
+$ios = en_app_ios();   // app de iPhone (regla 3.1.1 de Apple): los avisos del plan van sin botón para contratar o renovar
 $esDuenoAqui = es_dueno_o_admin($u);
 $diasPrueba = $esDuenoAqui ? dias_prueba($u) : null;
 $estadoCuenta = $esDuenoAqui ? planes()->estadoCuenta($u) : null;
@@ -17,17 +18,17 @@ $pideTerminos = $esDuenoAqui && !$adminViendo && !TukanLegal::aceptado(db(), (st
 ?>
 <?php if ($diasPrueba !== null && $diasPrueba >= 0): ?>
     <div class="tk-tira franja-prueba"><span>⏳ <strong>Demo: <?= $diasPrueba === 0 ? 'termina hoy' : "te quedan $diasPrueba " . ($diasPrueba === 1 ? 'día' : 'días') ?>.</strong></span>
-        <a class="tk-boton chico" href="<?= e(url('completa')) ?>">Contratar mi plan</a></div>
+        <?php if (!$ios): ?><a class="tk-boton chico" href="<?= e(url('completa')) ?>">Contratar mi plan</a><?php endif; ?></div>
 <?php endif; ?>
 <?php if ($adminViendo): ?>
     <div class="tk-tira franja-admin"><span>🛡️ Estás viendo <strong><?= e($u['salon']) ?></strong> como administrador de Tukán.</span>
         <a class="tk-boton oscuro chico" href="<?= e(url('admin_volver')) ?>">Volver al panel</a></div>
 <?php endif; ?>
 <?php if ($estadoCuenta === 'por_vencer'): ?>
-    <div class="tk-tira franja-prueba"><span>⚠️ Tu plan venció el <?= (new DateTimeImmutable($u['activo_hasta']))->format('d/m') ?>. Renueva en los próximos días para no perder el acceso.</span>
-        <a class="tk-boton chico" href="<?= e(url('completa')) ?>">Renovar</a></div>
+    <div class="tk-tira franja-prueba"><span>⚠️ Tu plan venció el <?= (new DateTimeImmutable($u['activo_hasta']))->format('d/m') ?>.<?= $ios ? '' : ' Renueva en los próximos días para no perder el acceso.' ?></span>
+        <?php if (!$ios): ?><a class="tk-boton chico" href="<?= e(url('completa')) ?>">Renovar</a><?php endif; ?></div>
 <?php elseif ($diasPlan !== null && $diasPlan <= 5): ?>
-    <div class="tk-tira franja-prueba"><span>⏳ Tu plan vence <?= $diasPlan === 0 ? 'hoy' : "en $diasPlan " . ($diasPlan === 1 ? 'día' : 'días') ?>.</span>
-        <a class="tk-boton chico" href="<?= e(url('completa')) ?>">Renovar</a></div>
+    <div class="tk-tira franja-prueba"><span>⏳ Tu plan vence <?= $diasPlan === 0 ? 'hoy' : "en $diasPlan " . ($diasPlan === 1 ? 'día' : 'días') ?>.</span><?php if (!$ios): ?>
+        <a class="tk-boton chico" href="<?= e(url('completa')) ?>">Renovar</a><?php endif; ?></div>
 <?php endif; ?>
 <?php if ($pideTerminos): ?><?= TukanLegal::aviso(campo_csrf(), url('completa'), url('privacidad')) ?><?php endif; ?>
