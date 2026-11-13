@@ -404,3 +404,5 @@ Dimitry: «Debes indicar que el proceso de creación de demos demora entre 5 a 1
 - En el formulario, junto a «La demo dura 3 días.»: «Preparar tu demo toma entre 5 y 10 minutos aproximadamente.»
 - La página de gracias dice: «¡Listo! Estamos preparando tu demo: toma entre 5 y 10 minutos aproximadamente. Cuando esté lista te llega al correo tu clave, el manual y la guía de primeros pasos. Revisa también la carpeta de spam.»
 - Manual y pruebas al día.
+
+- 13 nov 2026: **Aviso de datos reales en «Solicitar demo»** (pedido de Dimitry): «Usa tus datos reales. Los necesitamos para activar tu demo y, después, tu plan. Si están incompletos o no son verdaderos, no podremos preparar tu demo.» Prueba web nueva (`data-aviso-datos-reales`).

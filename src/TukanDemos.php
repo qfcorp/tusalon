@@ -25,6 +25,8 @@ final class TukanDemos
     public const AVISO_CORREO = 'Te enviaremos la clave de tu demo a este correo: escríbelo bien.';
     public const AVISO_DIAS = 'La demo dura 3 días.';
     public const AVISO_MINUTOS = 'Preparar tu demo toma entre 5 y 10 minutos aproximadamente.';
+    /** (13 nov 2026, pedido de Dimitry) Aviso en la página de solicitud de demo: datos reales o no se prepara la demo. */
+    public const AVISO_DATOS_REALES = 'Usa tus datos reales. Los necesitamos para activar tu demo y, después, tu plan. Si están incompletos o no son verdaderos, no podremos preparar tu demo.';
 
     /**
      * Limpia y revisa los 6 datos. Devuelve [datos limpios, errores (campo => mensaje)]. $negocio = cómo se llama el negocio en

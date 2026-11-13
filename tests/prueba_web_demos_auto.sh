@@ -44,6 +44,8 @@ P0=$(sql "SELECT count(*) FROM pedidos_demo")
 echo "1. El formulario «Solicitar demo» pide los 6 datos (un solo teléfono: Celular / WhatsApp)"
 JAR="$TMP/c_publico"
 check "El formulario abre sin sesión" "200" "$(get "r=registro")"
+contiene "Aviso: datos reales o no se prepara la demo (13 nov 2026)" "$TMP/pag.html" "data-aviso-datos-reales"
+contiene "… con el texto completo" "$TMP/pag.html" "Si están incompletos o no son verdaderos, no podremos preparar tu demo."
 for c in nombre nombre_comercial celular direccion ciudad email; do
   contiene "Campo «$c» obligatorio (también en el navegador)" "$TMP/pag.html" "name=\"$c\" value=\"\"[^>]* required"
 done

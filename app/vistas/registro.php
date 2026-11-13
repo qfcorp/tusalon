@@ -22,6 +22,7 @@
         </div>
     <?php endif; ?>
     <p class="suave" data-demo-dias><strong><?= e(TukanDemos::AVISO_DIAS) ?></strong> <span data-demo-minutos><?= e(TukanDemos::AVISO_MINUTOS) ?></span> Todos los datos son obligatorios.</p>
+    <p class="tk-aviso aviso" data-aviso-datos-reales role="note"><?php [$t1, $t2] = explode('. ', TukanDemos::AVISO_DATOS_REALES, 2); ?><strong><?= e($t1) ?>.</strong> <?= e($t2) ?></p>
     <div class="fila-campos">
         <div class="tk-campo campo">
             <label for="nombre">Tu nombre y apellido</label>
