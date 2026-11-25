@@ -1,6 +1,13 @@
 # Bloc de notas — TuSalón (software de peluquerías y barberías, marca Tukán)
 
-Última actualización: 13 de noviembre de 2026
+Última actualización: 25 de noviembre de 2026
+
+## 25 nov 2026 — Súper usuario: entra por el login normal con su clave y código de 2 pasos del Panel Tukán (también en la app de iPhone)
+- Antes: el súper usuario solo entraba con el botón «Entrar» del Panel Tukán Central; en el login normal (el que abre la app de iPhone) decía «El correo o la contraseña no coinciden».
+- Ahora: si el login de cliente falla y el programa está conectado al Panel Tukán, `app/paginas/login.php` le pregunta al panel (`TukanCentral::verificarSuper`, POST firmado v2 tipo `super` a `/super_api.php`, Anexo C del protocolo). El programa NO guarda ni compara la clave: la revisa el panel (misma clave, mismo código de 2 pasos, mismo bloqueo de 5 fallos/15 min).
+- Si falta el código, la pantalla pide «Código de 2 pasos» (no cuenta como intento fallido). Si el panel está caído, se muestra el mensaje de siempre. Un cliente que entra bien nunca toca el panel.
+- Archivos: `src/TukanCentral.php`, `app/paginas/login.php`, `app/vistas/login.php`. Pruebas: `tests/prueba_super_login.php` (12, en `run_logica.sh`), `tests/prueba_web_super_login.sh` (29, en `run_web.sh` y `run_web.sh super`), panel de mentira `tests/panel_super_simulado.php`.
+- **Falta:** poner en el servidor el `location = /super_api.php` en nginx del Panel Central (los servidores ya instalados lo necesitan a mano) y desplegar primero el Panel Central. La app de iPhone no se recompila.
 
 ## 13 nov 2026 — App de iPhone: sin precios ni pagos (regla de Apple), se reconoce por TukanIOS
 - Regla 3.1.1 de Apple: dentro de la app de iPhone no se ve ningún precio de los planes o módulos de Tukán, ni botones, enlaces o formularios para pagar, contratar, cotizar, mejorar o cancelar el plan, ni textos que digan dónde pagar. Los precios del propio negocio (servicios, caja, facturas, membresías) sí se ven.

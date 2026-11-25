@@ -234,6 +234,43 @@ final class TukanCentral
     }
 
     // ------------------------------------------------------------------
+    // Ingreso del super usuario desde el login normal (Anexo C del protocolo v2: super_api.php del panel)
+    // ------------------------------------------------------------------
+
+    /**
+     * El programa NO revisa la clave del super usuario: se la manda al Panel Tukán (misma clave y mismo código de 2 pasos del panel).
+     * Devuelve ['ok' => bool, 'codigo' => 'ok'|'codigo'|'credenciales'|'bloqueado'|'sin_2fa'|'rol'|'red'|..., 'error' => texto, 'email', 'nombre'].
+     * Falla de red o respuesta rota: codigo 'red'.
+     */
+    public static function verificarSuper(string $email, string $clave, string $codigo, string $ip): array
+    {
+        $red = ['ok' => false, 'codigo' => 'red', 'error' => 'No se pudo hablar con el Panel Tukán. Intenta de nuevo.'];
+        $c = self::config();
+        if ($c === null || !function_exists('curl_init')) return $red;
+        $cuerpo = json_encode(['email' => $email, 'clave' => $clave, 'codigo' => $codigo, 'ip' => $ip], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $ahora = time();
+        $p = ['v' => 2, 'tipo' => 'super', 'inst' => $c['id'], 'email' => filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : 'sistema@tukanec.com',
+              'nombre' => 'Ingreso', 'rol' => 'dueno', 'iat' => $ahora, 'exp' => $ahora + self::VIDA_MAXIMA, 'nonce' => bin2hex(random_bytes(16)),
+              'bh' => self::b64(hash('sha256', (string) $cuerpo, true))];
+        $a = self::b64((string) json_encode($p, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $token = $a . '.' . self::b64(hash_hmac('sha256', $a, $c['secreto'], true));
+        $ch = curl_init(self::urlCentral() . '/super_api.php');
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $cuerpo, CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 4, CURLOPT_TIMEOUT => 8,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json', 'X-Tukan-Token: ' . $token]]);
+        $r = curl_exec($ch);
+        curl_close($ch);
+        if ($r === false) return $red;
+        $j = json_decode((string) $r, true);
+        if (!is_array($j) || !array_key_exists('ok', $j)) return $red;
+        if ($j['ok'] === true) {
+            $mail = strtolower(trim((string) ($j['email'] ?? '')));
+            if (!filter_var($mail, FILTER_VALIDATE_EMAIL)) return $red;
+            return ['ok' => true, 'codigo' => 'ok', 'error' => '', 'email' => $mail, 'nombre' => (string) ($j['nombre'] ?? '')];
+        }
+        return ['ok' => false, 'codigo' => (string) ($j['codigo'] ?? 'credenciales'), 'error' => (string) ($j['error'] ?? 'El correo o la contraseña no coinciden.')];
+    }
+
+    // ------------------------------------------------------------------
     // Estado: cifras del programa (solo lectura, sin datos personales salvo nombres de negocios)
     // ------------------------------------------------------------------
 

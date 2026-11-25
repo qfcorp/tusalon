@@ -15,6 +15,13 @@
         <label for="clave">Contraseña</label>
         <input type="password" id="clave" name="clave" autocomplete="current-password" required>
     </div>
+    <?php if (!empty($pedir_codigo)): ?>
+    <div class="tk-campo campo">
+        <label for="codigo">Código de 2 pasos</label>
+        <input type="text" id="codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="20" autofocus>
+        <small>Escribe otra vez tu contraseña y el código de 6 dígitos de tu app (o uno de respaldo).</small>
+    </div>
+    <?php endif; ?>
     <button class="tk-boton boton boton-ancho" type="submit">Entrar</button>
 </form>
 <p>¿Todavía no tienes cuenta? <a href="<?= e(url('registro')) ?>">Solicitar demo</a></p>

@@ -28,6 +28,9 @@ echo
 echo "==================== prueba_central_v2 ===================="
 php tests/prueba_central_v2.php || FALLO=1
 echo
+echo "==================== prueba_super_login (el super usuario entra por el login normal: verificarSuper contra un Panel simulado) ===================="
+php tests/prueba_super_login.php || FALLO=1
+echo
 echo "==================== prueba_gastos_recepcion ===================="
 php tests/prueba_gastos_recepcion.php || FALLO=1
 echo
