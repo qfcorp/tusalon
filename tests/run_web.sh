@@ -7,7 +7,7 @@
 #   tests/prueba_web_modulos.sh (Anexo B: módulos y "todo se pide demo") y tests/prueba_web_ia.sh (IA de Tukán y correo de la demo, con la
 #   API de Anthropic y el SMTP de mentira de tests/falsos/), tests/prueba_web_google_play.sh (cuenta del revisor de Google, modo app
 #   sin pagos por fuera y assetlinks). Con CAPTURAS=<carpeta> también saca las capturas.
-# Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector; pago = solo pagar el plan con tarjeta; ios = solo la app de iPhone)
+# Uso: PGPASSWORD=prueba bash tests/run_web.sh            (o: bash tests/run_web.sh central  para solo el conector; super = solo el ingreso del super usuario por el login; pago = solo pagar el plan con tarjeta; ios = solo la app de iPhone)
 # Requiere PostgreSQL local con el usuario tusalon (clave prueba) que pueda crear bases.
 # Variables opcionales: DB (base de prueba, se borra), PUERTO (sitio principal, 8099), PUERTO_SIM, PUERTO_APAGADA, PUERTO_IA, PUERTO_SMTP y
 # (prueba_web_central.sh) PUERTO_SIN, PUERTO_SOLO y PUERTO_CON (si no, puertos libres al azar; fíjalos si otros procesos comparten la máquina).
@@ -102,6 +102,13 @@ if [ "${1:-}" = "pago" ]; then   # solo pagar el plan con tarjeta desde Mi plan
   [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
   exit "$FALLO"
 fi
+if [ "${1:-}" = "super" ]; then   # solo el ingreso del super usuario por el login normal
+  echo "==================== prueba_web_super_login ===================="
+  bash tests/prueba_web_super_login.sh || FALLO=1
+  if grep -qiE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log; then echo "Avisos de PHP:"; grep -iE "fatal|warning|deprecated|notice" "$TMPW"/servidor*.log | head -20; FALLO=1; fi
+  [ "$FALLO" -eq 0 ] && echo "TODO BIEN" || echo "HAY FALLAS"
+  exit "$FALLO"
+fi
 if [ "${1:-}" != "central" ]; then
   echo "==================== prueba_web ===================="
   bash tests/prueba_web.sh || FALLO=1
@@ -120,6 +127,8 @@ echo; echo "==================== prueba_web_central ===================="
 bash tests/prueba_web_central.sh || FALLO=1
 echo; echo "==================== prueba_web_central_v2 ===================="
 bash tests/prueba_web_central_v2.sh || FALLO=1
+echo; echo "==================== prueba_web_super_login (el super usuario entra por el login normal con su clave y código de 2 pasos; Panel simulado) ===================="
+bash tests/prueba_web_super_login.sh || FALLO=1
 echo; echo "==================== prueba_web_papelera ===================="
 bash tests/prueba_web_papelera.sh || FALLO=1
 if [ "${1:-}" != "central" ]; then

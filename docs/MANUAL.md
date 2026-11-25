@@ -104,3 +104,6 @@ Con este módulo, cada venta cobrada sale como **factura electrónica autorizada
 
 ## App de iPhone
 - App de iPhone: sin precios ni pagos (regla de Apple), se reconoce por TukanIOS.
+
+## Súper usuario
+El súper usuario de Tukán entra por el login normal del programa (también en la app de iPhone) escribiendo su correo, su clave y su código de 2 pasos del Panel Tukán. La clave y el código se revisan en el Panel Tukán; el programa no los guarda.
