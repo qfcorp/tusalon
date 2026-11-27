@@ -18,6 +18,21 @@ final class CuentaCliente
 {
     public function __construct(private PDO $db) {}
 
+    /**
+     * Identificación del cliente según su país (27 nov 2026): en Ecuador, cédula o RUC ecuatoriano válidos; en otro país, la cédula o el RUC
+     * ecuatoriano válido igual se acepta, y si no, un pasaporte o documento del exterior (5 a 13 letras o números). Devuelve el texto limpio.
+     */
+    public static function validarIdentificacion(string $id, string $pais): string
+    {
+        require_once __DIR__ . '/TukanFactura.php';
+        $pais = trim(mb_strtolower(strtr($pais, ['Á' => 'á', 'É' => 'é', 'Í' => 'í', 'Ó' => 'ó', 'Ú' => 'ú'])));
+        $limpio = strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', $id));
+        if (\TukanFactura::identificacionEcuatoriana($limpio)) return $limpio;
+        if ($pais !== '' && !in_array($pais, ['ecuador', 'ec', 'ecu', 'república del ecuador'], true) && preg_match('/^[A-Z0-9]{5,13}$/', $limpio)) return $limpio;
+        throw new RuntimeException($pais === '' || $pais === 'ecuador' ? 'Escribe una cédula o RUC de Ecuador válido (revisa los números).'
+            : 'Escribe el pasaporte o documento del cliente (5 a 13 letras o números), o su cédula o RUC de Ecuador.');
+    }
+
     public function crear(int $salonId, string $nombre, string $telefono, string $email, string $clave, bool $aceptaFotos,
                           ?int $cumpleMes = null, ?int $cumpleDia = null): int
     {

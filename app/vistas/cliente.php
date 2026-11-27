@@ -26,6 +26,28 @@
                 </div>
             </fieldset>
         </div>
+        <div class="fila-campos">
+            <?php $paisCli = (string) ($cliente['pais'] ?? '') ?: 'Ecuador'; $paisesCli = TuSalon\FacturaTukan::PAISES; if (!in_array($paisCli, $paisesCli, true)) $paisesCli[] = $paisCli; ?>
+            <div class="tk-campo campo">
+                <label for="pais"><strong>País</strong> <small>(Ecuador por defecto)</small></label>
+                <select id="pais" name="pais"><?php foreach ($paisesCli as $pc): ?><option value="<?= e($pc) ?>" <?= $pc === $paisCli ? 'selected' : '' ?>><?= e($pc) ?></option><?php endforeach; ?></select>
+            </div>
+            <div class="tk-campo campo">
+                <label for="ciudad">Ciudad <small>(opcional)</small></label>
+                <input type="text" id="ciudad" name="ciudad" value="<?= e($cliente['ciudad'] ?? '') ?>" maxlength="80">
+            </div>
+        </div>
+        <div class="fila-campos">
+            <div class="tk-campo campo">
+                <label for="cedula">Cédula, RUC o pasaporte <small>(para la factura, opcional)</small></label>
+                <input type="text" id="cedula" name="cedula" value="<?= e($cliente['cedula'] ?? '') ?>" maxlength="13">
+            </div>
+            <div class="tk-campo campo">
+                <label for="direccion">Dirección <small>(para la factura, opcional)</small></label>
+                <input type="text" id="direccion" name="direccion" value="<?= e($cliente['direccion'] ?? '') ?>" maxlength="255">
+            </div>
+        </div>
+        <p class="suave" style="margin-top:-6px"><small>Con cédula o RUC ecuatoriano válido siempre se factura con IVA. Con otro país y sin cédula/RUC válido, la factura sale sin IVA.</small></p>
         <div class="tk-campo campo">
             <label for="email">Correo <small>(opcional)</small></label>
             <input type="email" id="email" name="email" value="<?= e($cliente['email']) ?>">

@@ -153,6 +153,15 @@ r=$(post "r=cliente" --data-urlencode "nombre=María López" -d telefono=0987654
 check "Crear cliente" "302 $BASE/?r=clientes" "$r"
 get "r=clientes&q=mar" > /dev/null
 contiene "Buscar cliente por nombre" "$TMP/pag.html" "María López"
+# País y ciudad del cliente (27 nov 2026): Ecuador por defecto, bien visible; el exterior sin cédula válida se factura sin IVA
+get "r=cliente" > /dev/null
+contiene "Ficha del cliente: selector de País con Ecuador marcado" "$TMP/pag.html" '<option value="Ecuador" selected>'
+contiene "Ficha del cliente: campo Ciudad" "$TMP/pag.html" 'name="ciudad"'
+check "El cliente sin país queda en Ecuador" "Ecuador" "$(sql "SELECT pais FROM clientes WHERE salon_id=$SID AND nombre='María López'")"
+r=$(post "r=cliente" --data-urlencode "nombre=Cliente Paraguay" -d telefono=0981112233 -d cedula=PY123456 -d pais=Paraguay --data-urlencode "ciudad=Asunción")
+check "Cliente del exterior con pasaporte: se guarda con país y ciudad" "Paraguay|Asunción|PY123456" "$(sql "SELECT pais||'|'||ciudad||'|'||cedula FROM clientes WHERE salon_id=$SID AND nombre='Cliente Paraguay'")"
+r=$(post "r=cliente" --data-urlencode "nombre=Cliente Mala Cédula" -d telefono=0981112244 -d cedula=1710034064 -d pais=Ecuador)
+check "Cédula inválida con país Ecuador: no se guarda" "0" "$(sql "SELECT count(*) FROM clientes WHERE salon_id=$SID AND nombre='Cliente Mala Cédula'")"
 r=$(post "r=servicios" -d accion=crear --data-urlencode "nombre=Corte degradado" -d precio=8 -d duracion_minutos=40)
 check "Agregar servicio" "1" "$(sql "SELECT count(*) FROM servicios WHERE salon_id=$SID AND nombre='Corte degradado'")"
 

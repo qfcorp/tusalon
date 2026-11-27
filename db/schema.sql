@@ -991,3 +991,10 @@ ALTER TABLE pedidos_demo ADD COLUMN IF NOT EXISTS telefono VARCHAR(30);
 ALTER TABLE pedidos_demo ADD COLUMN IF NOT EXISTS direccion VARCHAR(200);
 UPDATE ajustes SET valor = '3' WHERE clave = 'dias_prueba' AND valor = '7' AND NOT EXISTS (SELECT 1 FROM ajustes WHERE clave = 'demos_3_dias');
 INSERT INTO ajustes (clave, valor) VALUES ('demos_3_dias', '2026-11-10') ON CONFLICT (clave) DO NOTHING;
+
+-- 016 · País y ciudad del cliente (27 nov 2026): regla «exterior = sin IVA» de TuFactura. País (Ecuador por defecto) y ciudad opcional;
+--   y la dirección del cliente (para la factura). Con cédula o RUC ecuatoriano válido siempre se factura con IVA; con otro país y sin
+--   cédula/RUC válido, la factura sale sin IVA. No toca los datos de los clientes que ya existen; se puede correr muchas veces sin dañar nada.
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS pais      VARCHAR(60) NOT NULL DEFAULT 'Ecuador';
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ciudad    VARCHAR(80);
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS direccion VARCHAR(255);
