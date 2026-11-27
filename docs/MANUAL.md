@@ -89,7 +89,7 @@ Con este módulo, cada venta cobrada sale como **factura electrónica autorizada
 - La factura va a nombre de la cédula o el RUC del cliente. Si no los tiene, va a consumidor final.
 - El total es exactamente lo que cobraste. Cuando la cuenta del SRI no lo permite, queda 1 centavo menos.
 - El mismo cobro nunca se factura dos veces.
-- Clientes del exterior (país, ciudad o dirección que no es Ecuador): la factura sale sin IVA.
+- Datos del cliente: país (Ecuador por defecto) y ciudad. Con cédula o RUC ecuatoriano válido siempre se factura con IVA; con otro país y sin cédula/RUC válido, la factura y el cobro Plux salen sin IVA.
 - El PDF autorizado se baja con un toque.
 
 

@@ -140,6 +140,44 @@ check('Exterior: viajan país y ciudad', 'Paraguay/Asunción', ($extExt['cliente
 $extExt2 = $tfExt->armar(['precios_con_iva' => 0, 'iva' => 15], 'venta', '3', ['identificacion' => 'AB1', 'nombre' => 'C', 'direccion' => 'Madrid, España'], [['descripcion' => 'X', 'precio' => 50, 'iva' => 15]]);
 check('Exterior: dirección de España, línea con 15 % sale a 0 %', 0, $extExt2['items'][0]['iva']);
 
+// Regla v2 (27 nov 2026): la cédula o el RUC ecuatoriano válido PREVALECE sobre el país; país y ciudad del cliente viajan a TuFactura
+foreach ([
+    [['identificacion' => '1710034065', 'pais' => 'Paraguay'], false, 'cédula válida + Paraguay => con IVA'],
+    [['identificacion' => '1710034064', 'pais' => 'Paraguay'], true, 'cédula inválida + Paraguay => sin IVA'],
+    [['identificacion' => '1710034065001', 'direccion' => 'Madrid, España'], false, 'RUC válido + dirección de España => con IVA'],
+    [['pais' => 'Ecuador', 'direccion' => 'Asunción, Paraguay'], false, 'país Ecuador con dirección extranjera => con IVA'],
+    [['identificacion' => 'AB123456', 'tipo_id' => '08'], true, 'pasaporte sin país => sin IVA'],
+    [['identificacion' => 'AB123456', 'tipo_id' => '08', 'pais' => 'Ecuador'], false, 'pasaporte con país Ecuador => con IVA'],
+] as [$cv2, $espV2, $queV2]) check('Exterior v2: ' . $queV2, $espV2, \TukanFactura::esExterior($cv2));
+foreach ([
+    [['cedula' => '1710034065'], '05'], [['ruc' => '1790016919001', 'cedula' => '1710034065'], '04'], [['cedula' => 'AB123456'], '08'], [[], ''],
+] as [$fv2, $tipoV2]) check('Cliente para TuFactura: tipo_id de ' . json_encode($fv2), $tipoV2, FacturaTukan::clienteTukan($fv2)['tipo_id']);
+check('Cliente nuevo: el país queda en Ecuador por defecto', true, str_contains((string) $db->query("SELECT column_default FROM information_schema.columns WHERE table_name = 'clientes' AND column_name = 'pais'")->fetchColumn(), "'Ecuador'"));
+check('La migración se puede correr dos veces', true, $db->exec(file_get_contents(glob(RAIZ . '/db/migraciones/*_cliente_pais_ciudad.sql')[0])) !== false);
+check('El cliente de antes quedó con país Ecuador y sin ciudad', 'Ecuador|', (string) $db->query("SELECT pais || '|' || COALESCE(ciudad, '') FROM clientes WHERE id = $cliente")->fetchColumn());
+// Con la base: el cliente que arma datos() trae identificacion, tipo_id, país, ciudad y dirección, y el armado decide el IVA
+$insCli = fn(array $c) => (function () use ($db, $sid, $c) { $db->prepare('INSERT INTO clientes (salon_id, nombre, cedula, pais, ciudad) VALUES (?, ?, ?, ?, ?)')->execute([$sid, $c[0], $c[1], $c[2], $c[3]]); return (int) $db->lastInsertId(); })();
+$tfV2 = new \TukanFactura(new PDO('sqlite::memory:'), str_repeat('k', 32), 'Prueba');
+$conV2 = ['precios_con_iva' => 1, 'iva' => 15];
+foreach ([
+    ['Cédula válida + Paraguay', ['Luis Vera', '3010034068', 'Paraguay', 'Asunción'], 15],
+    ['Cédula inválida + Paraguay', ['Luis Vera', '1710034064', 'Paraguay', 'Asunción'], 0],
+    ['Pasaporte, país Colombia', ['Ana Gil', 'AB123456', 'Colombia', 'Bogotá'], 0],
+    ['Pasaporte, país Ecuador', ['Ana Gil', 'AB123457', 'Ecuador', 'Quito'], 15],
+] as [$quien, $dc, $ivaEsp]) {
+    $cv = $insCli($dc);
+    $vv = $cobrar($cv, 23);
+    [$cliD, $itemsD, $extraD] = FacturaTukan::datos($sid, (string) $vv);
+    $envD = $tfV2->armar($conV2, 'venta', (string) $vv, $cliD, $itemsD, $extraD);
+    check("datos(): $quien => IVA de la línea", $ivaEsp, $envD['items'][0]['iva']);
+    check("datos(): $quien => viajan identificacion, país y ciudad", $dc[1] . '/' . $dc[2] . '/' . $dc[3], $cliD['identificacion'] . '/' . $cliD['pais'] . '/' . $cliD['ciudad']);
+}
+// Alta/edición: la identificación se valida según el país
+foreach ([['1710034065', 'Ecuador', true], ['1710034064', 'Ecuador', false], ['AB123456', 'Ecuador', false], ['AB123456', 'Paraguay', true], ['1710034064', 'Paraguay', true], ['A1', 'Paraguay', false]] as [$idV, $paisV, $valV]) {
+    try { \TuSalon\CuentaCliente::validarIdentificacion($idV, $paisV); $res = true; } catch (RuntimeException $e) { $res = false; }
+    check("Alta de cliente: «{$idV}» con país {$paisV} " . ($valV ? 'se acepta' : 'se rechaza'), $valV, $res);
+}
+
 proc_terminate($proc);
 array_map('unlink', glob("$simDir/*") ?: []);
 @rmdir($simDir);

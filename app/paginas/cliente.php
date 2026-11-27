@@ -2,7 +2,7 @@
 $sid = (int) $u['salon_id'];
 $pdo = db();
 $id = (int) ($_GET['id'] ?? 0);
-$cliente = ['nombre' => '', 'telefono' => '', 'email' => '', 'cumple_mes' => null, 'cumple_dia' => null, 'alergias' => '', 'notas' => ''];
+$cliente = ['nombre' => '', 'telefono' => '', 'email' => '', 'cedula' => '', 'pais' => 'Ecuador', 'ciudad' => '', 'direccion' => '', 'cumple_mes' => null, 'cumple_dia' => null, 'alergias' => '', 'notas' => ''];
 if ($id) {
     $st = $pdo->prepare('SELECT * FROM clientes WHERE id = ? AND salon_id = ? AND profesional_privado_id IS NULL');
     $st->execute([$id, $sid]);
@@ -25,10 +25,15 @@ if (es_post()) {
     foreach (['nombre', 'telefono', 'email', 'alergias', 'notas'] as $k) {
         $cliente[$k] = trim((string) ($_POST[$k] ?? ''));
     }
+    foreach (['cedula', 'ciudad', 'direccion'] as $k) $cliente[$k] = trim((string) ($_POST[$k] ?? ''));
+    $cliente['ciudad'] = mb_substr($cliente['ciudad'], 0, 80);
+    $cliente['direccion'] = mb_substr($cliente['direccion'], 0, 255);
+    $cliente['pais'] = mb_substr(trim((string) ($_POST['pais'] ?? '')), 0, 60) ?: 'Ecuador';
     $cliente['cumple_mes'] = (int) ($_POST['cumple_mes'] ?? 0) ?: null;
     $cliente['cumple_dia'] = (int) ($_POST['cumple_dia'] ?? 0) ?: null;
     try {
         TuSalon\CuentaCliente::validarCumple($cliente['cumple_mes'], $cliente['cumple_dia']);
+        if ($cliente['cedula'] !== '') $cliente['cedula'] = TuSalon\CuentaCliente::validarIdentificacion($cliente['cedula'], $cliente['pais']);
         $errorCumple = null;
     } catch (RuntimeException $e) {
         $errorCumple = $e->getMessage();
@@ -41,14 +46,16 @@ if (es_post()) {
         $error = 'El correo no es válido.';
     } else {
         $vals = [$cliente['nombre'], $cliente['telefono'] ?: null, $cliente['email'] ?: null,
-                 $cliente['cumple_mes'], $cliente['cumple_dia'], $cliente['alergias'] ?: null, $cliente['notas'] ?: null];
+                 $cliente['cumple_mes'], $cliente['cumple_dia'], $cliente['alergias'] ?: null, $cliente['notas'] ?: null,
+                 $cliente['cedula'] ?: null, $cliente['pais'], $cliente['ciudad'] ?: null, $cliente['direccion'] ?: null];
         if ($id) {
-            $pdo->prepare('UPDATE clientes SET nombre=?, telefono=?, email=?, cumple_mes=?, cumple_dia=?, alergias=?, notas=?
+            $pdo->prepare('UPDATE clientes SET nombre=?, telefono=?, email=?, cumple_mes=?, cumple_dia=?, alergias=?, notas=?,
+                              cedula=?, pais=?, ciudad=?, direccion=?
                             WHERE id = ? AND salon_id = ?')->execute(array_merge($vals, [$id, $sid]));
             aviso('Cliente guardado.');
         } else {
-            $pdo->prepare('INSERT INTO clientes (nombre, telefono, email, cumple_mes, cumple_dia, alergias, notas, salon_id)
-                           VALUES (?,?,?,?,?,?,?,?)')->execute(array_merge($vals, [$sid]));
+            $pdo->prepare('INSERT INTO clientes (nombre, telefono, email, cumple_mes, cumple_dia, alergias, notas, cedula, pais, ciudad, direccion, salon_id)
+                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')->execute(array_merge($vals, [$sid]));
             aviso('Cliente creado.');
         }
         redirigir('clientes');

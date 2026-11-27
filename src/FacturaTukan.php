@@ -23,6 +23,10 @@ final class FacturaTukan
     public const ORIGEN = 'venta';
     private static array $columnas = [];
 
+    /** Países del selector de «País» del cliente (Ecuador primero; «Otro país» para el que no esté). */
+    public const PAISES = ['Ecuador', 'Argentina', 'Bolivia', 'Brasil', 'Canadá', 'Chile', 'China', 'Colombia', 'Costa Rica', 'Cuba', 'El Salvador', 'España', 'Estados Unidos', 'Francia',
+        'Alemania', 'Guatemala', 'Honduras', 'Italia', 'México', 'Nicaragua', 'Panamá', 'Paraguay', 'Perú', 'Portugal', 'Puerto Rico', 'Reino Unido', 'República Dominicana', 'Uruguay', 'Venezuela', 'Otro país'];
+
     private static ?PDO $pdo = null;
 
     /** La base que se usa (la del pedido; en las tareas y pruebas, la que se pasa en alCobrar). */
@@ -62,7 +66,9 @@ final class FacturaTukan
         if (!ctype_digit($ventaId)) return null;
         $ruc = self::hay('clientes', 'ruc') ? 'c.ruc' : 'NULL';
         $dir = self::hay('clientes', 'direccion') ? 'c.direccion' : 'NULL';
-        $st = self::db()->prepare("SELECT v.*, c.nombre AS c_nombre, c.cedula AS c_cedula, $ruc AS c_ruc, c.email AS c_email, c.telefono AS c_telefono, $dir AS c_direccion
+        $pais = self::hay('clientes', 'pais') ? 'c.pais' : 'NULL';
+        $ciudad = self::hay('clientes', 'ciudad') ? 'c.ciudad' : 'NULL';
+        $st = self::db()->prepare("SELECT v.*, c.nombre AS c_nombre, c.cedula AS c_cedula, $ruc AS c_ruc, c.email AS c_email, c.telefono AS c_telefono, $dir AS c_direccion, $pais AS c_pais, $ciudad AS c_ciudad
                                FROM ventas v LEFT JOIN clientes c ON c.id = v.cliente_id WHERE v.id = ? AND v.salon_id = ? AND NOT v.anulada");
         $st->execute([(int) $ventaId, $negocio]);
         $v = $st->fetch(PDO::FETCH_ASSOC);
@@ -76,9 +82,26 @@ final class FacturaTukan
         foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $i) {
             $items[] = ['descripcion' => $i['concepto'] ?: ($i['servicio'] ?: ($i['producto'] ?: 'Servicio')), 'cantidad' => (float) $i['cantidad'], 'precio' => (float) $i['precio_unitario']];
         }
-        $ident = trim((string) ($v['c_ruc'] ?: $v['c_cedula']));
-        $cliente = ['identificacion' => $ident, 'nombre' => (string) $v['c_nombre'], 'correo' => (string) $v['c_email'], 'telefono' => (string) $v['c_telefono'], 'direccion' => (string) $v['c_direccion']];
+        $cliente = self::clienteTukan(['ruc' => $v['c_ruc'], 'cedula' => $v['c_cedula'], 'nombre' => $v['c_nombre'], 'email' => $v['c_email'], 'telefono' => $v['c_telefono'],
+            'direccion' => $v['c_direccion'], 'pais' => $v['c_pais'], 'ciudad' => $v['c_ciudad']]);
         return [$cliente, $items, ['forma' => (string) $v['metodo_pago'], 'info' => [self::PROGRAMA => 'Cobro #' . $v['id']]]];
+    }
+
+    /**
+     * El cliente como lo pide TuFactura (regla exterior = sin IVA, 27 nov 2026): identificacion, tipo_id (04 RUC, 05 cédula, 08 pasaporte o
+     * identificación del exterior), pais, ciudad y direccion. La cédula o el RUC ecuatoriano válido siempre lleva IVA; sin ellos, un país
+     * que no es Ecuador (o pasaporte sin país) sale sin IVA. $f: ruc, cedula, nombre, email, telefono, direccion, pais, ciudad.
+     */
+    public static function clienteTukan(array $f): array
+    {
+        $ident = trim((string) (($f['ruc'] ?? '') ?: ($f['cedula'] ?? '')));
+        $limpio = (string) preg_replace('/[\s.-]+/', '', $ident);
+        if ($limpio === '') $tipo = '';
+        elseif (ctype_digit($limpio) && strlen($limpio) === 13) $tipo = '04';
+        elseif (ctype_digit($limpio) && strlen($limpio) === 10) $tipo = '05';
+        else $tipo = '08';
+        return ['identificacion' => $ident, 'tipo_id' => $tipo, 'nombre' => (string) ($f['nombre'] ?? ''), 'correo' => (string) ($f['email'] ?? ''), 'telefono' => (string) ($f['telefono'] ?? ''),
+            'direccion' => (string) ($f['direccion'] ?? ''), 'pais' => trim((string) ($f['pais'] ?? '')), 'ciudad' => trim((string) ($f['ciudad'] ?? ''))];
     }
 
     /** Los últimos cobros para facturar a mano: [id, fecha, cliente, total, detalle]. */
