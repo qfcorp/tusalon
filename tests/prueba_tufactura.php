@@ -118,6 +118,28 @@ $v4 = $cobrar(null, 8);
 check('Apagado: ya no factura solo', null, $tf->deOrigen($sid, 'venta', (string) $v4));
 check('Apagado: las facturas hechas se quedan', 2, count($tf->lista($sid)));
 
+// Venta al exterior = sin IVA (27 nov 2026): la regla y el armado del enlace (copia de tufactura/docs/enlace/TukanFactura.php)
+foreach ([
+    [['pais' => 'Ecuador'], false], [['pais' => 'ec'], false], [['pais' => 'Paraguay'], true],
+    [['pais' => 'Ecuador', 'direccion' => 'Asunción, Paraguay'], false],
+    [['ciudad' => 'Asunción', 'direccion' => 'Av. Mariscal López 123, Paraguay'], true],
+    [['direccion' => 'Madrid, España'], true], [['direccion' => 'Guayaquil, Ecuador'], false],
+    [['direccion' => 'Av. Colombia y Peru, Quito, Ecuador'], false], [['direccion' => 'Av. Amazonas y Colón, Quito'], false],
+    [[], false], [['tipo_id' => '08'], true], [['tipo_id' => '08', 'direccion' => 'Cuenca, Ecuador'], false],
+] as [$cliExt, $espExt]) check('Exterior: ' . json_encode($cliExt, JSON_UNESCAPED_UNICODE), $espExt, \TukanFactura::esExterior($cliExt));
+$tfExt = new \TukanFactura(new PDO('sqlite::memory:'), str_repeat('k', 32), 'Prueba');
+$conExt = ['precios_con_iva' => 1, 'iva' => 15];
+$itemsExt = [['descripcion' => 'Servicio', 'cantidad' => 1, 'precio' => 115], ['descripcion' => 'Extra', 'cantidad' => 2, 'precio' => 10, 'iva' => 15]];
+$locExt = $tfExt->armar($conExt, 'venta', '1', ['identificacion' => '1710034065', 'nombre' => 'Ana', 'direccion' => 'Quito'], $itemsExt);
+check('Exterior: cliente de Ecuador sigue con 15 %', 15, $locExt['items'][0]['iva']);
+$extExt = $tfExt->armar($conExt, 'venta', '2', ['identificacion' => 'PY1234567', 'nombre' => 'Federación', 'pais' => 'Paraguay', 'ciudad' => 'Asunción'], $itemsExt);
+check('Exterior: Paraguay, línea 1 a 0 %', 0, $extExt['items'][0]['iva']);
+check('Exterior: Paraguay, línea 2 (traía 15 %) a 0 %', 0, $extExt['items'][1]['iva']);
+check('Exterior: Paraguay, no se le quita IVA al precio (total = lo cobrado)', 115.0, (float) $extExt['items'][0]['precio']);
+check('Exterior: viajan país y ciudad', 'Paraguay/Asunción', ($extExt['cliente']['pais'] ?? '') . '/' . ($extExt['cliente']['ciudad'] ?? ''));
+$extExt2 = $tfExt->armar(['precios_con_iva' => 0, 'iva' => 15], 'venta', '3', ['identificacion' => 'AB1', 'nombre' => 'C', 'direccion' => 'Madrid, España'], [['descripcion' => 'X', 'precio' => 50, 'iva' => 15]]);
+check('Exterior: dirección de España, línea con 15 % sale a 0 %', 0, $extExt2['items'][0]['iva']);
+
 proc_terminate($proc);
 array_map('unlink', glob("$simDir/*") ?: []);
 @rmdir($simDir);
